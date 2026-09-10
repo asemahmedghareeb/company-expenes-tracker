@@ -8,6 +8,7 @@ import {
   type ActionResult,
   zodFieldErrors,
 } from "@/lib/validations";
+import { normalizeShares } from "@/lib/shares";
 
 /** Add a new partner. */
 export async function addPartner(
@@ -97,6 +98,36 @@ export async function setPartnerActive(
 }
 
 /**
+ * Hard-delete a partner — ONLY when they have zero financial history
+ * (no project splits, no paid expenses, no drawings). Otherwise returns
+ * the `HAS_HISTORY` code so the UI can suggest deactivation instead.
+ * This protects historic ledgers from ever being corrupted.
+ */
+export async function deletePartner(
+  id: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const [splits, expenses, drawings] = await Promise.all([
+      db.projectPartner.count({ where: { partnerId: id } }),
+      db.projectExpense.count({ where: { paidByPartnerId: id } }),
+      db.partnerDrawing.count({ where: { partnerId: id } }),
+    ]);
+    if (splits + expenses + drawings > 0) {
+      return { ok: false, error: "HAS_HISTORY" };
+    }
+    await db.partner.delete({ where: { id } });
+    revalidatePath("/partners");
+    revalidatePath("/");
+    return { ok: true, data: { id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to delete partner.",
+    };
+  }
+}
+
+/**
  * Update GLOBAL default splits. Must sum to 100 (Zod-enforced).
  * Historic ProjectPartner rows are NEVER touched here — only future
  * projects copy these defaults at creation time.
@@ -115,11 +146,13 @@ export async function updateDefaultSplits(
     };
   }
   try {
+    // Normalize rounding dust (e.g. 33.33×3) so stored rows sum to exactly 100.
+    const shares = normalizeShares(parsed.data.map((r) => r.sharePercentage));
     await db.$transaction(
-      parsed.data.map((row) =>
+      parsed.data.map((row, i) =>
         db.partner.update({
           where: { id: row.partnerId },
-          data: { defaultSharePercentage: row.sharePercentage },
+          data: { defaultSharePercentage: shares[i] ?? row.sharePercentage },
         }),
       ),
     );

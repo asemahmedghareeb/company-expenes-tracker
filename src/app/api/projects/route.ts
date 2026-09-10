@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createProjectSchema, updateProjectSplitsSchema } from "@/lib/validations";
+import { normalizeShares } from "@/lib/shares";
 
 export async function GET() {
   const projects = await db.project.findMany({
@@ -20,6 +21,7 @@ export async function POST(req: Request) {
     );
   }
   const { name, description, contractValue, status, splits } = parsed.data;
+  const shares = normalizeShares(splits.map((s) => s.sharePercentage));
   const project = await db.project.create({
     data: {
       name,
@@ -27,9 +29,9 @@ export async function POST(req: Request) {
       contractValue,
       status,
       projectPartners: {
-        create: splits.map((s) => ({
+        create: splits.map((s, i) => ({
           partnerId: s.partnerId,
-          sharePercentage: s.sharePercentage,
+          sharePercentage: shares[i] ?? s.sharePercentage,
         })),
       },
     },
@@ -49,13 +51,14 @@ export async function PUT(req: Request) {
     );
   }
   const { projectId, splits } = parsed.data;
+  const shares = normalizeShares(splits.map((s) => s.sharePercentage));
   await db.$transaction([
     db.projectPartner.deleteMany({ where: { projectId } }),
     db.projectPartner.createMany({
-      data: splits.map((s) => ({
+      data: splits.map((s, i) => ({
         projectId,
         partnerId: s.partnerId,
-        sharePercentage: s.sharePercentage,
+        sharePercentage: shares[i] ?? s.sharePercentage,
       })),
     }),
   ]);

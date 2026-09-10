@@ -4,17 +4,26 @@ import { cn } from "@/lib/utils";
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => (
-    <input
-      type={type}
-      ref={ref}
-      className={cn(
-        "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-        className,
-      )}
-      {...props}
-    />
-  ),
+  ({ className, type, inputMode, ...props }, ref) => {
+    // Project convention: numeric fields are TYPING-ONLY.
+    // Native `type="number"` brings spinner arrows, wheel-stepping and
+    // up/down-key stepping that fight manual entry, so every numeric
+    // field renders as text with a decimal keypad instead. Values are
+    // parsed with Number() by callers and validated by Zod on submit.
+    const isNumeric = type === "number";
+    return (
+      <input
+        type={isNumeric ? "text" : type}
+        inputMode={inputMode ?? (isNumeric ? "decimal" : undefined)}
+        ref={ref}
+        className={cn(
+          "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
 );
 Input.displayName = "Input";
 

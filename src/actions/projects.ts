@@ -9,6 +9,7 @@ import {
   type ActionResult,
   zodFieldErrors,
 } from "@/lib/validations";
+import { normalizeShares } from "@/lib/shares";
 
 /**
  * Create a project + snapshot its equity into ProjectPartner.
@@ -39,6 +40,7 @@ export async function createProject(
   }
 
   try {
+    const shares = normalizeShares(splits.map((s) => s.sharePercentage));
     const project = await db.project.create({
       data: {
         name,
@@ -46,9 +48,9 @@ export async function createProject(
         contractValue,
         status,
         projectPartners: {
-          create: splits.map((s) => ({
+          create: splits.map((s, i) => ({
             partnerId: s.partnerId,
-            sharePercentage: s.sharePercentage,
+            sharePercentage: shares[i] ?? s.sharePercentage,
           })),
         },
       },
@@ -137,13 +139,14 @@ export async function updateProjectSplits(
   }
 
   try {
+    const shares = normalizeShares(splits.map((s) => s.sharePercentage));
     await db.$transaction([
       db.projectPartner.deleteMany({ where: { projectId } }),
       db.projectPartner.createMany({
-        data: splits.map((s) => ({
+        data: splits.map((s, i) => ({
           projectId,
           partnerId: s.partnerId,
-          sharePercentage: s.sharePercentage,
+          sharePercentage: shares[i] ?? s.sharePercentage,
         })),
       }),
     ]);

@@ -54,6 +54,12 @@ export interface Dictionary {
     noRows: string;
     deactivate: string;
     reactivate: string;
+    edit: string;
+    delete: string;
+    deleteConfirm: string;
+    deleting: string;
+    cancel: string;
+    deleteHasHistory: string;
   };
   partnerForm: {
     name: string;
@@ -68,6 +74,7 @@ export interface Dictionary {
   splits: {
     total: (total: string, valid: boolean) => string;
     inactive: string;
+    equal: string;
   };
   defaultsForm: { save: string; saving: string };
   /* ------------------------------ Projects ------------------------------ */
@@ -270,6 +277,13 @@ export const dict: Record<Lang, Dictionary> = {
       noRows: "No partners yet — add your first above.",
       deactivate: "Deactivate",
       reactivate: "Reactivate",
+      edit: "Edit",
+      delete: "Delete",
+      deleteConfirm: "Click again to confirm deletion",
+      deleting: "Deleting…",
+      cancel: "Cancel",
+      deleteHasHistory:
+        "Cannot delete: this partner has projects, expenses or drawings on record. Deactivate them instead.",
     },
     partnerForm: {
       name: "Name",
@@ -285,6 +299,7 @@ export const dict: Record<Lang, Dictionary> = {
       total: (total, valid) =>
         `Total: ${total}% ${valid ? "✓ sums to 100%" : "— must sum to exactly 100%"}`,
       inactive: "(inactive)",
+      equal: "Split equally",
     },
     defaultsForm: { save: "Update global defaults", saving: "Saving…" },
     projectsPage: {
@@ -486,6 +501,13 @@ export const dict: Record<Lang, Dictionary> = {
       noRows: "لا يوجد شركاء بعد — أضف الأول أعلاه.",
       deactivate: "إلغاء التفعيل",
       reactivate: "إعادة التفعيل",
+      edit: "تعديل",
+      delete: "حذف",
+      deleteConfirm: "اضغط مرة أخرى لتأكيد الحذف",
+      deleting: "جارٍ الحذف…",
+      cancel: "إلغاء",
+      deleteHasHistory:
+        "لا يمكن الحذف: لهذا الشريك مشاريع أو مصاريف أو مسحوبات مسجلة. استخدم إلغاء التفعيل بدلًا من ذلك.",
     },
     partnerForm: {
       name: "الاسم",
@@ -501,6 +523,7 @@ export const dict: Record<Lang, Dictionary> = {
       total: (total, valid) =>
         `الإجمالي: ${total}% ${valid ? "✓ يساوي 100%" : "— يجب أن يساوي 100% بالضبط"}`,
       inactive: "(غير نشط)",
+      equal: "توزيع بالتساوي",
     },
     defaultsForm: { save: "تحديث القيم الافتراضية العامة", saving: "جارٍ الحفظ…" },
     projectsPage: {

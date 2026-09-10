@@ -1,10 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { dict } from "@/lib/dict";
 import type { Lang } from "@/lib/format";
+import {
+  equalSplit,
+  formatShareInput,
+  sharesSumTo100,
+} from "@/lib/shares";
 
 export interface SplitRow {
   partnerId: string;
@@ -24,10 +31,57 @@ export function SplitsEditor({
 }) {
   const t = dict[lang].splits;
   const total = rows.reduce((a, r) => a + (Number(r.sharePercentage) || 0), 0);
-  const valid = Math.abs(total - 100) < 0.01;
+  const valid = sharesSumTo100(rows.map((r) => r.sharePercentage));
+
+  /**
+   * Free-typing drafts: the input shows the raw typed text (so clearing
+   * the field or typing partial decimals like "33." works naturally),
+   * while only valid numbers propagate to the parent rows for the total.
+   */
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  function splitEqually() {
+    const shares = equalSplit(rows.length);
+    setDrafts({});
+    onChange(rows.map((r, i) => ({ ...r, sharePercentage: shares[i] ?? 0 })));
+  }
+
+  function handleType(row: SplitRow, raw: string) {
+    setDrafts((d) => ({ ...d, [row.partnerId]: raw }));
+    const trimmed = raw.trim();
+    const n = Number(trimmed);
+    if (trimmed !== "" && Number.isFinite(n)) {
+      onChange(
+        rows.map((r) =>
+          r.partnerId === row.partnerId ? { ...r, sharePercentage: n } : r,
+        ),
+      );
+    } else if (trimmed === "") {
+      // Empty field counts as 0 toward the total until typing resumes.
+      onChange(
+        rows.map((r) =>
+          r.partnerId === row.partnerId ? { ...r, sharePercentage: 0 } : r,
+        ),
+      );
+    }
+  }
+
+  function commitDraft(partnerId: string) {
+    setDrafts((d) => {
+      if (!(partnerId in d)) return d;
+      const rest = { ...d };
+      delete rest[partnerId];
+      return rest;
+    });
+  }
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button type="button" variant="outline" size="sm" onClick={splitEqually}>
+          ⚖ {t.equal}
+        </Button>
+      </div>
       {rows.map((row) => (
         <div key={row.partnerId} className="flex items-center gap-3">
           <div className="flex-1">
@@ -39,19 +93,9 @@ export function SplitsEditor({
           <div className="flex w-32 items-center gap-1">
             <Input
               type="number"
-              min={0}
-              max={100}
-              step={0.01}
-              value={row.sharePercentage}
-              onChange={(e) =>
-                onChange(
-                  rows.map((r) =>
-                    r.partnerId === row.partnerId
-                      ? { ...r, sharePercentage: Number(e.target.value) }
-                      : r,
-                  ),
-                )
-              }
+              value={drafts[row.partnerId] ?? formatShareInput(row.sharePercentage)}
+              onChange={(e) => handleType(row, e.target.value)}
+              onBlur={() => commitDraft(row.partnerId)}
               className="text-end"
             />
             <span className="text-sm text-muted-foreground">%</span>

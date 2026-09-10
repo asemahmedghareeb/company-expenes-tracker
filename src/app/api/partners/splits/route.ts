@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { defaultSplitsSchema } from "@/lib/validations";
+import { normalizeShares } from "@/lib/shares";
 
 export async function PUT(req: Request) {
   const body = await req.json();
@@ -13,11 +14,12 @@ export async function PUT(req: Request) {
       { status: 400 },
     );
   }
+  const shares = normalizeShares(parsed.data.map((r) => r.sharePercentage));
   await db.$transaction(
-    parsed.data.map((row) =>
+    parsed.data.map((row, i) =>
       db.partner.update({
         where: { id: row.partnerId },
-        data: { defaultSharePercentage: row.sharePercentage },
+        data: { defaultSharePercentage: shares[i] ?? row.sharePercentage },
       }),
     ),
   );

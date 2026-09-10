@@ -9,6 +9,7 @@ import { SplitsEditor, type SplitRow } from "./splits-editor";
 import { createProject } from "@/actions/projects";
 import { dict } from "@/lib/dict";
 import type { Lang } from "@/lib/format";
+import { normalizeShares, sharesSumTo100 } from "@/lib/shares";
 
 export function ProjectForm({
   partners,
@@ -34,19 +35,20 @@ export function ProjectForm({
     setError(null);
     const fd = new FormData(e.currentTarget);
     const total = rows.reduce((a, r) => a + (Number(r.sharePercentage) || 0), 0);
-    if (Math.abs(total - 100) >= 0.01) {
+    if (!sharesSumTo100(rows.map((r) => r.sharePercentage))) {
       setError(t.splitsError(total.toFixed(2)));
       return;
     }
+    const shares = normalizeShares(rows.map((r) => Number(r.sharePercentage) || 0));
     start(async () => {
       const res = await createProject({
         name: String(fd.get("name") ?? ""),
         description: String(fd.get("description") ?? ""),
         contractValue: Number(fd.get("contractValue") ?? 0),
         status: String(fd.get("status") ?? "ACTIVE"),
-        splits: rows.map((r) => ({
+        splits: rows.map((r, i) => ({
           partnerId: r.partnerId,
-          sharePercentage: Number(r.sharePercentage) || 0,
+          sharePercentage: shares[i] ?? 0,
         })),
       });
       if (!res.ok) setError(res.error);

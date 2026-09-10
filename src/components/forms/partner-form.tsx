@@ -12,6 +12,7 @@ import type { Lang } from "@/lib/format";
 export function PartnerForm({
   initial,
   lang,
+  onDone,
 }: {
   initial?: {
     id: string;
@@ -21,6 +22,7 @@ export function PartnerForm({
     isActive: boolean;
   };
   lang: Lang;
+  onDone?: () => void;
 }) {
   const t = dict[lang].partnerForm;
   const router = useRouter();
@@ -42,7 +44,10 @@ export function PartnerForm({
         ? await editPartner(initial.id, payload)
         : await addPartner(payload);
       if (!res.ok) setError(res.error);
-      else router.refresh();
+      else {
+        router.refresh();
+        onDone?.();
+      }
     });
   }
 

@@ -73,3 +73,15 @@ body {
 .font-arabic {
   font-family: var(--font-cairo), var(--font-geist-sans), Arial, sans-serif;
 }
+
+/* Numeric fields are type-only: hide native spinner arrows/wheels
+   (Chrome/Safari + Firefox) so values are entered by typing. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

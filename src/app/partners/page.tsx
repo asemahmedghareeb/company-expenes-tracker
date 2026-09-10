@@ -5,7 +5,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -17,9 +16,9 @@ import {
 import { PartnerForm } from "@/components/forms/partner-form";
 import { DefaultSplitsForm } from "@/components/forms/default-splits-form";
 import { getPartners } from "@/actions/queries";
-import { formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
-import { SetActiveButton } from "./partner-buttons";
+import { sharesSumTo100 } from "@/lib/shares";
+import { PartnerRow } from "./partner-buttons";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +35,9 @@ export default async function PartnersPage() {
 
   const active = partners.filter((p) => p.isActive);
   const total = active.reduce((a, p) => a + p.defaultSharePercentage, 0);
-  const sumOk = Math.abs(total - 100) < 0.01 || active.length === 0;
+  const sumOk =
+    active.length === 0 ||
+    sharesSumTo100(active.map((p) => p.defaultSharePercentage));
 
   return (
     <div className="space-y-6">
@@ -97,19 +98,7 @@ export default async function PartnersPage() {
             </TableHeader>
             <TableBody>
               {partners.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.email ?? "—"}</TableCell>
-                  <TableCell className="text-end">{formatPct(p.defaultSharePercentage)}</TableCell>
-                  <TableCell>
-                    <Badge variant={p.isActive ? "success" : "secondary"}>
-                      {p.isActive ? t.active : t.inactive}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-end">
-                    <SetActiveButton id={p.id} isActive={p.isActive} lang={lang} />
-                  </TableCell>
-                </TableRow>
+                <PartnerRow key={p.id} partner={p} lang={lang} />
               ))}
               {partners.length === 0 && (
                 <TableRow>

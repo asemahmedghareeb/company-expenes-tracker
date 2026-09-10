@@ -7,6 +7,7 @@ import { SplitsEditor, type SplitRow } from "./splits-editor";
 import { updateDefaultSplits } from "@/actions/partners";
 import { dict } from "@/lib/dict";
 import type { Lang } from "@/lib/format";
+import { normalizeShares, sharesSumTo100 } from "@/lib/shares";
 
 export function DefaultSplitsForm({
   initial,
@@ -23,16 +24,16 @@ export function DefaultSplitsForm({
     initial.map((r) => ({ ...r, active: true })),
   );
 
-  const total = rows.reduce((a, r) => a + (Number(r.sharePercentage) || 0), 0);
-  const valid = Math.abs(total - 100) < 0.01;
+  const valid = sharesSumTo100(rows.map((r) => r.sharePercentage));
 
   function save() {
     setError(null);
     start(async () => {
+      const shares = normalizeShares(rows.map((r) => Number(r.sharePercentage) || 0));
       const res = await updateDefaultSplits(
-        rows.map((r) => ({
+        rows.map((r, i) => ({
           partnerId: r.partnerId,
-          sharePercentage: Number(r.sharePercentage) || 0,
+          sharePercentage: shares[i] ?? 0,
         })),
       );
       if (!res.ok) setError(res.error);

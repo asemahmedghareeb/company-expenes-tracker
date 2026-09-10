@@ -1,19 +1,19 @@
 import { z } from "zod";
+import {
+  EQUITY_TOLERANCE,
+  EQUITY_TOTAL,
+  sharesSumTo100,
+} from "./shares";
 
 /**
  * ------------------------------------------------------------------
- * Shared helpers — equity must ALWAYS sum to exactly 100%.
- * A tiny epsilon (0.01) absorbs binary floating-point noise
- * (e.g. 33.33 + 33.33 + 33.34), while still rejecting real errors.
+ * Equity validation — stored data must ALWAYS sum to exactly 100%.
+ * The tolerance below only absorbs 2-decimal rounding dust (e.g. a user
+ * typing 33.33 three times); save paths run normalizeShares() so what
+ * actually lands in the DB sums to exactly 100. Real errors still fail.
  * ------------------------------------------------------------------
  */
-export const EQUITY_TOTAL = 100;
-const EQUITY_EPSILON = 0.01;
-
-export function sharesSumTo100(shares: number[]): boolean {
-  const total = shares.reduce((a, b) => a + b, 0);
-  return Math.abs(total - EQUITY_TOTAL) < EQUITY_EPSILON;
-}
+export { EQUITY_TOTAL, EQUITY_TOLERANCE, sharesSumTo100 };
 
 export function equitySumMessage(shares: number[]): string {
   const total = shares.reduce((a, b) => a + b, 0);

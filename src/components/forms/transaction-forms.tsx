@@ -15,6 +15,7 @@ import {
 } from "@/actions/finance";
 import { dict } from "@/lib/dict";
 import type { Lang } from "@/lib/format";
+import { normalizeShares, sharesSumTo100 } from "@/lib/shares";
 
 /* ------------------------- Project splits editor ------------------------- */
 
@@ -32,8 +33,7 @@ export function ProjectSplitsEditor({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<SplitRow[]>(initial);
-  const total = rows.reduce((a, r) => a + (Number(r.sharePercentage) || 0), 0);
-  const valid = Math.abs(total - 100) < 0.01;
+  const valid = sharesSumTo100(rows.map((r) => r.sharePercentage));
 
   return (
     <div className="space-y-3">
@@ -45,11 +45,12 @@ export function ProjectSplitsEditor({
         onClick={() =>
           start(async () => {
             setError(null);
+            const shares = normalizeShares(rows.map((r) => Number(r.sharePercentage) || 0));
             const res = await updateProjectSplits({
               projectId,
-              splits: rows.map((r) => ({
+              splits: rows.map((r, i) => ({
                 partnerId: r.partnerId,
-                sharePercentage: Number(r.sharePercentage) || 0,
+                sharePercentage: shares[i] ?? 0,
               })),
             });
             if (!res.ok) setError(res.error);

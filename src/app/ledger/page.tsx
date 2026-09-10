@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDate, formatEGP } from "@/lib/format";
+import { formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
 import { DrawingForm } from "@/components/forms/transaction-forms";
@@ -82,7 +82,7 @@ export default async function LedgerPage() {
                       className="flex justify-between text-xs text-muted-foreground"
                     >
                       <span>
-                        {b.projectName ?? b.projectId.slice(0, 8)} ({b.sharePercentage}%)
+                        {b.projectName ?? b.projectId.slice(0, 8)} ({formatPct(b.sharePercentage)})
                       </span>
                       <span>{formatEGP(b.totalOwed, lang)}</span>
                     </div>
