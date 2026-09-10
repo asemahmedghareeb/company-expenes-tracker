@@ -10,6 +10,7 @@ import type { Lang } from "@/lib/format";
 import {
   equalSplit,
   formatShareInput,
+  normalizeShares,
   sharesSumTo100,
 } from "@/lib/shares";
 
@@ -30,8 +31,11 @@ export function SplitsEditor({
   lang: Lang;
 }) {
   const t = dict[lang].splits;
-  const total = rows.reduce((a, r) => a + (Number(r.sharePercentage) || 0), 0);
-  const valid = sharesSumTo100(rows.map((r) => r.sharePercentage));
+  const shares = rows.map((r) => r.sharePercentage);
+  const valid = sharesSumTo100(shares);
+  // Show the normalized total (what will actually be saved): 33.33×3 reads
+  // 100.00% ✓ instead of 99.99% ✓.
+  const total = normalizeShares(shares).reduce((a, b) => a + b, 0);
 
   /**
    * Free-typing drafts: the input shows the raw typed text (so clearing
