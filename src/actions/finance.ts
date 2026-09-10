@@ -10,6 +10,7 @@ import {
   type ActionResult,
   zodFieldErrors,
 } from "@/lib/validations";
+import { CLIENT_PAYER } from "@/lib/shares";
 
 function revalidateFinance(projectId?: string) {
   revalidatePath("/");
@@ -70,7 +71,7 @@ export async function deleteClientPayment(
 
 /* ------------------------- Project expenses ------------------------ */
 
-/** Log an out-of-pocket expense paid from a partner's personal money. */
+/** Log a project cost — partner out-of-pocket, or covered directly by the client. */
 export async function logProjectExpense(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
@@ -83,23 +84,27 @@ export async function logProjectExpense(
     };
   }
   const { projectId, paidByPartnerId } = parsed.data;
+  const clientCovered = paidByPartnerId === CLIENT_PAYER;
 
-  // Both sides must exist. Any partner may pay (even if 0% on this project).
+  // Project must exist. Partner payer must exist; client needs no payer.
   const [project, payer] = await Promise.all([
     db.project.findUnique({ where: { id: projectId }, select: { id: true } }),
-    db.partner.findUnique({
-      where: { id: paidByPartnerId },
-      select: { id: true },
-    }),
+    clientCovered
+      ? Promise.resolve(null)
+      : db.partner.findUnique({
+          where: { id: paidByPartnerId },
+          select: { id: true },
+        }),
   ]);
   if (!project) return { ok: false, error: "Project not found." };
-  if (!payer) return { ok: false, error: "Paying partner not found." };
+  if (!clientCovered && !payer)
+    return { ok: false, error: "Paying partner not found." };
 
   try {
     const expense = await db.projectExpense.create({
       data: {
         projectId,
-        paidByPartnerId,
+        paidByPartnerId: clientCovered ? null : paidByPartnerId,
         amount: parsed.data.amount,
         description: parsed.data.description,
         expenseDate: parsed.data.expenseDate,

@@ -33,6 +33,9 @@ const moneyAmount = z
   .max(1_000_000_000, "Amount is unreasonably large");
 
 const cuid = z.string().min(1, "ID is required");
+// NOTE: expense payer fields also accept the CLIENT_PAYER sentinel
+// ("CLIENT", see lib/shares) meaning "covered directly by the client",
+// stored as a NULL paidByPartnerId. Server actions map it explicitly.
 
 /* ------------------------------ Partner ------------------------------ */
 
@@ -96,6 +99,12 @@ export const initialExpenseSchema = z.object({
 });
 
 export type InitialExpenseInput = z.infer<typeof initialExpenseSchema>;
+
+/**
+ * Create project. `splits` is the PER-PROJECT snapshot written to
+ * ProjectPartner — copied from defaults on the client, then adjustable.
+ * Historic rows never mutate when global defaults change.
+ */
 export const createProjectSchema = z.object({
   name: z.string().trim().min(1, "Project name is required").max(150),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
@@ -107,6 +116,7 @@ export const createProjectSchema = z.object({
     .refine((rows) => sharesSumTo100(rows.map((r) => r.sharePercentage)), {
       message: "Project equity splits must sum to exactly 100%.",
     }),
+  initialExpenses: z.array(initialExpenseSchema).max(50).default([]),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
@@ -177,6 +187,54 @@ export const partnerDrawingSchema = z.object({
 });
 
 export type PartnerDrawingInput = z.infer<typeof partnerDrawingSchema>;
+
+/* ------------------------- Company overhead --------------------------- */
+
+export const companyExpenseSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(200),
+  amount: moneyAmount,
+  notes: z.string().trim().max(1000).optional().or(z.literal("")),
+  expenseDate: z.coerce.date().default(() => new Date()),
+});
+
+export type CompanyExpenseInput = z.infer<typeof companyExpenseSchema>;
+
+export const companyPaymentSchema = z.object({
+  expenseId: cuid,
+  partnerId: cuid,
+  amount: moneyAmount,
+  paidAt: z.coerce.date().default(() => new Date()),
+});
+
+export type CompanyPaymentInput = z.infer<typeof companyPaymentSchema>;
+
+/** Create a bill together with its initial payer split (atomic). */
+export const companyExpenseWithPaymentsSchema = companyExpenseSchema.extend({
+  kind: z.enum(["FIXED", "VARIABLE"]).default("VARIABLE"),
+  payments: z
+    .array(
+      z.object({
+        partnerId: cuid,
+        amount: moneyAmount,
+      }),
+    )
+    .max(20)
+    .default([]),
+});
+
+export type CompanyExpenseWithPaymentsInput = z.infer<
+  typeof companyExpenseWithPaymentsSchema
+>;
+
+/* ------------------------- Fixed company costs ------------------------ */
+
+export const companyFixedCostSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(200),
+  amount: moneyAmount,
+  notes: z.string().trim().max(1000).optional().or(z.literal("")),
+});
+
+export type CompanyFixedCostInput = z.infer<typeof companyFixedCostSchema>;
 
 /* ------------------------- Generic action result ---------------------- */
 

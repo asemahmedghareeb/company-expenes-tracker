@@ -79,7 +79,7 @@ function toLedgerProject(p: {
   clientPayments: { amount: unknown }[];
   expenses: {
     amount: unknown;
-    paidByPartnerId: string;
+    paidByPartnerId: string | null;
     isReimbursed: boolean;
   }[];
 }): LedgerProject {
@@ -99,13 +99,17 @@ function toLedgerProject(p: {
 
 /** Full dashboard + ledger data, computed via the pure ledger engine. */
 export async function getDashboardData() {
-  const [partners, projectsRaw, drawingsRaw] = await Promise.all([
+  const [partners, projectsRaw, drawingsRaw, companyRaw] = await Promise.all([
     db.partner.findMany({ orderBy: { name: "asc" } }),
     db.project.findMany({
       include: { projectPartners: true, clientPayments: true, expenses: true },
       orderBy: { createdAt: "desc" },
     }),
     db.partnerDrawing.findMany(),
+    db.companyExpense.findMany({
+      include: { payments: true },
+      orderBy: { expenseDate: "desc" },
+    }),
   ]);
 
   const projects: LedgerProject[] = projectsRaw.map((p) =>
@@ -122,12 +126,30 @@ export async function getDashboardData() {
     partnerId: d.partnerId,
     amount: toNumber(d.amount),
   }));
+  const company = {
+    expenses: companyRaw.map((e) => ({
+      id: e.id,
+      title: e.title,
+      amount: toNumber(e.amount),
+      payments: e.payments.map((x) => ({
+        partnerId: x.partnerId,
+        amount: toNumber(x.amount),
+      })),
+    })),
+    partners: partners.map((p) => ({
+      id: p.id,
+      name: p.name,
+      defaultSharePercentage: p.defaultSharePercentage,
+      isActive: p.isActive,
+    })),
+  };
 
   const ledgers = getAllPartnerLedgers(
     partners.map((p) => ({ id: p.id, name: p.name })),
     projects,
     drawings,
     Object.fromEntries(projectsRaw.map((p) => [p.id, p.name])),
+    company,
   );
 
   const overview = getFirmOverview(projects, drawings, ledgers);
@@ -145,6 +167,35 @@ export async function getDashboardData() {
   return { partners, ledgers, overview, projectCards, drawings: drawingsRaw };
 }
 
+/** Company page data: bills with payments + partners for settlement. */
+export async function getCompanyData() {
+  const [expenses, partners, fixedCosts] = await Promise.all([
+    db.companyExpense.findMany({
+      include: { payments: { include: { partner: true }, orderBy: { paidAt: "desc" } } },
+      orderBy: { expenseDate: "desc" },
+    }),
+    db.partner.findMany({ orderBy: { name: "asc" } }),
+    db.companyFixedCost.findMany({ orderBy: { title: "asc" } }),
+  ]);
+  return { expenses, partners, fixedCosts };
+}
+
+/** Monthly summary data: everything the engine needs to settle one month. */
+export async function getSummaryData() {
+  const [company, projectCosts, partners] = await Promise.all([
+    db.companyExpense.findMany({
+      include: { payments: true },
+      orderBy: { expenseDate: "desc" },
+    }),
+    db.projectExpense.findMany({
+      include: { paidBy: true, project: true },
+      orderBy: { expenseDate: "desc" },
+    }),
+    db.partner.findMany({ orderBy: { name: "asc" } }),
+  ]);
+  return { company, projectCosts, partners };
+}
+
 /** Partner ledger page data (ledgers + drawings detail). */
 export async function getLedgerData() {
   const { partners, ledgers, overview } = await getDashboardData();
@@ -154,7 +205,8 @@ export async function getLedgerData() {
     take: 100,
   });
   const expenses = await db.projectExpense.findMany({
-    where: { isReimbursed: false },
+    // Client-covered rows owe nobody — never appear as pending.
+    where: { isReimbursed: false, paidByPartnerId: { not: null } },
     include: { paidBy: true, project: true },
     orderBy: { expenseDate: "desc" },
   });

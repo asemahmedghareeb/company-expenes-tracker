@@ -17,7 +17,7 @@ import {
 import { formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
-import { DrawingForm } from "@/components/forms/transaction-forms";
+import { DeleteDrawingButton, DrawingForm } from "@/components/forms/transaction-forms";
 
 export const dynamic = "force-dynamic";
 
@@ -71,10 +71,14 @@ export default async function LedgerPage() {
                 <span>{formatEGP(l.realizedProfitShare, lang)}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-muted-foreground">{t.companyNet}</span>
+                <span>{formatEGP(l.companyNet, lang)}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-muted-foreground">{t.drawings}</span>
                 <span>−{formatEGP(l.totalDrawings, lang)}</span>
               </div>
-              {l.breakdown.length > 0 && (
+              {(l.breakdown.length > 0 || l.companyBreakdown.length > 0) && (
                 <div className="pt-2">
                   {l.breakdown.map((b) => (
                     <div
@@ -85,6 +89,15 @@ export default async function LedgerPage() {
                         {b.projectName ?? b.projectId.slice(0, 8)} ({formatPct(b.sharePercentage)})
                       </span>
                       <span>{formatEGP(b.totalOwed, lang)}</span>
+                    </div>
+                  ))}
+                  {l.companyBreakdown.map((c) => (
+                    <div
+                      key={c.expenseId}
+                      className="flex justify-between text-xs text-muted-foreground"
+                    >
+                      <span>{c.title ?? c.expenseId.slice(0, 8)}</span>
+                      <span>{formatEGP(c.net, lang)}</span>
                     </div>
                   ))}
                 </div>
@@ -129,7 +142,7 @@ export default async function LedgerPage() {
                 {pendingExpenses.slice(0, 10).map((e) => (
                   <TableRow key={e.id}>
                     <TableCell>{e.project.name}</TableCell>
-                    <TableCell>{e.paidBy.name}</TableCell>
+                    <TableCell>{e.paidBy?.name ?? "—"}</TableCell>
                     <TableCell className="text-end">
                       {formatEGP(Number(e.amount), lang)}
                     </TableCell>
@@ -160,6 +173,7 @@ export default async function LedgerPage() {
                 <TableHead>{t.colPartner}</TableHead>
                 <TableHead>{t.colNotes}</TableHead>
                 <TableHead className="text-end">{t.colAmount}</TableHead>
+                <TableHead className="text-end">{t.colAction}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -171,11 +185,14 @@ export default async function LedgerPage() {
                   <TableCell className="text-end">
                     {formatEGP(Number(d.amount), lang)}
                   </TableCell>
+                  <TableCell className="text-end">
+                    <DeleteDrawingButton id={d.id} lang={lang} />
+                  </TableCell>
                 </TableRow>
               ))}
               {drawings.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     {t.noDrawings}
                   </TableCell>
                 </TableRow>

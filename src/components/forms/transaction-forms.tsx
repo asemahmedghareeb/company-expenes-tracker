@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
@@ -12,10 +13,11 @@ import {
   logProjectExpense,
   markExpenseReimbursed,
   recordPartnerDrawing,
+  deletePartnerDrawing,
 } from "@/actions/finance";
 import { dict } from "@/lib/dict";
 import type { Lang } from "@/lib/format";
-import { normalizeShares, sharesSumTo100 } from "@/lib/shares";
+import { normalizeShares, sharesSumTo100, CLIENT_PAYER } from "@/lib/shares";
 
 /* ------------------------- Project splits editor ------------------------- */
 
@@ -188,6 +190,7 @@ export function ExpenseForm({
                 {p.name}
               </option>
             ))}
+            <option value={CLIENT_PAYER}>{t.clientPaid}</option>
           </select>
         </div>
         <div className="grid gap-1">
@@ -454,6 +457,65 @@ export function DeleteProjectButton({
         </Button>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+/* ---------------------------- Delete drawing ---------------------------- */
+
+export function DeleteDrawingButton({
+  id,
+  lang,
+}: {
+  id: string;
+  lang: Lang;
+}) {
+  const t = dict[lang].ledger;
+  const tp = dict[lang].partners;
+  const router = useRouter();
+  const [armed, setArmed] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function confirm() {
+    setError(null);
+    start(async () => {
+      const res = await deletePartnerDrawing(id);
+      if (!res.ok) {
+        setError(res.error);
+        setArmed(false);
+      } else {
+        router.refresh();
+      }
+    });
+  }
+
+  if (!armed) {
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        title={t.cancelDrawing}
+        aria-label={t.cancelDrawing}
+        onClick={() => setArmed(true)}
+        className="hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex justify-end gap-1">
+        <Button size="sm" variant="destructive" disabled={pending} onClick={confirm}>
+          {pending ? tp.deleting : tp.deleteConfirm}
+        </Button>
+        <Button size="sm" variant="ghost" disabled={pending} onClick={() => setArmed(false)}>
+          {tp.cancel}
+        </Button>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
 }

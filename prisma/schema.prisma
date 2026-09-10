@@ -29,6 +29,7 @@ model Partner {
   projectPartners        ProjectPartner[]
   expensesPaid           ProjectExpense[] @relation("ExpensePaidBy")
   drawings               PartnerDrawing[]
+  companyPayments        CompanyExpensePayment[]
 
   @@index([isActive])
   @@map("partners")
@@ -91,7 +92,9 @@ model ClientPayment {
 model ProjectExpense {
   id               String    @id @default(cuid())
   projectId        String
-  paidByPartnerId  String
+  /// Null = cost covered directly by the client (informational only:
+  /// excluded from firm totals, reimbursements and profit splits).
+  paidByPartnerId  String?
   amount           Decimal   @db.Decimal(14, 2)
   description      String
   expenseDate      DateTime  @default(now())
@@ -101,7 +104,7 @@ model ProjectExpense {
   createdAt        DateTime  @default(now())
 
   project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  paidBy      Partner @relation("ExpensePaidBy", fields: [paidByPartnerId], references: [id], onDelete: Restrict)
+  paidBy      Partner? @relation("ExpensePaidBy", fields: [paidByPartnerId], references: [id], onDelete: Restrict)
 
   @@index([projectId])
   @@index([paidByPartnerId])
@@ -122,4 +125,57 @@ model PartnerDrawing {
   @@index([partnerId])
   @@index([drawnAt])
   @@map("partner_drawings")
+}
+
+enum CompanyExpenseKind {
+  FIXED
+  VARIABLE
+}
+
+/// Company overhead bill (rent, subscriptions…) shared by all ACTIVE
+/// partners per their global default equity. Contributions are recorded
+/// per partner; whoever pays MORE than their share is automatically
+/// credited (overpayment → pending money owed back to them).
+model CompanyExpense {
+  id          String   @id @default(cuid())
+  title       String
+  amount      Decimal  @db.Decimal(14, 2)
+  notes       String?
+  expenseDate DateTime @default(now())
+  kind        CompanyExpenseKind @default(VARIABLE)
+  createdAt   DateTime @default(now())
+
+  payments CompanyExpensePayment[]
+
+  @@map("company_expenses")
+}
+
+model CompanyExpensePayment {
+  id        String   @id @default(cuid())
+  expenseId String
+  partnerId String
+  amount    Decimal  @db.Decimal(14, 2)
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  expense CompanyExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+
+  @@index([expenseId])
+  @@index([partnerId])
+  @@map("company_expense_payments")
+}
+
+/// Fixed company cost registry (office rent, subscriptions…) defined ONCE.
+/// Recording a payment picks one from a dropdown and snapshots its
+/// title/amount into a CompanyExpense instance — later edits here never
+/// rewrite recorded history.
+model CompanyFixedCost {
+  id        String   @id @default(cuid())
+  title     String
+  amount    Decimal  @db.Decimal(14, 2)
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@map("company_fixed_costs")
 }

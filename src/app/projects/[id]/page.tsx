@@ -294,6 +294,11 @@ export default async function ProjectDetailPage({
       <Card>
         <CardHeader>
           <CardTitle>{td.expensesTitle(project.expenses.length)}</CardTitle>
+          {financials.clientCoveredTotal > 0 && (
+            <CardDescription>
+              {td.clientCovered}: {formatEGP(financials.clientCoveredTotal, lang)}
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           <Table>
@@ -312,17 +317,25 @@ export default async function ProjectDetailPage({
                 <TableRow key={e.id}>
                   <TableCell>{formatDate(e.expenseDate, lang)}</TableCell>
                   <TableCell>{e.description}</TableCell>
-                  <TableCell>{e.paidBy.name}</TableCell>
+                  <TableCell>{e.paidBy?.name ?? td.clientPaid}</TableCell>
                   <TableCell className="text-end font-medium">
                     {formatEGP(Number(e.amount), lang)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={e.isReimbursed ? "success" : "warning"}>
-                      {e.isReimbursed ? td.reimbursed : td.pending}
-                    </Badge>
+                    {!e.paidBy ? (
+                      <Badge variant="secondary">{td.clientPaid}</Badge>
+                    ) : (
+                      <Badge variant={e.isReimbursed ? "success" : "warning"}>
+                        {e.isReimbursed ? td.reimbursed : td.pending}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-end">
-                    <ReimburseButton expenseId={e.id} isReimbursed={e.isReimbursed} lang={lang} />
+                    {!e.paidBy ? (
+                      "—"
+                    ) : (
+                      <ReimburseButton expenseId={e.id} isReimbursed={e.isReimbursed} lang={lang} />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

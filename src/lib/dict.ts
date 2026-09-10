@@ -4,7 +4,7 @@ export type { Lang };
 
 export interface Dictionary {
   brand: string;
-  nav: { dashboard: string; projects: string; partners: string; ledger: string };
+  nav: { dashboard: string; projects: string; partners: string; ledger: string; company: string; summary: string };
   firmOverview: string;
   overviewSubtitle: (projectCount: number, activePartners: number) => string;
   newProject: string;
@@ -112,6 +112,15 @@ export interface Dictionary {
     creating: string;
     create: string;
     splitsError: (total: string) => string;
+    expensesTitle: string;
+    addItem: string;
+    itemName: string;
+    itemNamePh: string;
+    cost: string;
+    expenseError: string;
+    totalExpenses: string;
+    estProfit: string;
+    clientCovered: string;
   };
   projectDetail: {
     noDescription: string;
@@ -154,6 +163,8 @@ export interface Dictionary {
     colAction: string;
     reimbursed: string;
     pending: string;
+    clientPaid: string;
+    clientCovered: string;
     mark: string;
     unmark: string;
     noExpenses: string;
@@ -179,6 +190,7 @@ export interface Dictionary {
   expenseForm: {
     paidBy: string;
     selectPartner: string;
+    clientPaid: string;
     amount: string;
     description: string;
     descPh: string;
@@ -195,6 +207,76 @@ export interface Dictionary {
     recording: string;
     record: string;
   };
+  company: {
+    title: string;
+    subtitle: string;
+    addTitle: string;
+    addDesc: string;
+    fTitle: string;
+    titlePh: string;
+    amount: string;
+    date: string;
+    notes: string;
+    add: string;
+    saving: string;
+    noExpenses: string;
+    colPartner: string;
+    colShare: string;
+    colShareAmount: string;
+    colPaid: string;
+    colNet: string;
+    overpaid: string;
+    owes: string;
+    settled: string;
+    collected: string;
+    remaining: string;
+    payTitle: string;
+    payDesc: string;
+    record: string;
+    recording: string;
+    delete: string;
+    deleteConfirm: string;
+    deleting: string;
+    cancel: string;
+    warnDefaults: string;
+    emptyPayments: string;
+    payersTitle: string;
+    fillShares: string;
+    covered: string;
+    fixedTitle: string;
+    fixedDesc: string;
+    fixedAdd: string;
+    chooseExpense: string;
+    customOption: string;
+    varTitle: string;
+    varDesc: string;
+    varAdd: string;
+  };
+  summary: {
+    title: string;
+    subtitle: string;
+    chooseMonth: string;
+    fixed: string;
+    variable: string;
+    direct: string;
+    monthTotal: string;
+    colPartner: string;
+    colPaid: string;
+    colOwe: string;
+    colBalance: string;
+    toHim: string;
+    owes: string;
+    settled: string;
+    details: string;
+    colKind: string;
+    colTitle: string;
+    colAmount: string;
+    colPaidBy: string;
+    kindFixed: string;
+    kindVariable: string;
+    kindProject: string;
+    empty: string;
+  };
   /* ------------------------------- Ledger ------------------------------- */
   ledger: {
     title: string;
@@ -202,6 +284,7 @@ export interface Dictionary {
     noPartners: string;
     pendingShort: string;
     profitShare: string;
+    companyNet: string;
     drawings: string;
     recordTitle: string;
     recordDesc: string;
@@ -214,6 +297,8 @@ export interface Dictionary {
     recentTitle: string;
     colDate: string;
     colNotes: string;
+    colAction: string;
+    cancelDrawing: string;
     noDrawings: string;
     formulaTitle: string;
     fPending: string;
@@ -227,7 +312,7 @@ export interface Dictionary {
 export const dict: Record<Lang, Dictionary> = {
   en: {
     brand: "Partner Ledger",
-    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Ledger" },
+    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Ledger", company: "Company", summary: "Summary" },
     firmOverview: "Firm overview",
     overviewSubtitle: (p, a) =>
       `${p} projects · ${a} active partners · expenses settle before profit splits`,
@@ -254,7 +339,7 @@ export const dict: Record<Lang, Dictionary> = {
     net: "Net",
     noProjects: "No projects yet.",
     createOne: "Create one",
-    footer: "Balance = Pending reimbursements + Realized profit shares − Drawings",
+    footer: "Balance = Pending reimbursements + Realized profit shares + Company net − Drawings",
     dbTitle: "Database not connected",
     dbDesc: "Set DATABASE_URL to a PostgreSQL database to go live.",
     dbRefresh: "Refresh this page.",
@@ -339,6 +424,15 @@ export const dict: Record<Lang, Dictionary> = {
       creating: "Creating…",
       create: "Create project",
       splitsError: (total) => `Splits must sum to 100% (currently ${total}%).`,
+      expensesTitle: "Initial expenses",
+      addItem: "+ Add Expense Item",
+      itemName: "Item name",
+      itemNamePh: "Hosting, domain…",
+      cost: "Cost",
+      expenseError: "Each expense needs a title, a valid amount and a paying partner.",
+      totalExpenses: "Total Expenses",
+      estProfit: "Estimated Net Profit",
+      clientCovered: "Client-covered",
     },
     projectDetail: {
       noDescription: "No description.",
@@ -381,6 +475,8 @@ export const dict: Record<Lang, Dictionary> = {
       colAction: "Action",
       reimbursed: "Reimbursed",
       pending: "Pending",
+      clientPaid: "Client paid",
+      clientCovered: "Client-covered (info only)",
       mark: "Mark reimbursed",
       unmark: "Unmark",
       noExpenses: "No expenses logged yet.",
@@ -408,6 +504,7 @@ export const dict: Record<Lang, Dictionary> = {
     expenseForm: {
       paidBy: "Paid by",
       selectPartner: "Select partner…",
+      clientPaid: "Client paid",
       amount: "Amount",
       description: "Description",
       descPh: "Server costs, travel…",
@@ -424,12 +521,85 @@ export const dict: Record<Lang, Dictionary> = {
       recording: "Recording…",
       record: "Record drawing",
     },
+    company: {
+      title: "Company expenses",
+      subtitle:
+        "Rent, subscriptions and overhead — split by default equity. Whoever pays more than their share is credited back.",
+      addTitle: "Record payment",
+      addDesc: "Pick a fixed cost or enter a one-off.",
+      fTitle: "Title",
+      titlePh: "Office rent, SaaS…",
+      amount: "Amount",
+      date: "Date",
+      notes: "Notes (optional)",
+      add: "Add expense",
+      saving: "Saving…",
+      noExpenses: "No company expenses yet.",
+      colPartner: "Partner",
+      colShare: "Share",
+      colShareAmount: "Share amount",
+      colPaid: "Paid",
+      colNet: "Net",
+      overpaid: "overpaid",
+      owes: "owes",
+      settled: "settled",
+      collected: "Collected",
+      remaining: "Still to collect",
+      payTitle: "Record payment",
+      payDesc: "Who paid how much toward this bill.",
+      record: "Record payment",
+      recording: "Recording…",
+      delete: "Delete",
+      deleteConfirm: "Click again to confirm deletion",
+      deleting: "Deleting…",
+      cancel: "Cancel",
+      warnDefaults:
+        "Default equity does not sum to 100% — fix it on the Partners page for exact splits.",
+      emptyPayments: "No payments recorded yet.",
+      payersTitle: "Who paid",
+      fillShares: "Fill shares",
+      covered: "Fully covered ✓",
+      fixedTitle: "Fixed costs",
+      fixedDesc: "Define once — rent, subscriptions… Pick them when recording.",
+      fixedAdd: "Add fixed cost",
+      chooseExpense: "Expense",
+      customOption: "Custom (one-off)…",
+      varTitle: "Record variable expense",
+      varDesc: "One-off overhead paid by one partner.",
+      varAdd: "Add",
+    },
+    summary: {
+      title: "Monthly summary",
+      subtitle: "Firm-books basis: client-covered costs excluded.",
+      chooseMonth: "Choose month",
+      fixed: "Fixed",
+      variable: "Variable",
+      direct: "Direct project costs",
+      monthTotal: "Month total",
+      colPartner: "Partner",
+      colPaid: "Paid",
+      colOwe: "Owed share",
+      colBalance: "Balance",
+      toHim: "to him",
+      owes: "owes",
+      settled: "settled",
+      details: "Month details",
+      colKind: "Type",
+      colTitle: "Description",
+      colAmount: "Amount",
+      colPaidBy: "Paid by",
+      kindFixed: "Fixed",
+      kindVariable: "Variable",
+      kindProject: "Projects",
+      empty: "No costs recorded this month.",
+    },
     ledger: {
       title: "Partner ledger",
-      subtitle: "Balance = Pending reimbursements + Realized profit shares − Drawings",
+      subtitle: "Balance = Pending reimbursements + Realized profit shares + Company net − Drawings",
       noPartners: "No partners yet.",
       pendingShort: "Pending reimb.",
       profitShare: "Profit share",
+      companyNet: "Company net",
       drawings: "Drawings",
       recordTitle: "Record drawing",
       recordDesc: "Partner cash withdrawal against balance.",
@@ -442,6 +612,8 @@ export const dict: Record<Lang, Dictionary> = {
       recentTitle: "Recent drawings",
       colDate: "Date",
       colNotes: "Notes",
+      colAction: "Action",
+      cancelDrawing: "Cancel drawing",
       noDrawings: "No drawings recorded.",
       formulaTitle: "Formula reference",
       fPending: "Pending = Σ expenses where isReimbursed = false",
@@ -453,7 +625,7 @@ export const dict: Record<Lang, Dictionary> = {
   },
   ar: {
     brand: "دفتر الشركاء",
-    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "الدفتر" },
+    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "الدفتر", company: "الشركة", summary: "الملخص" },
     firmOverview: "نظرة عامة على الشركة",
     overviewSubtitle: (p, a) =>
       `${p} مشاريع · ${a} شركاء نشطون · تُسوَّى المصروفات قبل توزيع الأرباح`,
@@ -480,7 +652,7 @@ export const dict: Record<Lang, Dictionary> = {
     net: "صافي",
     noProjects: "لا توجد مشاريع بعد.",
     createOne: "أنشئ مشروعًا",
-    footer: "الرصيد = المستحقات المعلقة + حصص الأرباح المحققة − المسحوبات",
+    footer: "الرصيد = المستحقات المعلقة + حصص الأرباح المحققة + صافي الشركة − المسحوبات",
     dbTitle: "قاعدة البيانات غير متصلة",
     dbDesc: "اضبط DATABASE_URL على قاعدة بيانات PostgreSQL للتشغيل.",
     dbRefresh: "حدِّث الصفحة.",
@@ -565,6 +737,15 @@ export const dict: Record<Lang, Dictionary> = {
       creating: "جارٍ الإنشاء…",
       create: "إنشاء المشروع",
       splitsError: (total) => `يجب أن تساوي الحصص 100% (الحالي ${total}%).`,
+      expensesTitle: "المصروفات",
+      addItem: "+ إضافة بند مصروف",
+      itemName: "اسم البند",
+      itemNamePh: "استضافة، دومين…",
+      cost: "التكلفة",
+      expenseError: "كل بند مصروف يحتاج اسمًا ومبلغًا صحيحًا وشريكًا دافعًا.",
+      totalExpenses: "إجمالي المصروفات",
+      estProfit: "صافي الربح التقديري",
+      clientCovered: "يغطيها العميل",
     },
     projectDetail: {
       noDescription: "لا يوجد وصف.",
@@ -607,6 +788,8 @@ export const dict: Record<Lang, Dictionary> = {
       colAction: "إجراء",
       reimbursed: "مُسدَّد",
       pending: "معلَّق",
+      clientPaid: "مدفوعة من العميل",
+      clientCovered: "يغطيها العميل (للعلم فقط)",
       mark: "تعليم كمُسدَّد",
       unmark: "إلغاء التعليم",
       noExpenses: "لا توجد مصروفات مسجلة بعد.",
@@ -634,6 +817,7 @@ export const dict: Record<Lang, Dictionary> = {
     expenseForm: {
       paidBy: "دُفع بواسطة",
       selectPartner: "اختر الشريك…",
+      clientPaid: "مدفوعة من العميل",
       amount: "المبلغ",
       description: "الوصف",
       descPh: "تكاليف الخوادم، السفر…",
@@ -650,12 +834,84 @@ export const dict: Record<Lang, Dictionary> = {
       recording: "جارٍ التسجيل…",
       record: "تسجيل المسحوبات",
     },
+    company: {
+      title: "مصاريف الشركة",
+      subtitle:
+        "الإيجار والاشتراكات والمصاريف العمومية — تُوزع حسب حصص التأسيس. اللي يدفع زيادة عن حصته تتسجّل له رصيدًا معلَّقًا.",
+      addTitle: "تسجيل دفعة",
+      addDesc: "اختر مصروفًا ثابتًا أو أدخل مصروفًا لمرة واحدة.",
+      fTitle: "الاسم",
+      titlePh: "إيجار المكتب، اشتراكات…",
+      amount: "المبلغ",
+      date: "التاريخ",
+      notes: "ملاحظات (اختياري)",
+      add: "إضافة مصروف",
+      saving: "جارٍ الحفظ…",
+      noExpenses: "لا توجد مصاريف شركة بعد.",
+      colPartner: "الشريك",
+      colShare: "الحصة",
+      colShareAmount: "قيمة الحصة",
+      colPaid: "المدفوع",
+      colNet: "الصافي",
+      overpaid: "دفع زيادة",
+      owes: "عليه",
+      settled: "متساوي",
+      collected: "تم تحصيله",
+      remaining: "متبقي للتحصيل",
+      payTitle: "تسجيل دفعة",
+      payDesc: "مين دفع كام في البند ده.",
+      record: "تسجيل الدفعة",
+      recording: "جارٍ التسجيل…",
+      delete: "حذف",
+      deleteConfirm: "اضغط مرة أخرى لتأكيد الحذف",
+      deleting: "جارٍ الحذف…",
+      cancel: "إلغاء",
+      warnDefaults: "حصص التأسيس لا تساوي 100% — اظبطها من صفحة الشركاء عشان التوزيع يبقى مظبوط.",
+      emptyPayments: "لا توجد دفعات مسجلة بعد.",
+      payersTitle: "مين دفع",
+      fillShares: "ملىء الحصص",
+      covered: "متغطي بالكامل ✓",
+      fixedTitle: "المصاريف الثابتة",
+      fixedDesc: "عرّفها مرة واحدة — الإيجار والاشتراكات… واختر منها عند التسجيل.",
+      fixedAdd: "إضافة ثابت",
+      chooseExpense: "المصروف",
+      customOption: "مخصص (مرة واحدة)…",
+      varTitle: "تسجيل مصروف متغير",
+      varDesc: "مصروف لمرة واحدة دفعه شريك واحد.",
+      varAdd: "إضافة",
+    },
+    summary: {
+      title: "الملخص الشهري",
+      subtitle: "على أساس دفاتر الشركة: تكاليف العميل مستبعدة.",
+      chooseMonth: "اختر الشهر",
+      fixed: "ثابتة",
+      variable: "متغيرة",
+      direct: "مصاريف مشاريع مباشرة",
+      monthTotal: "إجمالي الشهر",
+      colPartner: "الشريك",
+      colPaid: "اللي دفعه",
+      colOwe: "نصيبه المفروض",
+      colBalance: "الرصيد",
+      toHim: "له",
+      owes: "عليه",
+      settled: "متساوي",
+      details: "تفاصيل مصاريف الشهر",
+      colKind: "النوع",
+      colTitle: "البيان",
+      colAmount: "المبلغ",
+      colPaidBy: "مين دفع",
+      kindFixed: "ثابتة",
+      kindVariable: "متغيرة",
+      kindProject: "مشاريع",
+      empty: "لا توجد مصاريف مسجلة هذا الشهر.",
+    },
     ledger: {
       title: "دفتر الشركاء",
-      subtitle: "الرصيد = المستحقات المعلقة + حصص الأرباح المحققة − المسحوبات",
+      subtitle: "الرصيد = المستحقات المعلقة + حصص الأرباح المحققة + صافي الشركة − المسحوبات",
       noPartners: "لا يوجد شركاء بعد.",
       pendingShort: "مستحقات معلقة",
       profitShare: "حصة الربح",
+      companyNet: "صافي الشركة",
       drawings: "المسحوبات",
       recordTitle: "تسجيل مسحوبات",
       recordDesc: "سحب نقدي للشريك مقابل الرصيد.",
@@ -668,6 +924,8 @@ export const dict: Record<Lang, Dictionary> = {
       recentTitle: "المسحوبات الأخيرة",
       colDate: "التاريخ",
       colNotes: "ملاحظات",
+      colAction: "إجراء",
+      cancelDrawing: "إلغاء السحب",
       noDrawings: "لا توجد مسحوبات مسجلة.",
       formulaTitle: "مرجع المعادلة",
       fPending: "المعلَّق = Σ المصروفات حيث isReimbursed = false",

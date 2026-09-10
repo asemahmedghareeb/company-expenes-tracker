@@ -9,7 +9,7 @@ import {
   type ActionResult,
   zodFieldErrors,
 } from "@/lib/validations";
-import { normalizeShares } from "@/lib/shares";
+import { normalizeShares, CLIENT_PAYER } from "@/lib/shares";
 
 /**
  * Create a project + snapshot its equity into ProjectPartner.
@@ -28,7 +28,8 @@ export async function createProject(
       fieldErrors: zodFieldErrors(parsed.error),
     };
   }
-  const { name, description, contractValue, status, splits } = parsed.data;
+  const { name, description, contractValue, status, splits, initialExpenses } =
+    parsed.data;
 
   // All split partners must exist.
   const partners = await db.partner.findMany({
@@ -37,6 +38,24 @@ export async function createProject(
   });
   if (partners.length !== splits.length) {
     return { ok: false, error: "One or more split partners do not exist." };
+  }
+
+  // All expense payers must exist (client-covered rows need none).
+  const payerIds = [
+    ...new Set(
+      initialExpenses
+        .map((e) => e.paidByPartnerId)
+        .filter((id) => id !== CLIENT_PAYER),
+    ),
+  ];
+  if (payerIds.length > 0) {
+    const payers = await db.partner.findMany({
+      where: { id: { in: payerIds } },
+      select: { id: true },
+    });
+    if (payers.length !== payerIds.length) {
+      return { ok: false, error: "One or more expense payers do not exist." };
+    }
   }
 
   try {
@@ -51,6 +70,16 @@ export async function createProject(
           create: splits.map((s, i) => ({
             partnerId: s.partnerId,
             sharePercentage: shares[i] ?? s.sharePercentage,
+          })),
+        },
+        // Up-front out-of-pocket costs → pending-reimbursement expense rows.
+        // CLIENT-covered rows store NULL payer (info only, excluded from books).
+        expenses: {
+          create: initialExpenses.map((e) => ({
+            paidByPartnerId:
+              e.paidByPartnerId === CLIENT_PAYER ? null : e.paidByPartnerId,
+            amount: e.amount,
+            description: e.title,
           })),
         },
       },

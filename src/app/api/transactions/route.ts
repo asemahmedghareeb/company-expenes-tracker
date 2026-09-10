@@ -6,6 +6,7 @@ import {
   markReimbursedSchema,
   partnerDrawingSchema,
 } from "@/lib/validations";
+import { CLIENT_PAYER } from "@/lib/shares";
 
 export async function POST(req: Request) {
   const url = new URL(req.url);
@@ -35,7 +36,10 @@ export async function POST(req: Request) {
       const e = await db.projectExpense.create({
         data: {
           projectId: parsed.data.projectId,
-          paidByPartnerId: parsed.data.paidByPartnerId,
+          paidByPartnerId:
+            parsed.data.paidByPartnerId === CLIENT_PAYER
+              ? null
+              : parsed.data.paidByPartnerId,
           amount: parsed.data.amount,
           description: parsed.data.description,
           expenseDate: parsed.data.expenseDate,

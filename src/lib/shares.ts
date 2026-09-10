@@ -14,6 +14,9 @@
 
 export const EQUITY_TOTAL = 100;
 
+/** Sentinel payer id meaning "covered directly by the client" (stored as NULL FK). */
+export const CLIENT_PAYER = "CLIENT";
+
 /** Accepts 2-decimal rounding dust (covers up to ~10 partners). */
 export const EQUITY_TOLERANCE = 0.06;
 
