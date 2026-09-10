@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
 import { addPartner, editPartner } from "@/actions/partners";
+import { dict } from "@/lib/dict";
+import type { Lang } from "@/lib/format";
 
 export function PartnerForm({
   initial,
+  lang,
 }: {
   initial?: {
     id: string;
@@ -17,7 +20,9 @@ export function PartnerForm({
     defaultSharePercentage: number;
     isActive: boolean;
   };
+  lang: Lang;
 }) {
+  const t = dict[lang].partnerForm;
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -44,11 +49,11 @@ export function PartnerForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid gap-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">{t.name}</Label>
         <Input id="name" name="name" defaultValue={initial?.name ?? ""} required maxLength={100} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="email">Email (optional)</Label>
+        <Label htmlFor="email">{t.email}</Label>
         <Input
           id="email"
           name="email"
@@ -59,7 +64,7 @@ export function PartnerForm({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="defaultSharePercentage">Default equity %</Label>
+          <Label htmlFor="defaultSharePercentage">{t.equity}</Label>
           <Input
             id="defaultSharePercentage"
             name="defaultSharePercentage"
@@ -79,17 +84,14 @@ export function PartnerForm({
             defaultChecked={initial?.isActive ?? true}
             className="h-4 w-4"
           />
-          <Label htmlFor="isActive">Active partner</Label>
+          <Label htmlFor="isActive">{t.activePartner}</Label>
         </div>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Saving…" : initial ? "Save changes" : "Add partner"}
+        {pending ? t.saving : initial ? t.save : t.add}
       </Button>
-      <p className="text-xs text-muted-foreground">
-        Note: changing a default % never rewrites historic project splits. Use
-        “Update defaults” to re-balance globals to 100%.
-      </p>
+      <p className="text-xs text-muted-foreground">{t.note}</p>
     </form>
   );
 }

@@ -3,6 +3,8 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { dict } from "@/lib/dict";
+import type { Lang } from "@/lib/format";
 
 export interface SplitRow {
   partnerId: string;
@@ -14,10 +16,13 @@ export interface SplitRow {
 export function SplitsEditor({
   rows,
   onChange,
+  lang,
 }: {
   rows: SplitRow[];
   onChange: (rows: SplitRow[]) => void;
+  lang: Lang;
 }) {
+  const t = dict[lang].splits;
   const total = rows.reduce((a, r) => a + (Number(r.sharePercentage) || 0), 0);
   const valid = Math.abs(total - 100) < 0.01;
 
@@ -28,7 +33,7 @@ export function SplitsEditor({
           <div className="flex-1">
             <Label>{row.name}</Label>
             {!row.active && row.active !== undefined && (
-              <span className="ml-2 text-xs text-muted-foreground">(inactive)</span>
+              <span className="ms-2 text-xs text-muted-foreground">{t.inactive}</span>
             )}
           </div>
           <div className="flex w-32 items-center gap-1">
@@ -47,7 +52,7 @@ export function SplitsEditor({
                   ),
                 )
               }
-              className="text-right"
+              className="text-end"
             />
             <span className="text-sm text-muted-foreground">%</span>
           </div>
@@ -61,7 +66,7 @@ export function SplitsEditor({
             : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
         )}
       >
-        Total: {total.toFixed(2)}% {valid ? "✓ sums to 100%" : "— must sum to exactly 100%"}
+        {t.total(total.toFixed(2), valid)}
       </div>
     </div>
   );

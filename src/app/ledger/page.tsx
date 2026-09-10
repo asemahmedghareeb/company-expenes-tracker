@@ -14,13 +14,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatEGP } from "@/lib/format";
+import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
 import { DrawingForm } from "@/components/forms/transaction-forms";
 
 export const dynamic = "force-dynamic";
 
 export default async function LedgerPage() {
+  const lang = await getLang();
+  const t = dict[lang].ledger;
+
   const [data, partners] = await Promise.all([
     getLedgerData().catch(() => null),
     getPartners().catch(() => []),
@@ -30,8 +34,8 @@ export default async function LedgerPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Ledger unavailable</CardTitle>
-          <CardDescription>Connect the database to view live balances.</CardDescription>
+          <CardTitle>{t.unavailable}</CardTitle>
+          <CardDescription>{t.unavailableDesc}</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -42,10 +46,8 @@ export default async function LedgerPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Partner ledger</h1>
-        <p className="text-sm text-muted-foreground">
-          Balance = Pending reimbursements + Realized profit shares − Drawings
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.title}</h1>
+        <p className="text-sm text-muted-foreground">{t.subtitle}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -56,21 +58,21 @@ export default async function LedgerPage() {
               <CardTitle
                 className={`text-2xl ${l.balance < 0 ? "text-red-600" : "text-emerald-700"}`}
               >
-                {formatMoney(l.balance)}
+                {formatEGP(l.balance, lang)}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Pending reimb.</span>
-                <span>{formatMoney(l.pendingReimbursements)}</span>
+                <span className="text-muted-foreground">{t.pendingShort}</span>
+                <span>{formatEGP(l.pendingReimbursements, lang)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Profit share</span>
-                <span>{formatMoney(l.realizedProfitShare)}</span>
+                <span className="text-muted-foreground">{t.profitShare}</span>
+                <span>{formatEGP(l.realizedProfitShare, lang)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Drawings</span>
-                <span>−{formatMoney(l.totalDrawings)}</span>
+                <span className="text-muted-foreground">{t.drawings}</span>
+                <span>−{formatEGP(l.totalDrawings, lang)}</span>
               </div>
               {l.breakdown.length > 0 && (
                 <div className="pt-2">
@@ -82,7 +84,7 @@ export default async function LedgerPage() {
                       <span>
                         {b.projectName ?? b.projectId.slice(0, 8)} ({b.sharePercentage}%)
                       </span>
-                      <span>{formatMoney(b.totalOwed)}</span>
+                      <span>{formatEGP(b.totalOwed, lang)}</span>
                     </div>
                   ))}
                 </div>
@@ -91,18 +93,19 @@ export default async function LedgerPage() {
           </Card>
         ))}
         {ledgers.length === 0 && (
-          <p className="text-sm text-muted-foreground">No partners yet.</p>
+          <p className="text-sm text-muted-foreground">{t.noPartners}</p>
         )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Record drawing</CardTitle>
-            <CardDescription>Partner cash withdrawal against balance.</CardDescription>
+            <CardTitle>{t.recordTitle}</CardTitle>
+            <CardDescription>{t.recordDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <DrawingForm
+              lang={lang}
               partners={partners.map((p) => ({ id: p.id, name: p.name }))}
             />
           </CardContent>
@@ -110,16 +113,16 @@ export default async function LedgerPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Pending reimbursements</CardTitle>
-            <CardDescription>Out-of-pocket expenses awaiting settlement.</CardDescription>
+            <CardTitle>{t.pendingTitle}</CardTitle>
+            <CardDescription>{t.pendingDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Partner</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>{t.colProject}</TableHead>
+                  <TableHead>{t.colPartner}</TableHead>
+                  <TableHead className="text-end">{t.colAmount}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -127,15 +130,15 @@ export default async function LedgerPage() {
                   <TableRow key={e.id}>
                     <TableCell>{e.project.name}</TableCell>
                     <TableCell>{e.paidBy.name}</TableCell>
-                    <TableCell className="text-right">
-                      {formatMoney(Number(e.amount))}
+                    <TableCell className="text-end">
+                      {formatEGP(Number(e.amount), lang)}
                     </TableCell>
                   </TableRow>
                 ))}
                 {pendingExpenses.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center text-muted-foreground">
-                      Nothing pending — all settled. ✓
+                      {t.allSettled}
                     </TableCell>
                   </TableRow>
                 )}
@@ -147,33 +150,33 @@ export default async function LedgerPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent drawings</CardTitle>
+          <CardTitle>{t.recentTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Partner</TableHead>
-                <TableHead>Notes</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>{t.colDate}</TableHead>
+                <TableHead>{t.colPartner}</TableHead>
+                <TableHead>{t.colNotes}</TableHead>
+                <TableHead className="text-end">{t.colAmount}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {drawings.slice(0, 20).map((d) => (
                 <TableRow key={d.id}>
-                  <TableCell>{formatDate(d.drawnAt)}</TableCell>
+                  <TableCell>{formatDate(d.drawnAt, lang)}</TableCell>
                   <TableCell className="font-medium">{d.partner.name}</TableCell>
                   <TableCell className="text-muted-foreground">{d.notes ?? "—"}</TableCell>
-                  <TableCell className="text-right">
-                    {formatMoney(Number(d.amount))}
+                  <TableCell className="text-end">
+                    {formatEGP(Number(d.amount), lang)}
                   </TableCell>
                 </TableRow>
               ))}
               {drawings.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    No drawings recorded.
+                    {t.noDrawings}
                   </TableCell>
                 </TableRow>
               )}
@@ -184,14 +187,12 @@ export default async function LedgerPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Formula reference</CardTitle>
+          <CardTitle>{t.formulaTitle}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2 text-sm">
-          <Badge variant="warning">Pending = Σ expenses where isReimbursed = false</Badge>
-          <Badge variant="secondary">
-            Profit = Σ (project inflow − project expenses) × snapshot %
-          </Badge>
-          <Badge variant="outline">Balance = Pending + Profit − Drawings</Badge>
+          <Badge variant="warning">{t.fPending}</Badge>
+          <Badge variant="secondary">{t.fProfit}</Badge>
+          <Badge variant="outline">{t.fBalance}</Badge>
         </CardContent>
       </Card>
     </div>

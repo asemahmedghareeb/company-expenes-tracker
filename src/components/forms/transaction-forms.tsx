@@ -13,16 +13,21 @@ import {
   markExpenseReimbursed,
   recordPartnerDrawing,
 } from "@/actions/finance";
+import { dict } from "@/lib/dict";
+import type { Lang } from "@/lib/format";
 
 /* ------------------------- Project splits editor ------------------------- */
 
 export function ProjectSplitsEditor({
   projectId,
   initial,
+  lang,
 }: {
   projectId: string;
   initial: SplitRow[];
+  lang: Lang;
 }) {
+  const t = dict[lang].projectDetail;
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +37,7 @@ export function ProjectSplitsEditor({
 
   return (
     <div className="space-y-3">
-      <SplitsEditor rows={rows} onChange={setRows} />
+      <SplitsEditor rows={rows} onChange={setRows} lang={lang} />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <Button
         disabled={pending || !valid}
@@ -52,7 +57,7 @@ export function ProjectSplitsEditor({
           })
         }
       >
-        {pending ? "Saving…" : "Save project splits"}
+        {pending ? t.saving : t.saveSplits}
       </Button>
     </div>
   );
@@ -62,11 +67,14 @@ export function ProjectSplitsEditor({
 
 export function PaymentForm({
   projectId,
+  lang,
   onDone,
 }: {
   projectId: string;
+  lang: Lang;
   onDone?: () => void;
 }) {
+  const t = dict[lang].paymentForm;
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -97,25 +105,25 @@ export function PaymentForm({
     >
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1">
-          <Label>Amount</Label>
+          <Label>{t.amount}</Label>
           <Input name="amount" type="number" min={0.01} step={0.01} required placeholder="10000" />
         </div>
         <div className="grid gap-1">
-          <Label>Paid at</Label>
+          <Label>{t.paidAt}</Label>
           <Input name="paidAt" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
         </div>
       </div>
       <div className="grid gap-1">
-        <Label>Milestone (optional)</Label>
-        <Input name="milestoneLabel" maxLength={150} placeholder="Milestone 1 — Advance" />
+        <Label>{t.milestone}</Label>
+        <Input name="milestoneLabel" maxLength={150} placeholder={t.milestonePh} />
       </div>
       <div className="grid gap-1">
-        <Label>Notes (optional)</Label>
-        <Textarea name="notes" placeholder="Bank ref, invoice no…" />
+        <Label>{t.notes}</Label>
+        <Textarea name="notes" placeholder={t.notesPh} />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Recording…" : "Record payment"}
+        {pending ? t.recording : t.record}
       </Button>
     </form>
   );
@@ -126,12 +134,15 @@ export function PaymentForm({
 export function ExpenseForm({
   projectId,
   partners,
+  lang,
   onDone,
 }: {
   projectId: string;
   partners: { id: string; name: string }[];
+  lang: Lang;
   onDone?: () => void;
 }) {
+  const t = dict[lang].expenseForm;
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -164,13 +175,13 @@ export function ExpenseForm({
     >
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1">
-          <Label>Paid by</Label>
+          <Label>{t.paidBy}</Label>
           <select
             name="paidByPartnerId"
             required
             className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
           >
-            <option value="">Select partner…</option>
+            <option value="">{t.selectPartner}</option>
             {partners.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -179,21 +190,21 @@ export function ExpenseForm({
           </select>
         </div>
         <div className="grid gap-1">
-          <Label>Amount</Label>
+          <Label>{t.amount}</Label>
           <Input name="amount" type="number" min={0.01} step={0.01} required placeholder="2500" />
         </div>
       </div>
       <div className="grid gap-1">
-        <Label>Description</Label>
-        <Input name="description" required maxLength={500} placeholder="Server costs, travel…" />
+        <Label>{t.description}</Label>
+        <Input name="description" required maxLength={500} placeholder={t.descPh} />
       </div>
       <div className="grid gap-1">
-        <Label>Expense date</Label>
+        <Label>{t.expenseDate}</Label>
         <Input name="expenseDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Logging…" : "Log expense"}
+        {pending ? t.logging : t.log}
       </Button>
     </form>
   );
@@ -204,12 +215,15 @@ export function ExpenseForm({
 export function DrawingForm({
   partners,
   defaultPartnerId,
+  lang,
   onDone,
 }: {
   partners: { id: string; name: string }[];
   defaultPartnerId?: string;
+  lang: Lang;
   onDone?: () => void;
 }) {
+  const t = dict[lang].drawingForm;
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -239,14 +253,14 @@ export function DrawingForm({
     >
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1">
-          <Label>Partner</Label>
+          <Label>{t.partner}</Label>
           <select
             name="partnerId"
             required
             defaultValue={defaultPartnerId ?? ""}
             className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
           >
-            <option value="">Select…</option>
+            <option value="">{t.select}</option>
             {partners.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -255,17 +269,17 @@ export function DrawingForm({
           </select>
         </div>
         <div className="grid gap-1">
-          <Label>Amount</Label>
+          <Label>{t.amount}</Label>
           <Input name="amount" type="number" min={0.01} step={0.01} required placeholder="5000" />
         </div>
       </div>
       <div className="grid gap-1">
-        <Label>Notes (optional)</Label>
-        <Input name="notes" maxLength={1000} placeholder="Monthly draw…" />
+        <Label>{t.notes}</Label>
+        <Input name="notes" maxLength={1000} placeholder={t.notesPh} />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Recording…" : "Record drawing"}
+        {pending ? t.recording : t.record}
       </Button>
     </form>
   );
@@ -276,10 +290,13 @@ export function DrawingForm({
 export function ReimburseButton({
   expenseId,
   isReimbursed,
+  lang,
 }: {
   expenseId: string;
   isReimbursed: boolean;
+  lang: Lang;
 }) {
+  const t = dict[lang].projectDetail;
   const router = useRouter();
   const [pending, start] = useTransition();
   return (
@@ -294,7 +311,7 @@ export function ReimburseButton({
         })
       }
     >
-      {pending ? "…" : isReimbursed ? "Unmark" : "Mark reimbursed"}
+      {pending ? "…" : isReimbursed ? t.unmark : t.mark}
     </Button>
   );
 }

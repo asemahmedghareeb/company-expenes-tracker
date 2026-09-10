@@ -5,12 +5,17 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { SplitsEditor, type SplitRow } from "./splits-editor";
 import { updateDefaultSplits } from "@/actions/partners";
+import { dict } from "@/lib/dict";
+import type { Lang } from "@/lib/format";
 
 export function DefaultSplitsForm({
   initial,
+  lang,
 }: {
   initial: { partnerId: string; name: string; sharePercentage: number }[];
+  lang: Lang;
 }) {
+  const t = dict[lang].defaultsForm;
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -37,10 +42,10 @@ export function DefaultSplitsForm({
 
   return (
     <div className="space-y-4">
-      <SplitsEditor rows={rows} onChange={setRows} />
+      <SplitsEditor rows={rows} onChange={setRows} lang={lang} />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <Button onClick={save} disabled={pending || !valid} className="w-full">
-        {pending ? "Saving…" : "Update global defaults"}
+        {pending ? t.saving : t.save}
       </Button>
     </div>
   );

@@ -15,7 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDate, formatMoney, formatPct } from "@/lib/format";
+import { formatDate, formatEGP, formatPct } from "@/lib/format";
+import { dict, getLang } from "@/lib/i18n";
 import { getPartners, getProjectDetail } from "@/actions/queries";
 import {
   ExpenseForm,
@@ -29,6 +30,10 @@ export default async function ProjectDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const lang = await getLang();
+  const t = dict[lang];
+  const td = t.projectDetail;
+
   const { id } = await params;
   const [detail, partners] = await Promise.all([
     getProjectDetail(id).catch(() => null),
@@ -48,7 +53,7 @@ export default async function ProjectDetailPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
           <p className="text-sm text-muted-foreground">
-            {project.description ?? "No description."}
+            {project.description ?? td.noDescription}
           </p>
         </div>
         <Badge
@@ -60,22 +65,22 @@ export default async function ProjectDetailPage({
                 : "secondary"
           }
         >
-          {project.status}
+          {t.projectForm.statuses[project.status]}
         </Badge>
       </div>
 
       {/* Financial summary */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Contract value", value: Number(project.contractValue) },
-          { label: "Total inflow", value: financials.totalInflow },
-          { label: "Total expenses", value: financials.totalExpenses },
-          { label: "Realized net profit", value: financials.netProfit },
+          { label: td.contractValue, value: Number(project.contractValue) },
+          { label: td.inflow, value: financials.totalInflow },
+          { label: td.expenses, value: financials.totalExpenses },
+          { label: td.netProfit, value: financials.netProfit },
         ].map((s) => (
           <Card key={s.label}>
             <CardHeader className="pb-2">
               <CardDescription>{s.label}</CardDescription>
-              <CardTitle className="text-xl">{formatMoney(s.value)}</CardTitle>
+              <CardTitle className="text-xl">{formatEGP(s.value, lang)}</CardTitle>
             </CardHeader>
           </Card>
         ))}
@@ -83,17 +88,17 @@ export default async function ProjectDetailPage({
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Outstanding reimbursements (settle first)</CardDescription>
+            <CardDescription>{td.outstanding}</CardDescription>
             <CardTitle className="text-xl">
-              {formatMoney(financials.outstandingReimbursements)}
+              {formatEGP(financials.outstandingReimbursements, lang)}
             </CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Cash after reimbursements</CardDescription>
+            <CardDescription>{td.cashAfter}</CardDescription>
             <CardTitle className="text-xl">
-              {formatMoney(financials.cashAfterReimbursements)}
+              {formatEGP(financials.cashAfterReimbursements, lang)}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -102,21 +107,18 @@ export default async function ProjectDetailPage({
       {/* Settlement plan */}
       <Card>
         <CardHeader>
-          <CardTitle>Settlement plan</CardTitle>
-          <CardDescription>
-            ① Reimburse out-of-pocket expenses ② Split net profit by snapshot
-            equity
-          </CardDescription>
+          <CardTitle>{td.settlement}</CardTitle>
+          <CardDescription>{td.settlementDesc}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Partner</TableHead>
-                <TableHead className="text-right">Share</TableHead>
-                <TableHead className="text-right">Reimbursement due</TableHead>
-                <TableHead className="text-right">Profit share</TableHead>
-                <TableHead className="text-right">Total owed</TableHead>
+                <TableHead>{td.colPartner}</TableHead>
+                <TableHead className="text-end">{td.colShare}</TableHead>
+                <TableHead className="text-end">{td.colReimb}</TableHead>
+                <TableHead className="text-end">{td.colProfit}</TableHead>
+                <TableHead className="text-end">{td.colOwed}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -132,17 +134,17 @@ export default async function ProjectDetailPage({
                     <TableCell className="font-medium">
                       {partnerName(row.partnerId)}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       {formatPct(share?.sharePercentage ?? 0)}
                     </TableCell>
-                    <TableCell className="text-right">
-                      {formatMoney(reimb?.amount ?? 0)}
+                    <TableCell className="text-end">
+                      {formatEGP(reimb?.amount ?? 0, lang)}
                     </TableCell>
-                    <TableCell className="text-right">
-                      {formatMoney(share?.amount ?? 0)}
+                    <TableCell className="text-end">
+                      {formatEGP(share?.amount ?? 0, lang)}
                     </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatMoney(row.amount)}
+                    <TableCell className="text-end font-semibold">
+                      {formatEGP(row.amount, lang)}
                     </TableCell>
                   </TableRow>
                 );
@@ -156,14 +158,13 @@ export default async function ProjectDetailPage({
         {/* Equity snapshot */}
         <Card>
           <CardHeader>
-            <CardTitle>Project equity snapshot</CardTitle>
-            <CardDescription>
-              Historic & immutable — editing affects only this project.
-            </CardDescription>
+            <CardTitle>{td.snapshotTitle}</CardTitle>
+            <CardDescription>{td.snapshotDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <ProjectSplitsEditor
               projectId={project.id}
+              lang={lang}
               initial={project.projectPartners.map((s) => ({
                 partnerId: s.partnerId,
                 name: s.partner.name,
@@ -176,11 +177,11 @@ export default async function ProjectDetailPage({
         {/* Record payment */}
         <Card>
           <CardHeader>
-            <CardTitle>Record client payment</CardTitle>
-            <CardDescription>Milestone inflow from the client.</CardDescription>
+            <CardTitle>{td.recordPayment}</CardTitle>
+            <CardDescription>{td.recordPaymentDesc}</CardDescription>
           </CardHeader>
           <CardContent>
-            <PaymentForm projectId={project.id} />
+            <PaymentForm projectId={project.id} lang={lang} />
           </CardContent>
         </Card>
       </div>
@@ -188,31 +189,31 @@ export default async function ProjectDetailPage({
       {/* Payments table */}
       <Card>
         <CardHeader>
-          <CardTitle>Client payments ({project.clientPayments.length})</CardTitle>
+          <CardTitle>{td.paymentsTitle(project.clientPayments.length)}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Milestone</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>{td.colDate}</TableHead>
+                <TableHead>{td.colMilestone}</TableHead>
+                <TableHead className="text-end">{td.colAmount}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {project.clientPayments.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell>{formatDate(p.paidAt)}</TableCell>
+                  <TableCell>{formatDate(p.paidAt, lang)}</TableCell>
                   <TableCell>{p.milestoneLabel ?? "—"}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatMoney(Number(p.amount))}
+                  <TableCell className="text-end font-medium">
+                    {formatEGP(Number(p.amount), lang)}
                   </TableCell>
                 </TableRow>
               ))}
               {project.clientPayments.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center text-muted-foreground">
-                    No payments recorded yet.
+                    {td.noPayments}
                   </TableCell>
                 </TableRow>
               )}
@@ -224,12 +225,13 @@ export default async function ProjectDetailPage({
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Log out-of-pocket expense</CardTitle>
-            <CardDescription>Paid from a partner&apos;s personal money.</CardDescription>
+            <CardTitle>{td.logExpense}</CardTitle>
+            <CardDescription>{td.logExpenseDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <ExpenseForm
               projectId={project.id}
+              lang={lang}
               partners={partners.map((p) => ({ id: p.id, name: p.name }))}
             />
           </CardContent>
@@ -237,22 +239,18 @@ export default async function ProjectDetailPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>How reimbursement works</CardTitle>
+            <CardTitle>{td.howTitle}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              1. Partner pays from personal money → expense logged as{" "}
-              <Badge variant="warning">Pending</Badge>.
+              {td.how1} <Badge variant="warning">{td.pending}</Badge>.
             </p>
             <p>
-              2. Client payment arrives → click{" "}
-              <span className="font-medium text-foreground">Mark reimbursed</span>{" "}
-              to settle that partner first.
+              {td.how2pre}{" "}
+              <span className="font-medium text-foreground">{td.howMark}</span>{" "}
+              {td.how2post}
             </p>
-            <p>
-              3. Remaining net profit (inflow − all expenses) splits by the
-              snapshot % above.
-            </p>
+            <p>{td.how3}</p>
           </CardContent>
         </Card>
       </div>
@@ -260,43 +258,43 @@ export default async function ProjectDetailPage({
       {/* Expenses table */}
       <Card>
         <CardHeader>
-          <CardTitle>Operational expenses ({project.expenses.length})</CardTitle>
+          <CardTitle>{td.expensesTitle(project.expenses.length)}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Paid by</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead>{td.colDate}</TableHead>
+                <TableHead>{td.colDesc}</TableHead>
+                <TableHead>{td.colPaidBy}</TableHead>
+                <TableHead className="text-end">{td.colAmount}</TableHead>
+                <TableHead>{td.colStatus}</TableHead>
+                <TableHead className="text-end">{td.colAction}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {project.expenses.map((e) => (
                 <TableRow key={e.id}>
-                  <TableCell>{formatDate(e.expenseDate)}</TableCell>
+                  <TableCell>{formatDate(e.expenseDate, lang)}</TableCell>
                   <TableCell>{e.description}</TableCell>
                   <TableCell>{e.paidBy.name}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatMoney(Number(e.amount))}
+                  <TableCell className="text-end font-medium">
+                    {formatEGP(Number(e.amount), lang)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={e.isReimbursed ? "success" : "warning"}>
-                      {e.isReimbursed ? "Reimbursed" : "Pending"}
+                      {e.isReimbursed ? td.reimbursed : td.pending}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <ReimburseButton expenseId={e.id} isReimbursed={e.isReimbursed} />
+                  <TableCell className="text-end">
+                    <ReimburseButton expenseId={e.id} isReimbursed={e.isReimbursed} lang={lang} />
                   </TableCell>
                 </TableRow>
               ))}
               {project.expenses.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    No expenses logged yet.
+                    {td.noExpenses}
                   </TableCell>
                 </TableRow>
               )}
