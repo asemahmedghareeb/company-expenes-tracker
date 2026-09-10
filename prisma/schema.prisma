@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ProjectStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+model Partner {
+  id                     String           @id @default(cuid())
+  name                   String
+  email                  String?          @unique
+  /// Global default equity % (among active partners must sum to 100 — enforced in app layer).
+  defaultSharePercentage Float            @default(0)
+  isActive               Boolean          @default(true)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  // Relations
+  projectPartners        ProjectPartner[]
+  expensesPaid           ProjectExpense[] @relation("ExpensePaidBy")
+  drawings               PartnerDrawing[]
+
+  @@index([isActive])
+  @@map("partners")
+}
+
+model Project {
+  id              String           @id @default(cuid())
+  name            String
+  description     String?
+  contractValue   Decimal          @db.Decimal(14, 2)
+  status          ProjectStatus    @default(ACTIVE)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  // Relations — snapshot equity lives in ProjectPartner and NEVER mutates
+  // when Partner.defaultSharePercentage changes.
+  projectPartners ProjectPartner[]
+  clientPayments  ClientPayment[]
+  expenses        ProjectExpense[]
+
+  @@index([status])
+  @@map("projects")
+}
+
+/// Snapshot of a partner's equity for ONE project.
+/// Copied from Partner.defaultSharePercentage at project creation,
+/// then freely adjustable per project (must sum to 100 — enforced in app layer).
+model ProjectPartner {
+  id               String   @id @default(cuid())
+  projectId        String
+  partnerId        String
+  sharePercentage  Float
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, partnerId])
+  @@index([projectId])
+  @@index([partnerId])
+  @@map("project_partners")
+}
+
+model ClientPayment {
+  id             String   @id @default(cuid())
+  projectId      String
+  amount         Decimal  @db.Decimal(14, 2)
+  milestoneLabel String?
+  notes          String?
+  paidAt         DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([paidAt])
+  @@map("client_payments")
+}
+
+model ProjectExpense {
+  id               String    @id @default(cuid())
+  projectId        String
+  paidByPartnerId  String
+  amount           Decimal   @db.Decimal(14, 2)
+  description      String
+  expenseDate      DateTime  @default(now())
+  /// False = partner is still owed this money. True = firm has reimbursed them.
+  isReimbursed     Boolean   @default(false)
+  reimbursedAt     DateTime?
+  createdAt        DateTime  @default(now())
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  paidBy      Partner @relation("ExpensePaidBy", fields: [paidByPartnerId], references: [id], onDelete: Restrict)
+
+  @@index([projectId])
+  @@index([paidByPartnerId])
+  @@index([isReimbursed])
+  @@map("project_expenses")
+}
+
+model PartnerDrawing {
+  id        String   @id @default(cuid())
+  partnerId String
+  amount    Decimal  @db.Decimal(14, 2)
+  notes     String?
+  drawnAt   DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([drawnAt])
+  @@map("partner_drawings")
+}

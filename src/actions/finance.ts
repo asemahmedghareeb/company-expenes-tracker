@@ -1,0 +1,215 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { db } from "@/lib/db";
+import {
+  clientPaymentSchema,
+  projectExpenseSchema,
+  markReimbursedSchema,
+  partnerDrawingSchema,
+  type ActionResult,
+  zodFieldErrors,
+} from "@/lib/validations";
+
+function revalidateFinance(projectId?: string) {
+  revalidatePath("/");
+  revalidatePath("/ledger");
+  revalidatePath("/projects");
+  if (projectId) revalidatePath(`/projects/${projectId}`);
+}
+
+/* ------------------------- Client payments ------------------------- */
+
+/** Record a milestone payment received from the client. */
+export async function recordClientPayment(
+  raw: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = clientPaymentSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Invalid payment data.",
+      fieldErrors: zodFieldErrors(parsed.error),
+    };
+  }
+  try {
+    const payment = await db.clientPayment.create({
+      data: {
+        projectId: parsed.data.projectId,
+        amount: parsed.data.amount,
+        milestoneLabel: parsed.data.milestoneLabel || null,
+        notes: parsed.data.notes || null,
+        paidAt: parsed.data.paidAt,
+      },
+    });
+    revalidateFinance(parsed.data.projectId);
+    return { ok: true, data: { id: payment.id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to record payment.",
+    };
+  }
+}
+
+export async function deleteClientPayment(
+  id: string,
+  projectId: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    await db.clientPayment.delete({ where: { id } });
+    revalidateFinance(projectId);
+    return { ok: true, data: { id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to delete payment.",
+    };
+  }
+}
+
+/* ------------------------- Project expenses ------------------------ */
+
+/** Log an out-of-pocket expense paid from a partner's personal money. */
+export async function logProjectExpense(
+  raw: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = projectExpenseSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Invalid expense data.",
+      fieldErrors: zodFieldErrors(parsed.error),
+    };
+  }
+  const { projectId, paidByPartnerId } = parsed.data;
+
+  // Both sides must exist. Any partner may pay (even if 0% on this project).
+  const [project, payer] = await Promise.all([
+    db.project.findUnique({ where: { id: projectId }, select: { id: true } }),
+    db.partner.findUnique({
+      where: { id: paidByPartnerId },
+      select: { id: true },
+    }),
+  ]);
+  if (!project) return { ok: false, error: "Project not found." };
+  if (!payer) return { ok: false, error: "Paying partner not found." };
+
+  try {
+    const expense = await db.projectExpense.create({
+      data: {
+        projectId,
+        paidByPartnerId,
+        amount: parsed.data.amount,
+        description: parsed.data.description,
+        expenseDate: parsed.data.expenseDate,
+      },
+    });
+    revalidateFinance(projectId);
+    return { ok: true, data: { id: expense.id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to log expense.",
+    };
+  }
+}
+
+/**
+ * Mark an expense reimbursed (or un-reimburse). Sets/clears reimbursedAt.
+ * This is the "settle expenses first" step when client cash arrives.
+ */
+export async function markExpenseReimbursed(
+  raw: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = markReimbursedSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid reimbursement data." };
+  }
+  try {
+    const expense = await db.projectExpense.update({
+      where: { id: parsed.data.expenseId },
+      data: {
+        isReimbursed: parsed.data.isReimbursed,
+        reimbursedAt: parsed.data.isReimbursed ? new Date() : null,
+      },
+    });
+    revalidateFinance(expense.projectId);
+    return { ok: true, data: { id: expense.id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to update expense.",
+    };
+  }
+}
+
+export async function deleteProjectExpense(
+  id: string,
+  projectId: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    await db.projectExpense.delete({ where: { id } });
+    revalidateFinance(projectId);
+    return { ok: true, data: { id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to delete expense.",
+    };
+  }
+}
+
+/* -------------------------- Partner drawings ------------------------ */
+
+/** Record a partner cash withdrawal (drawing against their balance). */
+export async function recordPartnerDrawing(
+  raw: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = partnerDrawingSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Invalid drawing data.",
+      fieldErrors: zodFieldErrors(parsed.error),
+    };
+  }
+  const partner = await db.partner.findUnique({
+    where: { id: parsed.data.partnerId },
+    select: { id: true },
+  });
+  if (!partner) return { ok: false, error: "Partner not found." };
+
+  try {
+    const drawing = await db.partnerDrawing.create({
+      data: {
+        partnerId: parsed.data.partnerId,
+        amount: parsed.data.amount,
+        notes: parsed.data.notes || null,
+        drawnAt: parsed.data.drawnAt,
+      },
+    });
+    revalidateFinance();
+    return { ok: true, data: { id: drawing.id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to record drawing.",
+    };
+  }
+}
+
+export async function deletePartnerDrawing(
+  id: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    await db.partnerDrawing.delete({ where: { id } });
+    revalidateFinance();
+    return { ok: true, data: { id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to delete drawing.",
+    };
+  }
+}
