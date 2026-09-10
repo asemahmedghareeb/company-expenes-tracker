@@ -86,10 +86,16 @@ export const projectSplitSchema = z.object({
 export type ProjectSplitInput = z.infer<typeof projectSplitSchema>;
 
 /**
- * Create project. `splits` is the PER-PROJECT snapshot written to
- * ProjectPartner — copied from defaults on the client, then adjustable.
- * Historic rows never mutate when global defaults change.
+ * Optional out-of-pocket costs known up-front, persisted as ProjectExpense
+ * rows (pending reimbursement) at creation time.
  */
+export const initialExpenseSchema = z.object({
+  title: z.string().trim().min(1, "Expense title is required").max(500),
+  amount: moneyAmount,
+  paidByPartnerId: cuid,
+});
+
+export type InitialExpenseInput = z.infer<typeof initialExpenseSchema>;
 export const createProjectSchema = z.object({
   name: z.string().trim().min(1, "Project name is required").max(150),
   description: z.string().trim().max(2000).optional().or(z.literal("")),

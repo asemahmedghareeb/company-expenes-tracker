@@ -49,3 +49,24 @@ export function formatShareInput(n: number): string {
   if (!Number.isFinite(n)) return "";
   return String(Number(n.toFixed(2)));
 }
+
+const EASTERN_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+
+/**
+ * Sanitize a numeric keystroke: convert Eastern Arabic digits (٠-٩) and the
+ * Arabic decimal separator (٫) to Latin, treat "," as ".", drop everything
+ * else (letters can never even appear), keep at most one dot.
+ * "٣٣٫٣٣" → "33.33", "ab3.5.2" → "3.52", "abc" → "".
+ */
+export function sanitizeNumericInput(raw: string): string {
+  let out = raw
+    .replace(/[٠-٩]/g, (d) => String(EASTERN_DIGITS.indexOf(d)))
+    .replace(/٫/g, ".")
+    .replace(/,/g, ".")
+    .replace(/[^0-9.]/g, "");
+  const dot = out.indexOf(".");
+  if (dot !== -1) {
+    out = out.slice(0, dot + 1) + out.slice(dot + 1).replace(/\./g, "");
+  }
+  return out;
+}

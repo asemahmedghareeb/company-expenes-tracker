@@ -75,6 +75,8 @@ export interface Dictionary {
     total: (total: string, valid: boolean) => string;
     inactive: string;
     equal: string;
+    clear: string;
+    autoHint: string;
   };
   defaultsForm: { save: string; saving: string };
   /* ------------------------------ Projects ------------------------------ */
@@ -300,6 +302,8 @@ export const dict: Record<Lang, Dictionary> = {
         `Total: ${total}% ${valid ? "✓ sums to 100%" : "— must sum to exactly 100%"}`,
       inactive: "(inactive)",
       equal: "Split equally",
+      clear: "Clear",
+      autoHint: "Last row auto-balances to 100",
     },
     defaultsForm: { save: "Update global defaults", saving: "Saving…" },
     projectsPage: {
@@ -524,6 +528,8 @@ export const dict: Record<Lang, Dictionary> = {
         `الإجمالي: ${total}% ${valid ? "✓ يساوي 100%" : "— يجب أن يساوي 100% بالضبط"}`,
       inactive: "(غير نشط)",
       equal: "توزيع بالتساوي",
+      clear: "مسح",
+      autoHint: "الصف الأخير يُكمَّل تلقائيًا إلى 100",
     },
     defaultsForm: { save: "تحديث القيم الافتراضية العامة", saving: "جارٍ الحفظ…" },
     projectsPage: {
