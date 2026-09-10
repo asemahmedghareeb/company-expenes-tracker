@@ -19,6 +19,8 @@ import { formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getPartners, getProjectDetail } from "@/actions/queries";
 import {
+  DeleteProjectButton,
+  EditProjectForm,
   ExpenseForm,
   PaymentForm,
   ProjectSplitsEditor,
@@ -67,6 +69,39 @@ export default async function ProjectDetailPage({
         >
           {t.projectForm.statuses[project.status]}
         </Badge>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Edit metadata */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{td.editTitle}</CardTitle>
+            <CardDescription>{td.editDesc}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EditProjectForm
+              lang={lang}
+              project={{
+                id: project.id,
+                name: project.name,
+                description: project.description,
+                contractValue: Number(project.contractValue),
+                status: project.status,
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Danger zone */}
+        <Card className="border-destructive/40">
+          <CardHeader>
+            <CardTitle>{td.deleteTitle}</CardTitle>
+            <CardDescription>{td.deleteDesc(project.name)}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DeleteProjectButton projectId={project.id} lang={lang} />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Financial summary */}

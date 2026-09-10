@@ -159,3 +159,25 @@ export async function updateProjectSplits(
     };
   }
 }
+
+/**
+ * Permanently delete a project and ALL its history (snapshot splits,
+ * client payments, expenses cascade via onDelete: Cascade).
+ * Partner balances will change — caller must confirm with the user first.
+ */
+export async function deleteProject(
+  projectId: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    await db.project.delete({ where: { id: projectId } });
+    revalidatePath("/projects");
+    revalidatePath("/ledger");
+    revalidatePath("/");
+    return { ok: true, data: { id: projectId } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to delete project.",
+    };
+  }
+}

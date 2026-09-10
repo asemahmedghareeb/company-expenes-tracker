@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
 import { SplitsEditor, type SplitRow } from "./splits-editor";
-import { updateProjectSplits } from "@/actions/projects";
+import { deleteProject, updateProject, updateProjectSplits } from "@/actions/projects";
 import {
   recordClientPayment,
   logProjectExpense,
@@ -313,5 +313,146 @@ export function ReimburseButton({
     >
       {pending ? "…" : isReimbursed ? t.unmark : t.mark}
     </Button>
+  );
+}
+
+/* --------------------------- Edit project meta --------------------------- */
+
+export function EditProjectForm({
+  project,
+  lang,
+}: {
+  project: {
+    id: string;
+    name: string;
+    description: string | null;
+    contractValue: number;
+    status: "UPCOMING" | "ACTIVE" | "COMPLETED" | "ON_HOLD" | "CANCELLED";
+  };
+  lang: Lang;
+}) {
+  const t = dict[lang].projectForm;
+  const td = dict[lang].projectDetail;
+  const tp = dict[lang].partnerForm;
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <form
+      className="space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        setError(null);
+        start(async () => {
+          const res = await updateProject({
+            projectId: project.id,
+            name: String(fd.get("name") ?? ""),
+            description: String(fd.get("description") ?? ""),
+            contractValue: Number(fd.get("contractValue") ?? 0),
+            status: String(fd.get("status") ?? project.status),
+          });
+          if (!res.ok) setError(res.error);
+          else router.refresh();
+        });
+      }}
+    >
+      <div className="grid gap-1">
+        <Label>{t.name}</Label>
+        <Input name="name" required maxLength={150} defaultValue={project.name} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-1">
+          <Label>{t.contractValue}</Label>
+          <Input
+            name="contractValue"
+            type="number"
+            min={0.01}
+            step={0.01}
+            required
+            defaultValue={project.contractValue}
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label>{t.status}</Label>
+          <select
+            name="status"
+            defaultValue={project.status}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="UPCOMING">{t.statuses.UPCOMING}</option>
+            <option value="ACTIVE">{t.statuses.ACTIVE}</option>
+            <option value="COMPLETED">{t.statuses.COMPLETED}</option>
+            <option value="ON_HOLD">{t.statuses.ON_HOLD}</option>
+            <option value="CANCELLED">{t.statuses.CANCELLED}</option>
+          </select>
+        </div>
+      </div>
+      <div className="grid gap-1">
+        <Label>{t.description}</Label>
+        <Textarea
+          name="description"
+          defaultValue={project.description ?? ""}
+          placeholder={t.descPh}
+        />
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <Button type="submit" disabled={pending} className="w-full">
+        {pending ? td.saving : tp.save}
+      </Button>
+    </form>
+  );
+}
+
+/* ------------------------------ Delete project ---------------------------- */
+
+export function DeleteProjectButton({
+  projectId,
+  lang,
+}: {
+  projectId: string;
+  lang: Lang;
+}) {
+  const t = dict[lang].projectDetail;
+  const router = useRouter();
+  const [armed, setArmed] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function confirm() {
+    setError(null);
+    start(async () => {
+      const res = await deleteProject(projectId);
+      if (!res.ok) {
+        setError(res.error);
+        setArmed(false);
+      } else {
+        router.push("/projects");
+        router.refresh();
+      }
+    });
+  }
+
+  if (!armed) {
+    return (
+      <Button variant="destructive" onClick={() => setArmed(true)}>
+        {t.delete}
+      </Button>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        <Button variant="destructive" disabled={pending} onClick={confirm}>
+          {pending ? t.deleting : t.deleteConfirm}
+        </Button>
+        <Button variant="outline" disabled={pending} onClick={() => setArmed(false)}>
+          {t.cancel}
+        </Button>
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+    </div>
   );
 }

@@ -148,6 +148,14 @@ export interface Dictionary {
     mark: string;
     unmark: string;
     noExpenses: string;
+    editTitle: string;
+    editDesc: string;
+    deleteTitle: string;
+    deleteDesc: (projectName: string) => string;
+    delete: string;
+    deleteConfirm: string;
+    deleting: string;
+    cancel: string;
   };
   paymentForm: {
     amount: string;
@@ -357,6 +365,16 @@ export const dict: Record<Lang, Dictionary> = {
       mark: "Mark reimbursed",
       unmark: "Unmark",
       noExpenses: "No expenses logged yet.",
+      editTitle: "Edit project",
+      editDesc:
+        "Update name, value, status or description. Equity is edited separately above.",
+      deleteTitle: "Danger zone",
+      deleteDesc: (projectName) =>
+        `Deleting “${projectName}” permanently removes its payments, expenses and equity snapshot. Partner balances will change.`,
+      delete: "Delete project",
+      deleteConfirm: "Click again to confirm deletion",
+      deleting: "Deleting…",
+      cancel: "Cancel",
     },
     paymentForm: {
       amount: "Amount",
@@ -563,6 +581,16 @@ export const dict: Record<Lang, Dictionary> = {
       mark: "تعليم كمُسدَّد",
       unmark: "إلغاء التعليم",
       noExpenses: "لا توجد مصروفات مسجلة بعد.",
+      editTitle: "تعديل المشروع",
+      editDesc:
+        "حدّث الاسم أو القيمة أو الحالة أو الوصف. الحصص تُعدَّل منفصلًا أعلاه.",
+      deleteTitle: "منطقة الخطر",
+      deleteDesc: (projectName) =>
+        `حذف «${projectName}» يزيل نهائيًا دفعاته ومصاريفه ولقطة حصصه. أرصدة الشركاء ستتغير.`,
+      delete: "حذف المشروع",
+      deleteConfirm: "اضغط مرة أخرى لتأكيد الحذف",
+      deleting: "جارٍ الحذف…",
+      cancel: "إلغاء",
     },
     paymentForm: {
       amount: "المبلغ",
