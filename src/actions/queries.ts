@@ -107,7 +107,7 @@ export async function getDashboardData() {
     }),
     db.partnerDrawing.findMany(),
     db.companyExpense.findMany({
-      include: { payments: true },
+      include: { payments: true, payouts: true },
       orderBy: { expenseDate: "desc" },
     }),
   ]);
@@ -135,7 +135,22 @@ export async function getDashboardData() {
         partnerId: x.partnerId,
         amount: toNumber(x.amount),
       })),
+      payouts: e.payouts
+        .filter((x) => x.expenseId === e.id)
+        .map((x) => ({
+          partnerId: x.partnerId,
+          amount: toNumber(x.amount),
+          expenseId: x.expenseId ?? undefined,
+        })),
     })),
+    loosePayouts: companyRaw.flatMap((e) =>
+      e.payouts
+        .filter((x) => !x.expenseId)
+        .map((x) => ({
+          partnerId: x.partnerId,
+          amount: toNumber(x.amount),
+        })),
+    ),
     partners: partners.map((p) => ({
       id: p.id,
       name: p.name,
@@ -167,17 +182,25 @@ export async function getDashboardData() {
   return { partners, ledgers, overview, projectCards, drawings: drawingsRaw };
 }
 
-/** Company page data: bills with payments + partners for settlement. */
+/** Company page data: bills with payments + payouts + partners for settlement. */
 export async function getCompanyData() {
-  const [expenses, partners, fixedCosts] = await Promise.all([
+  const [expenses, partners, fixedCosts, payouts] = await Promise.all([
     db.companyExpense.findMany({
-      include: { payments: { include: { partner: true }, orderBy: { paidAt: "desc" } } },
+      include: {
+        payments: { include: { partner: true }, orderBy: { paidAt: "desc" } },
+        payouts: { include: { partner: true }, orderBy: { paidAt: "desc" } },
+      },
       orderBy: { expenseDate: "desc" },
     }),
     db.partner.findMany({ orderBy: { name: "asc" } }),
     db.companyFixedCost.findMany({ orderBy: { title: "asc" } }),
+    db.companyPayout.findMany({
+      include: { partner: true, expense: true },
+      orderBy: { paidAt: "desc" },
+      take: 50,
+    }),
   ]);
-  return { expenses, partners, fixedCosts };
+  return { expenses, partners, fixedCosts, payouts };
 }
 
 /** Monthly summary data: everything the engine needs to settle one month. */

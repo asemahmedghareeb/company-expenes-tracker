@@ -22,10 +22,13 @@ import { getCompanyData } from "@/actions/queries";
 import {
   CompanyExpenseForm,
   CompanyPaymentForm,
+  CompanyPayoutForm,
   DeleteCompanyExpenseButton,
   DeleteCompanyPaymentButton,
+  DeleteCompanyPayoutButton,
   FixedCostsManager,
   QuickVariableForm,
+  SettleRowButton,
 } from "@/components/forms/company-forms";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +36,13 @@ export const dynamic = "force-dynamic";
 export default async function CompanyPage() {
   const lang = await getLang();
   const t = dict[lang].company;
-  const { expenses, partners, fixedCosts } = await getCompanyData().catch(() => ({
-    expenses: [],
-    partners: [],
-    fixedCosts: [],
-  }));
+  const { expenses, partners, fixedCosts, payouts } =
+    await getCompanyData().catch(() => ({
+      expenses: [],
+      partners: [],
+      fixedCosts: [],
+      payouts: [],
+    }));
 
   const active = partners.filter((p) => p.isActive);
   const defaultsOk =
@@ -60,6 +65,11 @@ export default async function CompanyPage() {
         payments: e.payments.map((x) => ({
           partnerId: x.partnerId,
           amount: toNumber(x.amount),
+        })),
+        payouts: e.payouts.map((x) => ({
+          partnerId: x.partnerId,
+          amount: toNumber(x.amount),
+          expenseId: x.expenseId ?? undefined,
         })),
       },
       companyPartners,
@@ -128,6 +138,51 @@ export default async function CompanyPage() {
               />
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t.payoutTitle}</CardTitle>
+              <CardDescription>{t.payoutDesc}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CompanyPayoutForm
+                lang={lang}
+                partners={partners.map((p) => ({ id: p.id, name: p.name }))}
+                expenses={expenses.map((e) => ({ id: e.id, title: e.title }))}
+              />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t.payoutHistory}</CardTitle>
+              <CardDescription>{t.payoutHistoryDesc}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {payouts.map((x) => (
+                <div
+                  key={x.id}
+                  className="flex items-center justify-between rounded-lg border border-border p-2 text-sm"
+                >
+                  <span>
+                    {x.partner.name} · {formatEGP(Number(x.amount), lang)}
+                    {x.expense && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {t.payoutTo} {x.expense.title}
+                      </span>
+                    )}
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {formatDate(x.paidAt, lang)}
+                    </span>
+                  </span>
+                  <DeleteCompanyPayoutButton id={x.id} lang={lang} />
+                </div>
+              ))}
+              {payouts.length === 0 && (
+                <p className="text-sm text-muted-foreground">{t.noPayouts}</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-4 lg:col-span-2">
@@ -149,6 +204,11 @@ export default async function CompanyPage() {
                       {formatDate(expense.expenseDate, lang)} · {t.collected}{" "}
                       {formatEGP(s.totalPaid, lang)} · {t.remaining}{" "}
                       {formatEGP(s.remaining, lang)}
+                      {s.totalPayout > 0 && (
+                        <>
+                          {" "}· {t.colPayout}: {formatEGP(s.totalPayout, lang)}
+                        </>
+                      )}
                     </CardDescription>
                   </div>
                   <DeleteCompanyExpenseButton id={s.expenseId} lang={lang} />
@@ -161,7 +221,9 @@ export default async function CompanyPage() {
                         <TableHead className="text-end">{t.colShare}</TableHead>
                         <TableHead className="text-end">{t.colShareAmount}</TableHead>
                         <TableHead className="text-end">{t.colPaid}</TableHead>
+                        <TableHead className="text-end">{t.colPayout}</TableHead>
                         <TableHead className="text-end">{t.colNet}</TableHead>
+                        <TableHead className="text-end">{t.colSettle}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -178,6 +240,13 @@ export default async function CompanyPage() {
                             {formatEGP(r.paid, lang)}
                           </TableCell>
                           <TableCell className="text-end">
+                            {r.payout > 0 ? (
+                              formatEGP(r.payout, lang)
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-end">
                             <Badge
                               variant={
                                 r.net > 0
@@ -191,11 +260,19 @@ export default async function CompanyPage() {
                               {r.net > 0 ? t.overpaid : r.net < 0 ? t.owes : t.settled}
                             </Badge>
                           </TableCell>
+                          <TableCell className="text-end">
+                            <SettleRowButton
+                              expenseId={s.expenseId}
+                              partnerId={r.partnerId}
+                              net={r.net}
+                              lang={lang}
+                            />
+                          </TableCell>
                         </TableRow>
                       ))}
                       {s.rows.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center text-muted-foreground">
                             {t.noExpenses}
                           </TableCell>
                         </TableRow>

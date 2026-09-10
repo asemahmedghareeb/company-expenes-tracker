@@ -19,7 +19,16 @@ import {
 import { formatEGP } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getDashboardData } from "@/actions/queries";
-import { ArrowRight, Plus } from "lucide-react";
+import {
+  ArrowRight,
+  Briefcase,
+  HandCoins,
+  PiggyBank,
+  Plus,
+  Receipt,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -70,20 +79,52 @@ export default async function DashboardPage() {
   const { overview, ledgers, projectCards } = data;
 
   const stats = [
-    { label: t.stats.inflow, value: overview.totalInflow },
-    { label: t.stats.expenses, value: overview.totalExpenses },
-    { label: t.stats.netProfit, value: overview.netProfit },
-    { label: t.stats.outstanding, value: overview.outstandingReimbursements },
-    { label: t.stats.drawings, value: overview.totalDrawings },
-    { label: t.stats.contractValue, value: overview.totalContractValue },
+    {
+      label: t.stats.inflow,
+      value: overview.totalInflow,
+      icon: TrendingUp,
+      tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      label: t.stats.expenses,
+      value: overview.totalExpenses,
+      icon: TrendingDown,
+      tint: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    },
+    {
+      label: t.stats.netProfit,
+      value: overview.netProfit,
+      icon: PiggyBank,
+      tint: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+    },
+    {
+      label: t.stats.outstanding,
+      value: overview.outstandingReimbursements,
+      icon: Receipt,
+      tint: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    },
+    {
+      label: t.stats.drawings,
+      value: overview.totalDrawings,
+      icon: HandCoins,
+      tint: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    },
+    {
+      label: t.stats.contractValue,
+      value: overview.totalContractValue,
+      icon: Briefcase,
+      tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t.firmOverview}</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl dark:from-indigo-300 dark:via-indigo-200 dark:to-sky-300">
+            {t.firmOverview}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {t.overviewSubtitle(overview.projectCount, overview.activePartnerCount)}
           </p>
         </div>
@@ -103,10 +144,22 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((s) => (
-          <Card key={s.label}>
-            <CardHeader className="pb-2">
-              <CardDescription>{s.label}</CardDescription>
-              <CardTitle className="text-2xl">{formatEGP(s.value, lang)}</CardTitle>
+          <Card
+            key={s.label}
+            className="group overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
+          >
+            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+              <div className="space-y-1.5">
+                <CardDescription>{s.label}</CardDescription>
+                <CardTitle className="text-2xl tabular-nums tracking-tight">
+                  {formatEGP(s.value, lang)}
+                </CardTitle>
+              </div>
+              <span
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 ${s.tint}`}
+              >
+                <s.icon className="h-5 w-5" />
+              </span>
             </CardHeader>
           </Card>
         ))}
@@ -139,7 +192,7 @@ export default async function DashboardPage() {
                       {formatEGP(l.realizedProfitShare, lang)}
                     </TableCell>
                     <TableCell
-                      className={`text-end font-semibold ${l.balance < 0 ? "text-red-600" : "text-emerald-700"}`}
+                      className={`text-end font-semibold tabular-nums ${l.balance < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}
                     >
                       {formatEGP(l.balance, lang)}
                     </TableCell>
@@ -175,7 +228,7 @@ export default async function DashboardPage() {
               <Link
                 key={p.id}
                 href={`/projects/${p.id}`}
-                className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-accent"
+                className="flex items-center justify-between rounded-xl border border-border/80 bg-background/60 p-3 transition-all duration-200 hover:-translate-y-px hover:bg-accent hover:shadow-md"
               >
                 <div>
                   <div className="font-medium">{p.name}</div>

@@ -5,6 +5,9 @@
  * All money inputs are plain `number`s. Convert Prisma `Decimal`
  * to number at the boundary (see `toNumber`).
  *
+ * Money splits use largest-remainder (`splitMoney`) so per-partner
+ * 2-decimal parts ALWAYS sum exactly to the total (no 0.01 dust).
+ *
  * Business rules implemented:
  *  1. Realized Net Profit (per project) = Total Inflow − Total Operational Expenses
  *  2. When client payments arrive, OUTSTANDING out-of-pocket expenses are
@@ -20,6 +23,8 @@
  *     + (Company over/under-payments net)
  *     − (Total Drawings Taken)
  */
+
+import { splitMoney } from "./shares";
 
 export interface LedgerSplit {
   partnerId: string;
@@ -189,11 +194,15 @@ export function getProjectSettlementPlan(
     ([partnerId, amount]) => ({ partnerId, amount: round2(amount) }),
   );
 
-  // 2 — profit split by snapshot equity
-  const profitShares: ProfitShare[] = project.projectPartners.map((s) => ({
+  // 2 — profit split by snapshot equity (largest-remainder: parts sum to netProfit)
+  const profitParts = splitMoney(
+    financials.netProfit,
+    project.projectPartners.map((s) => s.sharePercentage),
+  );
+  const profitShares: ProfitShare[] = project.projectPartners.map((s, i) => ({
     partnerId: s.partnerId,
     sharePercentage: s.sharePercentage,
-    amount: round2((financials.netProfit * s.sharePercentage) / 100),
+    amount: profitParts[i] ?? 0,
   }));
 
   // Combined per-partner totals for this project
@@ -239,7 +248,7 @@ export interface PartnerLedger {
   realizedProfitShare: number;
   /** Sum of all cash withdrawals. */
   totalDrawings: number;
-  /** Σ(paid − share) across company overhead bills (positive = firm owes them). */
+  /** Σ(paid − share − payouts) across company overhead (positive = firm owes them). */
   companyNet: number;
   /**
    * THE dynamic balance:
@@ -263,11 +272,20 @@ export interface CompanyPaymentInput {
   amount: number;
 }
 
+/** Cash the firm paid BACK to a partner (settles their pending credit). */
+export interface CompanyPayoutInput {
+  partnerId: string;
+  amount: number;
+  expenseId?: string;
+}
+
 export interface CompanyExpenseInput {
   id: string;
   title?: string;
   amount: number;
   payments: CompanyPaymentInput[];
+  /** Firm→partner payouts (empty when the caller has none to report). */
+  payouts?: CompanyPayoutInput[];
 }
 
 export interface CompanyPartnerSettlement {
@@ -276,7 +294,9 @@ export interface CompanyPartnerSettlement {
   sharePercentage: number;
   shareAmount: number;
   paid: number;
-  /** paid − shareAmount. Positive = firm owes them (pending credit). */
+  /** Firm→partner payouts credited against this row. */
+  payout: number;
+  /** paid − shareAmount − payout. Positive = firm still owes them. */
   net: number;
 }
 
@@ -285,6 +305,7 @@ export interface CompanyExpenseSettlement {
   title?: string;
   amount: number;
   totalPaid: number;
+  totalPayout: number;
   /** amount − totalPaid. Positive = still to collect from partners. */
   remaining: number;
   rows: CompanyPartnerSettlement[];
@@ -295,6 +316,7 @@ export interface CompanyNetLine {
   title?: string;
   share: number;
   paid: number;
+  payout: number;
   net: number;
 }
 
@@ -307,39 +329,70 @@ export function getCompanyExpenseSettlement(
   partners: CompanyPartnerInput[],
 ): CompanyExpenseSettlement {
   const active = partners.filter((p) => p.isActive);
-  const rows = active.map((p) => {
+  // Largest-remainder: share parts sum EXACTLY to the bill (no 0.01 dust).
+  const shareParts = splitMoney(
+    expense.amount,
+    active.map((p) => p.defaultSharePercentage),
+  );
+  const rows = active.map((p, i) => {
     const paid = round2(
       sum(expense.payments.filter((x) => x.partnerId === p.id).map((x) => x.amount)),
     );
-    const shareAmount = round2((expense.amount * p.defaultSharePercentage) / 100);
+    // Callers scope payouts to this bill; the expenseId guard is defensive.
+    const payout = round2(
+      sum(
+        (expense.payouts ?? [])
+          .filter(
+            (x) =>
+              x.partnerId === p.id &&
+              (!x.expenseId || x.expenseId === expense.id),
+          )
+          .map((x) => x.amount),
+      ),
+    );
+    const shareAmount = shareParts[i] ?? 0;
     return {
       partnerId: p.id,
       name: p.name,
       sharePercentage: p.defaultSharePercentage,
       shareAmount,
       paid,
-      net: round2(paid - shareAmount),
+      payout,
+      net: round2(paid - shareAmount - payout),
     };
   });
   const totalPaid = round2(sum(expense.payments.map((x) => x.amount)));
+  const totalPayout = round2(sum((expense.payouts ?? []).map((x) => x.amount)));
   return {
     expenseId: expense.id,
     title: expense.title,
     amount: expense.amount,
     totalPaid,
+    totalPayout,
     remaining: round2(expense.amount - totalPaid),
     rows,
   };
 }
 
-/** Per-partner net across ALL company bills (paid − share, signed). */
+/**
+ * Per-partner net across ALL company bills: paid − share − payouts (signed).
+ * `loosePayouts` = firm→partner payouts not linked to any bill.
+ */
 export function getPartnerCompanyNet(
   partnerId: string,
   expenses: CompanyExpenseInput[],
   partners: CompanyPartnerInput[],
-): { share: number; paid: number; net: number; lines: CompanyNetLine[] } {
+  loosePayouts: CompanyPayoutInput[] = [],
+): {
+  share: number;
+  paid: number;
+  payout: number;
+  net: number;
+  lines: CompanyNetLine[];
+} {
   let share = 0;
   let paid = 0;
+  let payout = 0;
   const lines: CompanyNetLine[] = [];
   for (const e of expenses) {
     const s = getCompanyExpenseSettlement(e, partners);
@@ -347,17 +400,31 @@ export function getPartnerCompanyNet(
     if (!row) continue;
     share = round2(share + row.shareAmount);
     paid = round2(paid + row.paid);
-    if (row.shareAmount > 0 || row.paid > 0) {
+    payout = round2(payout + row.payout);
+    if (row.shareAmount > 0 || row.paid > 0 || row.payout > 0) {
       lines.push({
         expenseId: e.id,
         title: e.title,
         share: row.shareAmount,
         paid: row.paid,
+        payout: row.payout,
         net: row.net,
       });
     }
   }
-  return { share, paid, net: round2(paid - share), lines };
+  for (const x of loosePayouts) {
+    if (x.partnerId !== partnerId) continue;
+    payout = round2(payout + x.amount);
+    lines.push({
+      expenseId: "",
+      title: undefined,
+      share: 0,
+      paid: 0,
+      payout: round2(x.amount),
+      net: round2(-x.amount),
+    });
+  }
+  return { share, paid, payout, net: round2(paid - share - payout), lines };
 }
 
 /**
@@ -368,7 +435,11 @@ export function getPartnerLedger(
   projects: LedgerProject[],
   drawings: LedgerDrawing[],
   projectNames?: Record<string, string>,
-  company?: { expenses: CompanyExpenseInput[]; partners: CompanyPartnerInput[] },
+  company?: {
+    expenses: CompanyExpenseInput[];
+    partners: CompanyPartnerInput[];
+    loosePayouts?: CompanyPayoutInput[];
+  },
 ): PartnerLedger {
   let pendingReimbursements = 0;
   let realizedProfitShare = 0;
@@ -389,9 +460,16 @@ export function getPartnerLedger(
     );
 
     const financials = getProjectFinancials(project);
-    const profitShare = round2(
-      (financials.netProfit * sharePercentage) / 100,
+    // Same slice as getProjectSettlementPlan (largest-remainder, exact sum).
+    const profitParts = splitMoney(
+      financials.netProfit,
+      project.projectPartners.map((s) => s.sharePercentage),
     );
+    const profitShare = split
+      ? (profitParts[
+          project.projectPartners.findIndex((s) => s.partnerId === partner.id)
+        ] ?? 0)
+      : 0;
 
     pendingReimbursements = round2(pendingReimbursements + pending);
     // Only accrue profit if the partner is on this project's split.
@@ -420,7 +498,12 @@ export function getPartnerLedger(
   let companyNet = 0;
   let companyBreakdown: CompanyNetLine[] = [];
   if (company) {
-    const c = getPartnerCompanyNet(partner.id, company.expenses, company.partners);
+    const c = getPartnerCompanyNet(
+      partner.id,
+      company.expenses,
+      company.partners,
+      company.loosePayouts ?? [],
+    );
     companyNet = c.net;
     companyBreakdown = c.lines;
   }
@@ -616,8 +699,13 @@ export function getMonthlySummary(
   const monthTotal = round2(fixedTotal + variableTotal + directTotal);
 
   const active = args.partners.filter((p) => p.isActive);
-  const rows: MonthlyPartnerRow[] = active.map((p) => {
-    const share = round2((monthTotal * p.defaultSharePercentage) / 100);
+  // Largest-remainder: share parts sum EXACTLY to the month total.
+  const monthShares = splitMoney(
+    monthTotal,
+    active.map((p) => p.defaultSharePercentage),
+  );
+  const rows: MonthlyPartnerRow[] = active.map((p, i) => {
+    const share = monthShares[i] ?? 0;
     const paidCompany = sum(
       bills.flatMap((e) =>
         e.payments.filter((x) => x.partnerId === p.id).map((x) => x.amount),

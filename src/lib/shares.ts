@@ -47,6 +47,35 @@ export function equalSplit(count: number): number[] {
   return Array.from({ length: count }, () => EQUITY_TOTAL / count);
 }
 
+/**
+ * Split a money total across weights (equity %) so the 2-decimal parts sum
+ * EXACTLY to the total — largest-remainder in integer cents.
+ * 2500 across [33.33…, 33.33…, 33.33…] → [833.34, 833.33, 833.33].
+ * Ties break by order (stable), negatives keep their sign. Pure, client-safe.
+ */
+export function splitMoney(total: number, weights: number[]): number[] {
+  if (weights.length === 0) return [];
+  const totalCents = Math.round(total * 100);
+  const sign = totalCents < 0 ? -1 : 1;
+  const absCents = Math.abs(totalCents);
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+  if (weightSum <= 0) return weights.map(() => 0);
+
+  const floors: number[] = new Array(weights.length);
+  const order = weights.map((w, i) => {
+    const exact = (absCents * w) / weightSum;
+    const f = Math.floor(exact + Number.EPSILON);
+    floors[i] = f;
+    return { i, frac: exact - f };
+  });
+  let rest = absCents - floors.reduce((a, b) => a + b, 0);
+  // Float safety: rest should be in [0, weights.length); clamp defensively.
+  rest = Math.max(0, Math.min(weights.length, rest));
+  order.sort((a, b) => b.frac - a.frac || a.i - b.i);
+  for (let k = 0; k < rest; k++) floors[order[k].i] += 1;
+  return floors.map((c) => (sign * c) / 100);
+}
+
 /** Display string for a share input: max 2 decimals, trimmed ("33.33", "50"). */
 export function formatShareInput(n: number): string {
   if (!Number.isFinite(n)) return "";

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cairo, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
+import { themeInitScript } from "@/components/theme-toggle";
 import { dict, getLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -38,8 +39,12 @@ export default async function RootLayout({
     <html
       lang={lang}
       dir={dir}
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${cairo.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body
         className={cn(
           "flex min-h-full flex-col bg-background text-foreground",
@@ -47,10 +52,10 @@ export default async function RootLayout({
         )}
       >
         <SiteHeader lang={lang} />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+        <main className="animate-rise mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
           {children}
         </main>
-        <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
+        <footer className="border-t border-border/70 py-6 text-center text-xs text-muted-foreground">
           {dict[lang].footer}
         </footer>
       </body>

@@ -11,13 +11,16 @@ import {
   addFixedCost,
   deleteCompanyExpense,
   deleteCompanyPayment,
+  deleteCompanyPayout,
   deleteFixedCost,
   recordCompanyPayment,
+  recordCompanyPayout,
+  settleCompanyRow,
 } from "@/actions/company";
 import { dict } from "@/lib/dict";
 import type { Lang } from "@/lib/format";
 import { formatEGP } from "@/lib/format";
-import { formatShareInput, sanitizeNumericInput } from "@/lib/shares";
+import { formatShareInput, sanitizeNumericInput, splitMoney } from "@/lib/shares";
 
 /* --------------------------- New expense form --------------------------- */
 
@@ -48,15 +51,19 @@ export function CompanyExpenseForm({
 
   const active = partners.filter((p) => p.isActive);
   const bill = Number(amount) || 0;
-  const precise = (pct: number) => (bill * pct) / 100;
-  const displayOf = (id: string, pct: number) =>
-    id in touched ? (touched[id] ?? "") : formatShareInput(precise(pct));
-  const valueOf = (id: string, pct: number) =>
-    id in touched ? Number(touched[id] ?? "") || 0 : precise(pct);
-  const collected = active.reduce(
-    (a, p) => a + valueOf(p.id, p.defaultSharePercentage),
-    0,
+  // Exact-split prefill (largest-remainder): parts sum to the bill,
+  // so saving untouched rows never leaves 0.01 dust behind.
+  const autoSplit = splitMoney(
+    bill,
+    active.map((p) => p.defaultSharePercentage),
   );
+  const autoOf = (id: string) =>
+    autoSplit[active.findIndex((p) => p.id === id)] ?? 0;
+  const displayOf = (id: string) =>
+    id in touched ? (touched[id] ?? "") : formatShareInput(autoOf(id));
+  const valueOf = (id: string) =>
+    id in touched ? Number(touched[id] ?? "") || 0 : autoOf(id);
+  const collected = active.reduce((a, p) => a + valueOf(p.id), 0);
   const remaining = bill - collected;
 
   function fillShares() {
@@ -93,7 +100,7 @@ export function CompanyExpenseForm({
             payments: active
               .map((p) => ({
                 partnerId: p.id,
-                amount: Math.round(valueOf(p.id, p.defaultSharePercentage) * 100) / 100,
+                amount: Math.round(valueOf(p.id) * 100) / 100,
               }))
               .filter((p) => p.amount > 0),
           });
@@ -164,7 +171,7 @@ export function CompanyExpenseForm({
               <span className="flex-1 truncate text-sm">{p.name}</span>
               <div className="flex w-36 shrink-0 items-center gap-1">
                 <Input
-                  value={displayOf(p.id, p.defaultSharePercentage)}
+                  value={displayOf(p.id)}
                   onChange={(e) =>
                     setTouched((prev) => ({
                       ...prev,
@@ -284,6 +291,199 @@ export function CompanyPaymentForm({
         {pending ? t.recording : t.record}
       </Button>
     </form>
+  );
+}
+
+/* --------------------- One-click row settlement --------------------- */
+
+/**
+ * Settles one partner row on a bill to exactly zero.
+ * Owes (net<0) → records a partner→firm payment. Owed (net>0) → records a
+ * firm→partner payout.
+ */
+export function SettleRowButton({
+  expenseId,
+  partnerId,
+  net,
+  lang,
+}: {
+  expenseId: string;
+  partnerId: string;
+  net: number;
+  lang: Lang;
+}) {
+  const t = dict[lang].company;
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  if (Math.abs(net) < 0.005) return null;
+  const collect = net < 0;
+
+  return (
+    <span className="inline-flex flex-col items-end gap-1">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={pending}
+        title={`${collect ? t.settleCollect : t.settlePayout} · ${formatEGP(Math.abs(net), lang)}`}
+        onClick={() => {
+          setError(null);
+          start(async () => {
+            const res = await settleCompanyRow({ expenseId, partnerId });
+            if (!res.ok) setError(res.error);
+            else router.refresh();
+          });
+        }}
+      >
+        {pending ? t.settling : `${t.settle} · ${formatEGP(Math.abs(net), lang)}`}
+      </Button>
+      {error && <span className="text-xs text-red-600">{error}</span>}
+    </span>
+  );
+}
+
+/* --------------------- Manual firm → partner payout --------------------- */
+
+export function CompanyPayoutForm({
+  lang,
+  partners,
+  expenses,
+}: {
+  lang: Lang;
+  partners: { id: string; name: string }[];
+  expenses: { id: string; title: string }[];
+}) {
+  const t = dict[lang].company;
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [amount, setAmount] = useState("");
+
+  return (
+    <form
+      className="space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        setError(null);
+        start(async () => {
+          const res = await recordCompanyPayout({
+            partnerId: String(fd.get("partnerId") ?? ""),
+            expenseId: String(fd.get("expenseId") ?? ""),
+            amount: Number(amount) || 0,
+            notes: String(fd.get("notes") ?? ""),
+            paidAt: fd.get("paidAt")
+              ? new Date(String(fd.get("paidAt")))
+              : new Date(),
+          });
+          if (!res.ok) setError(res.error);
+          else {
+            (e.target as HTMLFormElement).reset();
+            setAmount("");
+            router.refresh();
+          }
+        });
+      }}
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-1">
+          <Label>{t.colPartner}</Label>
+          <select
+            name="partnerId"
+            required
+            defaultValue=""
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="">…</option>
+            {partners.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-1">
+          <Label>{t.payoutBill}</Label>
+          <select
+            name="expenseId"
+            defaultValue=""
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="">{t.payoutGeneral}</option>
+            {expenses.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-1">
+          <Label>{t.amount}</Label>
+          <Input
+            value={amount}
+            onChange={(e) => setAmount(sanitizeNumericInput(e.target.value))}
+            required
+            placeholder="500"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label>{t.date}</Label>
+          <Input name="paidAt" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+        </div>
+      </div>
+      <div className="grid gap-1">
+        <Label>{t.notes}</Label>
+        <Input name="notes" maxLength={1000} />
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <Button type="submit" disabled={pending} className="w-full">
+        {pending ? t.saving : t.payoutAdd}
+      </Button>
+    </form>
+  );
+}
+
+export function DeleteCompanyPayoutButton({
+  id,
+  lang,
+}: {
+  id: string;
+  lang: Lang;
+}) {
+  const t = dict[lang].company;
+  const { armed, setArmed, pending, error, confirm } = useConfirmDelete(() =>
+    deleteCompanyPayout(id),
+  );
+  if (!armed) {
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        title={t.delete}
+        aria-label={t.delete}
+        onClick={() => setArmed(true)}
+        className="hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    );
+  }
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex justify-end gap-1">
+        <Button size="sm" variant="destructive" disabled={pending} onClick={confirm}>
+          {pending ? t.deleting : t.deleteConfirm}
+        </Button>
+        <Button size="sm" variant="ghost" disabled={pending} onClick={() => setArmed(false)}>
+          {t.cancel}
+        </Button>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
   );
 }
 

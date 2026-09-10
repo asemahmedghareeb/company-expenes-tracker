@@ -208,6 +208,25 @@ export const companyPaymentSchema = z.object({
 
 export type CompanyPaymentInput = z.infer<typeof companyPaymentSchema>;
 
+/** Cash the firm pays BACK to a partner (settles their company credit). */
+export const companyPayoutSchema = z.object({
+  partnerId: cuid,
+  expenseId: cuid.optional().or(z.literal("")),
+  amount: moneyAmount,
+  notes: z.string().trim().max(1000).optional().or(z.literal("")),
+  paidAt: z.coerce.date().default(() => new Date()),
+});
+
+export type CompanyPayoutInput = z.infer<typeof companyPayoutSchema>;
+
+/** One-click settlement of a single partner row on a company bill. */
+export const settleCompanyRowSchema = z.object({
+  expenseId: cuid,
+  partnerId: cuid,
+});
+
+export type SettleCompanyRowInput = z.infer<typeof settleCompanyRowSchema>;
+
 /** Create a bill together with its initial payer split (atomic). */
 export const companyExpenseWithPaymentsSchema = companyExpenseSchema.extend({
   kind: z.enum(["FIXED", "VARIABLE"]).default("VARIABLE"),

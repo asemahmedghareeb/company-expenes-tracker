@@ -251,6 +251,22 @@ export interface Dictionary {
     varTitle: string;
     varDesc: string;
     varAdd: string;
+    colSettle: string;
+    settle: string;
+    settling: string;
+    settleCollect: string;
+    settlePayout: string;
+    alreadySettled: string;
+    colPayout: string;
+    payoutTitle: string;
+    payoutDesc: string;
+    payoutBill: string;
+    payoutGeneral: string;
+    payoutAdd: string;
+    payoutHistory: string;
+    payoutHistoryDesc: string;
+    noPayouts: string;
+    payoutTo: string;
   };
   summary: {
     title: string;
@@ -312,7 +328,7 @@ export interface Dictionary {
 export const dict: Record<Lang, Dictionary> = {
   en: {
     brand: "Partner Ledger",
-    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Ledger", company: "Company", summary: "Summary" },
+    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Ledger", company: "Company Expenses", summary: "Summary" },
     firmOverview: "Firm overview",
     overviewSubtitle: (p, a) =>
       `${p} projects · ${a} active partners · expenses settle before profit splits`,
@@ -567,6 +583,22 @@ export const dict: Record<Lang, Dictionary> = {
       varTitle: "Record variable expense",
       varDesc: "One-off overhead paid by one partner.",
       varAdd: "Add",
+      colSettle: "Settle",
+      settle: "Settle",
+      settling: "Settling…",
+      settleCollect: "Collect",
+      settlePayout: "Pay out",
+      alreadySettled: "Already settled.",
+      colPayout: "Paid back",
+      payoutTitle: "Pay partner back",
+      payoutDesc: "Record cash the firm paid back to a partner (settles their credit).",
+      payoutBill: "Bill (optional)",
+      payoutGeneral: "General (no bill)…",
+      payoutAdd: "Record payout",
+      payoutHistory: "Firm → partner payouts",
+      payoutHistoryDesc: "Cash the firm paid back. Delete to undo.",
+      noPayouts: "No payouts recorded yet.",
+      payoutTo: "to",
     },
     summary: {
       title: "Monthly summary",
@@ -625,7 +657,7 @@ export const dict: Record<Lang, Dictionary> = {
   },
   ar: {
     brand: "دفتر الشركاء",
-    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "الدفتر", company: "الشركة", summary: "الملخص" },
+    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "الدفتر", company: "مصاريف الشركة", summary: "الملخص" },
     firmOverview: "نظرة عامة على الشركة",
     overviewSubtitle: (p, a) =>
       `${p} مشاريع · ${a} شركاء نشطون · تُسوَّى المصروفات قبل توزيع الأرباح`,
@@ -879,6 +911,22 @@ export const dict: Record<Lang, Dictionary> = {
       varTitle: "تسجيل مصروف متغير",
       varDesc: "مصروف لمرة واحدة دفعه شريك واحد.",
       varAdd: "إضافة",
+      colSettle: "تسوية",
+      settle: "سوِّ",
+      settling: "جارٍ التسوية…",
+      settleCollect: "حصّل منه",
+      settlePayout: "ادفع له",
+      alreadySettled: "متساوي بالفعل.",
+      colPayout: "مدفوع له",
+      payoutTitle: "رد مبلغ لشريك",
+      payoutDesc: "سجّل كاش الشركة ردّته لشريك (يصفّي رصيده الدائن).",
+      payoutBill: "البند (اختياري)",
+      payoutGeneral: "عام (بدون بند)…",
+      payoutAdd: "تسجيل الرد",
+      payoutHistory: "مبالغ ردّتها الشركة للشركاء",
+      payoutHistoryDesc: "الكاش اللي الشركة ردّته. احذف للتراجع.",
+      noPayouts: "لا توجد مبالغ مردودة بعد.",
+      payoutTo: "إلى",
     },
     summary: {
       title: "الملخص الشهري",

@@ -30,6 +30,7 @@ model Partner {
   expensesPaid           ProjectExpense[] @relation("ExpensePaidBy")
   drawings               PartnerDrawing[]
   companyPayments        CompanyExpensePayment[]
+  companyPayouts         CompanyPayout[]
 
   @@index([isActive])
   @@map("partners")
@@ -146,8 +147,31 @@ model CompanyExpense {
   createdAt   DateTime @default(now())
 
   payments CompanyExpensePayment[]
+  payouts  CompanyPayout[]
 
   @@map("company_expenses")
+}
+
+/// Cash the FIRM paid back to a partner (settles their pending company
+/// credit). The other direction — partner paying what they owe — is just a
+/// CompanyExpensePayment. Payouts never touch bill collection math
+/// (collected/remaining); they only reduce the partner's net credit.
+model CompanyPayout {
+  id        String   @id @default(cuid())
+  partnerId String
+  /// Bill being settled, if any (null = general firm→partner payout).
+  expenseId String?
+  amount    Decimal  @db.Decimal(14, 2)
+  notes     String?
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  partner Partner         @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  expense CompanyExpense? @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([expenseId])
+  @@map("company_payouts")
 }
 
 model CompanyExpensePayment {

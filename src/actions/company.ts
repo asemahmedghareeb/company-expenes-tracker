@@ -7,9 +7,12 @@ import {
   companyExpenseWithPaymentsSchema,
   companyFixedCostSchema,
   companyPaymentSchema,
+  companyPayoutSchema,
+  settleCompanyRowSchema,
   type ActionResult,
   zodFieldErrors,
 } from "@/lib/validations";
+import { getCompanyExpenseSettlement, round2 } from "@/lib/ledger";
 
 function revalidateCompany() {
   revalidatePath("/company");
@@ -169,6 +172,146 @@ export async function addCompanyExpenseWithPayments(
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Failed to add expense.",
+    };
+  }
+}
+
+/* ------------------ Firm → partner payouts (settling credit) ------------------ */
+
+/** Record cash the firm paid BACK to a partner (settles pending company credit). */
+export async function recordCompanyPayout(
+  raw: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = companyPayoutSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Invalid payout data.",
+      fieldErrors: zodFieldErrors(parsed.error),
+    };
+  }
+  const expenseId =
+    parsed.data.expenseId && parsed.data.expenseId !== ""
+      ? parsed.data.expenseId
+      : null;
+  const [partner, expense] = await Promise.all([
+    db.partner.findUnique({
+      where: { id: parsed.data.partnerId },
+      select: { id: true },
+    }),
+    expenseId
+      ? db.companyExpense.findUnique({
+          where: { id: expenseId },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+  ]);
+  if (!partner) return { ok: false, error: "Partner not found." };
+  if (expenseId && !expense) return { ok: false, error: "Expense not found." };
+
+  try {
+    const payout = await db.companyPayout.create({
+      data: {
+        partnerId: parsed.data.partnerId,
+        expenseId,
+        amount: parsed.data.amount,
+        notes: parsed.data.notes || null,
+        paidAt: parsed.data.paidAt,
+      },
+    });
+    revalidateCompany();
+    return { ok: true, data: { id: payout.id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to record payout.",
+    };
+  }
+}
+
+export async function deleteCompanyPayout(
+  id: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    await db.companyPayout.delete({ where: { id } });
+    revalidateCompany();
+    return { ok: true, data: { id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to delete payout.",
+    };
+  }
+}
+
+/**
+ * One-click settlement of a partner's row on a company bill.
+ * Owes (net<0) → records a partner→firm payment. Owed (net>0) → records a
+ * firm→partner payout. Either way the row nets to exactly zero.
+ */
+export async function settleCompanyRow(
+  raw: unknown,
+): Promise<ActionResult<{ id: string; kind: "payment" | "payout"; amount: number }>> {
+  const parsed = settleCompanyRowSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid settlement data." };
+  }
+  const { expenseId, partnerId } = parsed.data;
+
+  const [expense, partners] = await Promise.all([
+    db.companyExpense.findMany({
+      where: { id: expenseId },
+      include: { payments: true, payouts: true },
+    }),
+    db.partner.findMany(),
+  ]);
+  const bill = expense[0];
+  if (!bill) return { ok: false, error: "Expense not found." };
+
+  const settlement = getCompanyExpenseSettlement(
+    {
+      id: bill.id,
+      title: bill.title,
+      amount: Number(bill.amount),
+      payments: bill.payments.map((x) => ({
+        partnerId: x.partnerId,
+        amount: Number(x.amount),
+      })),
+      payouts: bill.payouts.map((x) => ({
+        partnerId: x.partnerId,
+        amount: Number(x.amount),
+        expenseId: x.expenseId ?? undefined,
+      })),
+    },
+    partners.map((p) => ({
+      id: p.id,
+      name: p.name,
+      defaultSharePercentage: p.defaultSharePercentage,
+      isActive: p.isActive,
+    })),
+  );
+  const row = settlement.rows.find((r) => r.partnerId === partnerId);
+  if (!row) return { ok: false, error: "Partner is not on this bill." };
+  const due = round2(row.net);
+  if (Math.abs(due) < 0.005) return { ok: false, error: "Already settled." };
+
+  try {
+    if (due < 0) {
+      const payment = await db.companyExpensePayment.create({
+        data: { expenseId, partnerId, amount: -due },
+      });
+      revalidateCompany();
+      return { ok: true, data: { id: payment.id, kind: "payment", amount: -due } };
+    }
+    const payout = await db.companyPayout.create({
+      data: { expenseId, partnerId, amount: due },
+    });
+    revalidateCompany();
+    return { ok: true, data: { id: payout.id, kind: "payout", amount: due } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to settle.",
     };
   }
 }

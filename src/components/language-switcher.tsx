@@ -22,7 +22,7 @@ export function LanguageSwitcher({ lang }: { lang: Lang }) {
 
   return (
     <div
-      className="flex items-center overflow-hidden rounded-md border border-input text-xs font-semibold"
+      className="flex items-center overflow-hidden rounded-xl border border-input bg-card text-xs font-semibold shadow-sm"
       role="group"
       aria-label="Language / اللغة"
     >
