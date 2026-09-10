@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { Wallet } from "lucide-react";
+import { LanguageSwitcher } from "./language-switcher";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/format";
 
-const links = [
-  { href: "/", label: "Dashboard" },
-  { href: "/projects", label: "Projects" },
-  { href: "/partners", label: "Partners" },
-  { href: "/ledger", label: "Ledger" },
-];
+export function SiteHeader({ lang }: { lang: Lang }) {
+  const t = dict[lang];
+  const links = [
+    { href: "/", label: t.nav.dashboard },
+    { href: "/projects", label: t.nav.projects },
+    { href: "/partners", label: t.nav.partners },
+    { href: "/ledger", label: t.nav.ledger },
+  ];
 
-export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
@@ -16,9 +20,9 @@ export function SiteHeader() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Wallet className="h-4 w-4" />
           </span>
-          <span className="hidden sm:inline">Partner Ledger</span>
+          <span className="hidden sm:inline">{t.brand}</span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex flex-1 items-center gap-1 text-sm">
           {links.map((l) => (
             <Link
               key={l.href}
@@ -29,6 +33,7 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
+        <LanguageSwitcher lang={lang} />
       </div>
     </header>
   );

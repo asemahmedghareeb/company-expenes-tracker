@@ -16,13 +16,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatMoney } from "@/lib/format";
+import { formatEGP } from "@/lib/format";
+import { dict, getLang } from "@/lib/i18n";
 import { getDashboardData } from "@/actions/queries";
 import { ArrowRight, Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  const lang = await getLang();
+  const t = dict[lang];
+
   let data: Awaited<ReturnType<typeof getDashboardData>> | null = null;
   let dbError: string | null = null;
   try {
@@ -37,13 +41,11 @@ export default async function DashboardPage() {
       <div className="mx-auto max-w-2xl space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Database not connected</CardTitle>
-            <CardDescription>
-              Set DATABASE_URL to a PostgreSQL database to go live.
-            </CardDescription>
+            <CardTitle>{t.dbTitle}</CardTitle>
+            <CardDescription>{t.dbDesc}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
+            <ol className="list-decimal space-y-1 ps-5 text-muted-foreground">
               <li>
                 Copy <code>.env.example</code> to <code>.env</code> and set{" "}
                 <code>DATABASE_URL</code>.
@@ -52,7 +54,7 @@ export default async function DashboardPage() {
                 Run <code>npx prisma db push</code> then{" "}
                 <code>npm run db:seed</code>.
               </li>
-              <li>Refresh this page.</li>
+              <li>{t.dbRefresh}</li>
             </ol>
             {dbError && (
               <p className="rounded-md bg-muted p-3 font-mono text-xs break-all">
@@ -68,33 +70,32 @@ export default async function DashboardPage() {
   const { overview, ledgers, projectCards } = data;
 
   const stats = [
-    { label: "Total inflow", value: overview.totalInflow },
-    { label: "Total expenses", value: overview.totalExpenses },
-    { label: "Net profit", value: overview.netProfit },
-    { label: "Outstanding reimbursements", value: overview.outstandingReimbursements },
-    { label: "Total drawings", value: overview.totalDrawings },
-    { label: "Contract value", value: overview.totalContractValue },
+    { label: t.stats.inflow, value: overview.totalInflow },
+    { label: t.stats.expenses, value: overview.totalExpenses },
+    { label: t.stats.netProfit, value: overview.netProfit },
+    { label: t.stats.outstanding, value: overview.outstandingReimbursements },
+    { label: t.stats.drawings, value: overview.totalDrawings },
+    { label: t.stats.contractValue, value: overview.totalContractValue },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Firm overview</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t.firmOverview}</h1>
           <p className="text-sm text-muted-foreground">
-            {overview.projectCount} projects · {overview.activePartnerCount}{" "}
-            active partners · expenses settle before profit splits
+            {t.overviewSubtitle(overview.projectCount, overview.activePartnerCount)}
           </p>
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
             <Link href="/projects">
-              <Plus className="h-4 w-4" /> New project
+              <Plus className="h-4 w-4" /> {t.newProject}
             </Link>
           </Button>
           <Button asChild>
             <Link href="/ledger">
-              View ledger <ArrowRight className="h-4 w-4" />
+              {t.viewLedger} <ArrowRight className="h-4 w-4 rtl:rotate-180" />
             </Link>
           </Button>
         </div>
@@ -105,7 +106,7 @@ export default async function DashboardPage() {
           <Card key={s.label}>
             <CardHeader className="pb-2">
               <CardDescription>{s.label}</CardDescription>
-              <CardTitle className="text-2xl">{formatMoney(s.value)}</CardTitle>
+              <CardTitle className="text-2xl">{formatEGP(s.value, lang)}</CardTitle>
             </CardHeader>
           </Card>
         ))}
@@ -114,46 +115,43 @@ export default async function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Partner balances</CardTitle>
-            <CardDescription>
-              Pending reimbursements + profit shares − drawings
-            </CardDescription>
+            <CardTitle>{t.partnerBalances}</CardTitle>
+            <CardDescription>{t.balancesSubtitle}</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Partner</TableHead>
-                  <TableHead className="text-right">Pending</TableHead>
-                  <TableHead className="text-right">Profit</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead>{t.table.partner}</TableHead>
+                  <TableHead className="text-end">{t.table.pending}</TableHead>
+                  <TableHead className="text-end">{t.table.profit}</TableHead>
+                  <TableHead className="text-end">{t.table.balance}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ledgers.map((l) => (
                   <TableRow key={l.partnerId}>
                     <TableCell className="font-medium">{l.partnerName}</TableCell>
-                    <TableCell className="text-right">
-                      {formatMoney(l.pendingReimbursements)}
+                    <TableCell className="text-end">
+                      {formatEGP(l.pendingReimbursements, lang)}
                     </TableCell>
-                    <TableCell className="text-right">
-                      {formatMoney(l.realizedProfitShare)}
+                    <TableCell className="text-end">
+                      {formatEGP(l.realizedProfitShare, lang)}
                     </TableCell>
                     <TableCell
-                      className={`text-right font-semibold ${l.balance < 0 ? "text-red-600" : "text-emerald-700"}`}
+                      className={`text-end font-semibold ${l.balance < 0 ? "text-red-600" : "text-emerald-700"}`}
                     >
-                      {formatMoney(l.balance)}
+                      {formatEGP(l.balance, lang)}
                     </TableCell>
                   </TableRow>
                 ))}
                 {ledgers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground">
-                      No partners yet.{" "}
+                      {t.noPartners}{" "}
                       <Link href="/partners" className="underline">
-                        Add one
+                        {t.addOne}
                       </Link>
-                      .
                     </TableCell>
                   </TableRow>
                 )}
@@ -165,11 +163,11 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Projects</CardTitle>
-              <CardDescription>Realized net profit = inflow − expenses</CardDescription>
+              <CardTitle>{t.projects}</CardTitle>
+              <CardDescription>{t.projectsSubtitle}</CardDescription>
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link href="/projects">All projects</Link>
+              <Link href="/projects">{t.allProjects}</Link>
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -182,9 +180,9 @@ export default async function DashboardPage() {
                 <div>
                   <div className="font-medium">{p.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    In {formatMoney(p.financials.totalInflow)} · Out{" "}
-                    {formatMoney(p.financials.totalExpenses)} · Net{" "}
-                    {formatMoney(p.financials.netProfit)}
+                    {t.in} {formatEGP(p.financials.totalInflow, lang)} · {t.out}{" "}
+                    {formatEGP(p.financials.totalExpenses, lang)} · {t.net}{" "}
+                    {formatEGP(p.financials.netProfit, lang)}
                   </div>
                 </div>
                 <Badge
@@ -202,11 +200,10 @@ export default async function DashboardPage() {
             ))}
             {projectCards.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No projects yet.{" "}
+                {t.noProjects}{" "}
                 <Link href="/projects" className="underline">
-                  Create one
+                  {t.createOne}
                 </Link>
-                .
               </p>
             )}
           </CardContent>

@@ -68,3 +68,8 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Arabic UI — Cairo font, applied when <html lang="ar"> */
+.font-arabic {
+  font-family: var(--font-cairo), var(--font-geist-sans), Arial, sans-serif;
+}

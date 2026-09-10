@@ -1,3 +1,21 @@
+export type Lang = "en" | "ar";
+
+/**
+ * Format a money figure in Egyptian Pounds.
+ * - en → "EGP 1,000.00"
+ * - ar → "1,000.00 ج.م" (Latin digits via nu-latn, Arabic currency marker)
+ */
+export function formatEGP(n: number | string, lang: Lang = "en"): string {
+  const num = typeof n === "string" ? Number(n) : n;
+  if (!Number.isFinite(num)) return "—";
+  return new Intl.NumberFormat(lang === "ar" ? "ar-EG-u-nu-latn" : "en-US", {
+    style: "currency",
+    currency: "EGP",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
+
 export function formatMoney(n: number | string): string {
   const num = typeof n === "string" ? Number(n) : n;
   if (!Number.isFinite(num)) return "—";
@@ -12,9 +30,9 @@ export function formatPct(n: number): string {
   return `${Number(n).toFixed(2)}%`;
 }
 
-export function formatDate(d: Date | string): string {
+export function formatDate(d: Date | string, lang: Lang = "en"): string {
   const date = typeof d === "string" ? new Date(d) : d;
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG-u-nu-latn" : "en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
