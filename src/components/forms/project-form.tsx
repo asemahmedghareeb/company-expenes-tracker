@@ -216,7 +216,7 @@ export function ProjectForm({
             id="status"
             name="status"
             defaultValue="ACTIVE"
-            className="flex h-10 w-full rounded-xl border border-input bg-card px-3 text-sm shadow-sm"
+            className="flex h-10 w-full rounded-xl border border-input bg-card px-3 text-base shadow-sm sm:text-sm"
           >
             <option value="UPCOMING">{t.statuses.UPCOMING}</option>
             <option value="ACTIVE">{t.statuses.ACTIVE}</option>
@@ -253,7 +253,7 @@ export function ProjectForm({
               value={it.paidBy}
               onChange={(e) => updateItem(it.key, { paidBy: e.target.value })}
               aria-label={tf.paidBy}
-              className="h-10 w-28 shrink-0 rounded-xl border border-input bg-card px-2 text-sm shadow-sm"
+              className="h-10 w-28 shrink-0 rounded-xl border border-input bg-card px-2 text-base shadow-sm sm:text-sm"
             >
               {partners.map((p) => (
                 <option key={p.id} value={p.id}>

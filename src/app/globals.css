@@ -78,6 +78,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* Prevent iOS Safari inflating small text on orientation change. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -86,6 +89,16 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   min-height: 100vh;
   transition: background-color 0.25s ease, color 0.25s ease;
+  /* Guard against page-level sideways scroll from wide children on phones.
+     `clip` (not `hidden`) preserves the sticky header. */
+  overflow-x: clip;
+}
+
+/* PWA standalone + notched phones: keep content clear of the home indicator. */
+@supports (padding: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 /* Soft gradient wash behind every page */

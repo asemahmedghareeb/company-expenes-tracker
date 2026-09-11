@@ -113,7 +113,7 @@ export function RangeFilter({
           onChange={(e) => {
             if (e.target.value) go(`range=month&month=${e.target.value}`);
           }}
-          className="h-8 w-40 text-[13px]"
+          className="h-8 w-40 text-base sm:text-[13px]"
         />
       )}
 
@@ -129,7 +129,7 @@ export function RangeFilter({
             setYearDraft(v);
             if (/^\d{4}$/.test(v)) go(`range=year&year=${v}`);
           }}
-          className="h-8 w-24 text-[13px] tabular-nums"
+          className="h-8 w-24 text-base sm:text-[13px] tabular-nums"
         />
       )}
 
@@ -150,7 +150,7 @@ export function RangeFilter({
                 const dd = toDraft || toStr;
                 if (f && dd && customBounds(f, dd)) go(`range=custom&from=${f}&to=${dd}`);
               }}
-              className="h-8 w-auto text-[13px]"
+              className="h-8 w-auto text-base sm:text-[13px]"
             />
           </span>
           <span className="flex items-center gap-1.5">
@@ -168,7 +168,7 @@ export function RangeFilter({
                 const f = fromDraft || fromStr;
                 if (f && d && customBounds(f, d)) go(`range=custom&from=${f}&to=${d}`);
               }}
-              className="h-8 w-auto text-[13px]"
+              className="h-8 w-auto text-base sm:text-[13px]"
             />
           </span>
         </span>

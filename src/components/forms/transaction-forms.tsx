@@ -125,7 +125,7 @@ export function PaymentForm({
           name="receivedByPartnerId"
           required
           defaultValue=""
-          className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
         >
           <option value="">{t.selectCustodian}</option>
           {partners.map((p) => (
@@ -201,7 +201,7 @@ export function ExpenseForm({
           <select
             name="paidByPartnerId"
             required
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
           >
             <option value="">{t.selectPartner}</option>
             {partners.map((p) => (
@@ -280,7 +280,7 @@ export function DrawingForm({
             name="partnerId"
             required
             defaultValue={defaultPartnerId ?? ""}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
           >
             <option value="">{t.select}</option>
             {partners.map((p) => (
@@ -401,7 +401,7 @@ export function EditProjectForm({
           <select
             name="status"
             defaultValue={project.status}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
           >
             <option value="UPCOMING">{t.statuses.UPCOMING}</option>
             <option value="ACTIVE">{t.statuses.ACTIVE}</option>

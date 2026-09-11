@@ -20,7 +20,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         dir={dir ?? (isNumeric ? "ltr" : undefined)}
         ref={ref}
         className={cn(
-          "flex h-10 w-full rounded-xl border border-input bg-card px-3.5 py-1 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-10 w-full rounded-xl border border-input bg-card px-3.5 py-1 text-base shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm",
           className,
         )}
         {...props}
@@ -37,7 +37,7 @@ const Textarea = React.forwardRef<
   <textarea
     ref={ref}
       className={cn(
-        "flex min-h-[80px] w-full rounded-xl border border-input bg-card px-3.5 py-2.5 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50",
+        "flex min-h-[80px] w-full rounded-xl border border-input bg-card px-3.5 py-2.5 text-base shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm",
         className,
       )}
     {...props}

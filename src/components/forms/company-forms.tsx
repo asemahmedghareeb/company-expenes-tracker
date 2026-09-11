@@ -144,7 +144,7 @@ export function CompanyExpenseForm({
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm"
+            className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-base sm:text-sm"
             aria-expanded={menuOpen}
           >
             <span className="truncate">
@@ -336,7 +336,7 @@ export function CompanyPaymentForm({
             name="partnerId"
             required
             defaultValue=""
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
           >
             <option value="">…</option>
             {partners.map((p) => (
@@ -509,7 +509,7 @@ export function CompanyPayoutForm({
             name="partnerId"
             required
             defaultValue=""
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
           >
             <option value="">…</option>
             {partners.map((p) => (
@@ -524,7 +524,7 @@ export function CompanyPayoutForm({
           <select
             name="expenseId"
             defaultValue=""
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
           >
             <option value="">{t.payoutGeneral}</option>
             {expenses.map((x) => (

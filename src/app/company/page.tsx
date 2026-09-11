@@ -148,9 +148,9 @@ export default async function CompanyPage() {
               {payouts.map((x) => (
                 <div
                   key={x.id}
-                  className="flex items-center justify-between rounded-lg border border-border p-2 text-sm"
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border p-2 text-sm"
                 >
-                  <span>
+                  <span className="min-w-0 flex-1 truncate">
                     {x.partner.name} · {formatEGP(Number(x.amount), lang)}
                     {x.expense && (
                       <span className="text-muted-foreground">
@@ -288,9 +288,9 @@ export default async function CompanyPage() {
                       {expense.payments.map((pay) => (
                         <div
                           key={pay.id}
-                          className="flex items-center justify-between rounded-lg border border-border p-2 text-sm"
+                          className="flex items-center justify-between gap-2 rounded-lg border border-border p-2 text-sm"
                         >
-                          <span>
+                          <span className="min-w-0 flex-1 truncate">
                             {pay.partner.name} · {formatEGP(Number(pay.amount), lang)}
                           </span>
                           <DeleteCompanyPaymentButton id={pay.id} lang={lang} />
