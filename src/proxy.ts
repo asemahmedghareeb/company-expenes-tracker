@@ -24,8 +24,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Public: the login page itself (everything else needs a session).
-  if (pathname === "/login") {
+  // Public: login page and warmer/health check (everything else needs a session).
+  if (pathname === "/login" || pathname === "/api/health") {
     return NextResponse.next();
   }
 
