@@ -360,6 +360,7 @@ export interface Dictionary {
   capital: {
     title: string;
     subtitle: string;
+    poolNote: string;
     totalCollected: string;
     totalCollectedHint: string;
     heldByTitle: string;
@@ -612,11 +613,11 @@ export const dict: Record<Lang, Dictionary> = {
       logExpense: "Log out-of-pocket expense",
       logExpenseDesc: "Paid from a partner's personal money.",
       howTitle: "How reimbursement works",
-      how1: "1. Partner pays from personal money → expense logged as",
-      how2pre: "2. Client payment arrives → click",
+      how1: "1. Partners front project costs (hosting, domain…) from personal money → each expense logged as",
+      how2pre: "2. Client pays the contract (never line items) → click",
       howMark: "Mark reimbursed",
-      how2post: "to settle that partner first.",
-      how3: "3. Remaining net profit (inflow − all expenses) splits by the snapshot % above.",
+      how2post: "to settle that partner first from the collected cash.",
+      how3: "3. What remains of the contract cash after all project costs (inflow − expenses) splits by the snapshot % above.",
       expensesTitle: (n) => `Operational expenses (${n})`,
       colDesc: "Description",
       colPaidBy: "Paid by",
@@ -781,6 +782,8 @@ export const dict: Record<Lang, Dictionary> = {
     capital: {
       title: "Firm treasury & custody",
       subtitle: "Who physically holds the collected cash vs. who earned it by project equity.",
+      poolNote:
+        "Project costs (hosting, domain…) are paid out of this collected cash — net entitlements live in the Ledger.",
       totalCollected: "Total collected inflow",
       totalCollectedHint: "All client payments, all projects",
       heldByTitle: "Cash held per partner",
@@ -1030,11 +1033,11 @@ export const dict: Record<Lang, Dictionary> = {
       logExpense: "تسجيل مصروف مدفوع مقدمًا",
       logExpenseDesc: "مدفوع من مال الشريك الخاص.",
       howTitle: "كيف يعمل السداد",
-      how1: "1. يدفع الشريك من ماله الخاص ← يُسجَّل المصروف كـ",
-      how2pre: "2. تصل دفعة العميل ← اضغط",
+      how1: "1. الشركاء يدفعون تكاليف المشروع (استضافة، دومين…) مقدمًا من مالهم الخاص ← يُسجَّل كل مصروف كـ",
+      how2pre: "2. العميل يدفع العقد فقط (مش بنود المصاريف) ← اضغط",
       howMark: "تعليم كمُسدَّد",
-      how2post: "لتسوية مستحقات ذلك الشريك أولًا.",
-      how3: "3. يُوزَّع صافي الربح المتبقي (الوارد − كل المصروفات) حسب النسبة اللقطة أعلاه.",
+      how2post: "لتسوية مستحقات ذلك الشريك أولًا من الفلوس المتحصلة.",
+      how3: "3. المتبقي من فلوس العقد بعد كل تكاليف المشروع (الوارد − المصروفات) يتوزع حسب النسبة اللقطة أعلاه.",
       expensesTitle: (n) => `المصروفات التشغيلية (${n})`,
       colDesc: "الوصف",
       colPaidBy: "دفعه",
@@ -1196,6 +1199,8 @@ export const dict: Record<Lang, Dictionary> = {
     capital: {
       title: "رأس مال الشركة والخزينة",
       subtitle: "مين ماسك الكاش المتحصل فعلًا مقابل نصيب كل شريك حسب حصص المشاريع.",
+      poolNote:
+        "تكاليف المشروع (استضافة، دومين…) مدفوعة من الفلوس المتحصلة دي — صافي المستحقات في الدفتر.",
       totalCollected: "إجمالي السيولة المحصلة",
       totalCollectedHint: "كل دفعات العملاء في كل المشاريع",
       heldByTitle: "النقدية في حوزة الشركاء",

@@ -14,7 +14,10 @@
 
 export const EQUITY_TOTAL = 100;
 
-/** Sentinel payer id meaning "covered directly by the client" (stored as NULL FK). */
+/** Sentinel payer id for legacy "client-covered" rows (stored as NULL FK).
+ *  Model: the client only ever pays the contract — never expense line items —
+ *  so new expenses always name a partner. NULL rows predate this rule and
+ *  stay firm-neutral (info only). */
 export const CLIENT_PAYER = "CLIENT";
 
 /** Accepts 2-decimal rounding dust (covers up to ~10 partners). */

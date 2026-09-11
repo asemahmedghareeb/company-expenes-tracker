@@ -260,7 +260,6 @@ export function ProjectForm({
                   {p.name}
                 </option>
               ))}
-              <option value={CLIENT_PAYER}>{tf.clientPaid}</option>
             </select>
             <div className="flex w-32 shrink-0 items-center gap-1">
               <Input

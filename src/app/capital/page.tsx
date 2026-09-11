@@ -53,6 +53,7 @@ export default async function CapitalPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{t.title}</h1>
         <p className="text-sm text-muted-foreground">{t.subtitle}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t.poolNote}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

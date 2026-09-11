@@ -17,7 +17,7 @@ import {
 } from "@/actions/finance";
 import { dict } from "@/lib/dict";
 import type { Lang } from "@/lib/format";
-import { normalizeShares, sharesSumTo100, CLIENT_PAYER } from "@/lib/shares";
+import { normalizeShares, sharesSumTo100 } from "@/lib/shares";
 
 /* ------------------------- Project splits editor ------------------------- */
 

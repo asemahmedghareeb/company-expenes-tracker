@@ -87,7 +87,10 @@ export async function deleteClientPayment(
 
 /* ------------------------- Project expenses ------------------------ */
 
-/** Log a project cost — partner out-of-pocket, or covered directly by the client. */
+/** Log a project cost fronted out-of-pocket by a partner.
+ *  Project costs are always firm costs funded from collected contract cash —
+ *  the client only pays the contract, never line items. (NULL-payer legacy
+ *  rows predate this rule and stay firm-neutral.) */
 export async function logProjectExpense(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {

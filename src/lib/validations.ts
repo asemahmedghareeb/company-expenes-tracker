@@ -33,9 +33,11 @@ const moneyAmount = z
   .max(1_000_000_000, "Amount is unreasonably large");
 
 const cuid = z.string().min(1, "ID is required");
-// NOTE: expense payer fields also accept the CLIENT_PAYER sentinel
-// ("CLIENT", see lib/shares) meaning "covered directly by the client",
-// stored as a NULL paidByPartnerId. Server actions map it explicitly.
+// NOTE: expense payer fields still accept the legacy CLIENT_PAYER sentinel
+// ("CLIENT", see lib/shares) for pre-existing NULL-payer rows. The app model
+// is that the client only pays the contract — never expense line items — so
+// the UI no longer offers it and new expenses always name a partner.
+// Server actions map the sentinel explicitly.
 
 /* ------------------------------ Partner ------------------------------ */
 
