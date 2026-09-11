@@ -68,6 +68,14 @@ export interface Dictionary {
   noProjects: string;
   createOne: string;
   footer: string;
+  pwa: {
+    install: string;
+    iosTitle: string;
+    iosStep1: string;
+    iosStep2: string;
+    iosStep3: string;
+    close: string;
+  };
   dbTitle: string;
   dbDesc: string;
   dbRefresh: string;
@@ -495,6 +503,14 @@ export const dict: Record<Lang, Dictionary> = {
     dbTitle: "Database not connected",
     dbDesc: "Set DATABASE_URL to a PostgreSQL database to go live.",
     dbRefresh: "Refresh this page.",
+    pwa: {
+      install: "Install app",
+      iosTitle: "Install this app",
+      iosStep1: "1. Tap the Share button in Safari",
+      iosStep2: "2. Choose “Add to Home Screen”",
+      iosStep3: "3. Tap “Add” to install",
+      close: "Close",
+    },
     partners: {
       title: "Partners",
       subtitle:
@@ -926,6 +942,14 @@ export const dict: Record<Lang, Dictionary> = {
     dbTitle: "قاعدة البيانات غير متصلة",
     dbDesc: "اضبط DATABASE_URL على قاعدة بيانات PostgreSQL للتشغيل.",
     dbRefresh: "حدِّث الصفحة.",
+    pwa: {
+      install: "ثبّت التطبيق",
+      iosTitle: "تثبيت التطبيق",
+      iosStep1: "1. اضغط زر المشاركة في سفاري",
+      iosStep2: "2. اختر «إضافة إلى الشاشة الرئيسية»",
+      iosStep3: "3. اضغط «إضافة» للتثبيت",
+      close: "إغلاق",
+    },
     partners: {
       title: "الشركاء",
       subtitle:

@@ -191,7 +191,7 @@ export function ProjectForm({
         <Label htmlFor="name">{t.name}</Label>
         <Input id="name" name="name" required maxLength={150} placeholder={t.namePh} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="contractValue">{t.contractValue}</Label>
           <div className="flex items-center gap-1.5">
@@ -236,7 +236,10 @@ export function ProjectForm({
           </Button>
         </div>
         {items.map((it) => (
-          <div key={it.key} className="flex items-center gap-2">
+          <div
+            key={it.key}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 rounded-xl border border-border/60 bg-muted/20 p-2.5 sm:p-0 sm:border-0 sm:bg-transparent"
+          >
             <Input
               ref={(el) => {
                 if (el) titleRefs.current.set(it.key, el);
@@ -249,48 +252,50 @@ export function ProjectForm({
               aria-label={t.itemName}
               className="min-w-0 flex-1"
             />
-            <select
-              value={it.paidBy}
-              onChange={(e) => updateItem(it.key, { paidBy: e.target.value })}
-              aria-label={tf.paidBy}
-              className="h-10 w-28 shrink-0 rounded-xl border border-input bg-card px-2 text-base shadow-sm sm:text-sm"
-            >
-              {partners.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <div className="flex w-32 shrink-0 items-center gap-1">
-              <Input
-                type="number"
-                value={it.amount}
-                onChange={(e) =>
-                  updateItem(it.key, { amount: sanitizeNumericInput(e.target.value) })
-                }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addItem(true);
+            <div className="flex items-center gap-2">
+              <select
+                value={it.paidBy}
+                onChange={(e) => updateItem(it.key, { paidBy: e.target.value })}
+                aria-label={tf.paidBy}
+                className="h-10 min-w-0 flex-1 sm:w-32 sm:flex-initial shrink-0 rounded-xl border border-input bg-card px-2 text-base shadow-sm sm:text-sm"
+              >
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex w-28 sm:w-32 shrink-0 items-center gap-1">
+                <Input
+                  type="number"
+                  value={it.amount}
+                  onChange={(e) =>
+                    updateItem(it.key, { amount: sanitizeNumericInput(e.target.value) })
                   }
-                }}
-                placeholder="5000"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addItem(true);
+                    }
+                  }}
+                  placeholder="5000"
+                  aria-label={t.cost}
+                  className="min-w-0 flex-1 text-end font-mono tabular-nums"
+                />
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {lang === "ar" ? "ج.م" : "EGP"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeItem(it.key)}
+                title={t.cost}
                 aria-label={t.cost}
-                className="min-w-0 flex-1 text-end font-mono tabular-nums"
-              />
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {lang === "ar" ? "ج.م" : "EGP"}
-              </span>
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/50 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => removeItem(it.key)}
-              title={t.cost}
-              aria-label={t.cost}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
           </div>
         ))}
       </div>

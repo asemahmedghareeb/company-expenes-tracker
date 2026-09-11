@@ -109,7 +109,7 @@ export function PaymentForm({
         });
       }}
     >
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="grid gap-1">
           <Label>{t.amount}</Label>
           <Input name="amount" type="number" min={0.01} step={0.01} required placeholder="10000" />
@@ -195,7 +195,7 @@ export function ExpenseForm({
         });
       }}
     >
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="grid gap-1">
           <Label>{t.paidBy}</Label>
           <select
@@ -273,7 +273,7 @@ export function DrawingForm({
         });
       }}
     >
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="grid gap-1">
           <Label>{t.partner}</Label>
           <select

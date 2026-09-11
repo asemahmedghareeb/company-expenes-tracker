@@ -179,13 +179,13 @@ export default async function DashboardPage({
             {t.overviewSubtitle(overview.projectCount, overview.activePartnerCount)}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
+        <div className="flex w-full sm:w-auto gap-2">
+          <Button asChild variant="outline" className="flex-1 sm:flex-initial">
             <Link href="/projects">
               <Plus className="h-4 w-4" /> {t.newProject}
             </Link>
           </Button>
-          <Button asChild>
+          <Button asChild className="flex-1 sm:flex-initial">
             <Link href="/ledger">
               {t.viewLedger} <ArrowRight className="h-4 w-4 rtl:rotate-180" />
             </Link>
@@ -202,16 +202,16 @@ export default async function DashboardPage({
         toStr={range.toStr}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((s) => (
           <Card
             key={s.label}
             className="group overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
           >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <div className="space-y-1.5">
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <div className="space-y-1">
                 <CardDescription>{s.label}</CardDescription>
-                <CardTitle className="text-2xl tabular-nums tracking-tight">
+                <CardTitle className="text-xl sm:text-2xl tabular-nums tracking-tight">
                   {formatEGP(s.value, lang)}
                 </CardTitle>
                 {"hint" in s && s.hint ? (

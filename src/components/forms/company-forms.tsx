@@ -211,7 +211,7 @@ export function CompanyExpenseForm({
           placeholder={t.titlePh}
         />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="grid gap-1">
           <Label>{t.amount}</Label>
           <Input
@@ -236,27 +236,32 @@ export function CompanyExpenseForm({
               {t.fillShares}
             </Button>
           </div>
-          {active.map((p) => (
-            <div key={p.id} className="flex items-center gap-2">
-              <span className="flex-1 truncate text-sm">{p.name}</span>
-              <div className="flex w-36 shrink-0 items-center gap-1">
-                <Input
-                  value={displayOf(p.id)}
-                  onChange={(e) =>
-                    setTouched((prev) => ({
-                      ...prev,
-                      [p.id]: sanitizeNumericInput(e.target.value),
-                    }))
-                  }
-                  aria-label={p.name}
-                  className="min-w-0 flex-1 text-end"
-                />
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {lang === "ar" ? "ج.م" : "EGP"}
-                </span>
+          <div className="space-y-2">
+            {active.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between gap-2.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2 transition-colors"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{p.name}</span>
+                <div className="flex w-32 sm:w-36 shrink-0 items-center gap-1.5">
+                  <Input
+                    value={displayOf(p.id)}
+                    onChange={(e) =>
+                      setTouched((prev) => ({
+                        ...prev,
+                        [p.id]: sanitizeNumericInput(e.target.value),
+                      }))
+                    }
+                    aria-label={p.name}
+                    className="min-w-0 flex-1 text-end font-mono tabular-nums h-9"
+                  />
+                  <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                    {lang === "ar" ? "ج.م" : "EGP"}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
           {bill > 0 && (
             <div className="space-y-1.5 rounded-lg border border-border bg-muted/40 p-3 text-sm">
               <div className="flex items-center justify-between">
@@ -502,7 +507,7 @@ export function CompanyPayoutForm({
         });
       }}
     >
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="grid gap-1">
           <Label>{t.colPartner}</Label>
           <select
@@ -535,7 +540,7 @@ export function CompanyPayoutForm({
           </select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="grid gap-1">
           <Label>{t.amount}</Label>
           <Input
@@ -720,7 +725,7 @@ export function FixedCostsManager({
   return (
     <div className="space-y-3">
       <form
-        className="flex items-end gap-2"
+        className="flex flex-col sm:flex-row sm:items-end gap-2.5"
         onSubmit={(e) => {
           e.preventDefault();
           setError(null);
@@ -748,7 +753,7 @@ export function FixedCostsManager({
             placeholder={t.titlePh}
           />
         </div>
-        <div className="grid w-32 shrink-0 gap-1">
+        <div className="grid grid-cols-1 sm:w-36 gap-1">
           <Label>{t.amount}</Label>
           <Input
             value={amount}
@@ -757,7 +762,7 @@ export function FixedCostsManager({
             placeholder="10000"
           />
         </div>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending} className="w-full sm:w-auto shrink-0">
           {pending ? t.saving : t.fixedAdd}
         </Button>
       </form>
