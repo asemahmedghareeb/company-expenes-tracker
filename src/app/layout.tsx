@@ -56,6 +56,8 @@ export const viewport: Viewport = {
   ],
 };
 
+export const preferredRegion = "dub1";
+
 export default async function RootLayout({
   children,
 }: {
