@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
+import { prisma as db } from "@/lib/prisma";
 import {
   companyExpenseSchema,
   companyExpenseWithPaymentsSchema,
@@ -18,6 +18,7 @@ import { getCompanyExpenseSettlement, round2 } from "@/lib/ledger";
 function revalidateCompany() {
   revalidatePath("/company");
   revalidatePath("/ledger");
+  revalidatePath("/summary");
   revalidatePath("/");
 }
 
@@ -262,9 +263,17 @@ export async function settleCompanyRow(
   const [expense, partners] = await Promise.all([
     db.companyExpense.findMany({
       where: { id: expenseId },
-      include: { payments: true, payouts: true },
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        payments: { select: { partnerId: true, amount: true } },
+        payouts: { select: { partnerId: true, amount: true, expenseId: true } },
+      },
     }),
-    db.partner.findMany(),
+    db.partner.findMany({
+      select: { id: true, name: true, defaultSharePercentage: true, isActive: true },
+    }),
   ]);
   const bill = expense[0];
   if (!bill) return { ok: false, error: "Expense not found." };
@@ -336,9 +345,17 @@ export async function settleCompanyBill(
   const [bills, partners] = await Promise.all([
     db.companyExpense.findMany({
       where: { id: expenseId },
-      include: { payments: true, payouts: true },
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        payments: { select: { partnerId: true, amount: true } },
+        payouts: { select: { partnerId: true, amount: true, expenseId: true } },
+      },
     }),
-    db.partner.findMany(),
+    db.partner.findMany({
+      select: { id: true, name: true, defaultSharePercentage: true, isActive: true },
+    }),
   ]);
   const bill = bills[0];
   if (!bill) return { ok: false, error: "Expense not found." };

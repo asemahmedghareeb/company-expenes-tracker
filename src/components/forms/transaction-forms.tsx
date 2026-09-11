@@ -209,7 +209,6 @@ export function ExpenseForm({
                 {p.name}
               </option>
             ))}
-            <option value={CLIENT_PAYER}>{t.clientPaid}</option>
           </select>
         </div>
         <div className="grid gap-1">

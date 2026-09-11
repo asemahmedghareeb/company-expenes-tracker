@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:health": "tsx scripts/db-health.ts",
+    "db:migrate-neon": "tsx scripts/migrate-neon-to-supabase.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

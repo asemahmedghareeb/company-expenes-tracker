@@ -662,20 +662,37 @@ export interface MonthlyProjectCost {
   title?: string;
 }
 
+export interface MonthlyPaidLine {
+  kind: "fixed" | "variable" | "project";
+  title: string;
+  amount: number;
+  date: string;
+}
+
 export interface MonthlyPartnerRow {
   partnerId: string;
   name: string;
   sharePercentage: number;
   /** Partner's slice of the month total. */
   share: number;
+  /** Share slice per cost category (sums exactly to `share`). */
+  shareFixed: number;
+  shareVariable: number;
+  shareDirect: number;
   /** Everything they personally covered this month. */
   paid: number;
+  /** …of which paid toward company bills. */
+  paidCompany: number;
+  /** …of which paid out-of-pocket on projects. */
+  paidProjects: number;
+  /** Itemized payments backing `paid`, newest first. */
+  paidLines: MonthlyPaidLine[];
   /** paid − share. Positive = firm owes them (له), negative = they owe (عليه). */
   balance: number;
 }
 
 export interface MonthlyDetailLine {
-  kind: "fixed" | "variable" | "project";
+  kind: "fixed" | "variable" | "project" | "client";
   title: string;
   amount: number;
   paidByName: string;
@@ -690,6 +707,9 @@ export interface MonthlySummary {
   monthTotal: number;
   rows: MonthlyPartnerRow[];
   details: MonthlyDetailLine[];
+  /** Client-covered project costs: recorded, but firm-neutral (never in totals). */
+  clientCoveredTotal: number;
+  clientCoveredLines: MonthlyDetailLine[];
 }
 
 /**
@@ -709,6 +729,11 @@ export function getMonthlySummary(
   const costs = args.projectCosts.filter(
     (e) => monthKey(e.expenseDate) === month && e.paidByPartnerId,
   );
+  // Client-covered rows: no partner paid them, so they NEVER enter firm
+  // totals, shares or balances. Surfaced separately as informational lines.
+  const clientCosts = args.projectCosts.filter(
+    (e) => monthKey(e.expenseDate) === month && !e.paidByPartnerId,
+  );
 
   const fixedTotal = round2(
     sum(bills.filter((e) => e.kind === "fixed").map((e) => e.amount)),
@@ -718,6 +743,7 @@ export function getMonthlySummary(
   );
   const directTotal = round2(sum(costs.map((e) => e.amount)));
   const monthTotal = round2(fixedTotal + variableTotal + directTotal);
+  const clientCoveredTotal = round2(sum(clientCosts.map((e) => e.amount)));
 
   const active = args.partners.filter((p) => p.isActive);
   // Largest-remainder: share parts sum EXACTLY to the month total.
@@ -725,23 +751,65 @@ export function getMonthlySummary(
     monthTotal,
     active.map((p) => p.defaultSharePercentage),
   );
+  const fixedShares = splitMoney(
+    fixedTotal,
+    active.map((p) => p.defaultSharePercentage),
+  );
+  const variableShares = splitMoney(
+    variableTotal,
+    active.map((p) => p.defaultSharePercentage),
+  );
+  const byNewest = (a: { date: string }, b: { date: string }) =>
+    +new Date(b.date) - +new Date(a.date);
   const rows: MonthlyPartnerRow[] = active.map((p, i) => {
     const share = monthShares[i] ?? 0;
-    const paidCompany = sum(
-      bills.flatMap((e) =>
-        e.payments.filter((x) => x.partnerId === p.id).map((x) => x.amount),
+    const shareFixed = fixedShares[i] ?? 0;
+    const shareVariable = variableShares[i] ?? 0;
+    // Remainder (not a third split) so fixed + variable + direct === share exactly.
+    const shareDirect = round2(share - shareFixed - shareVariable);
+    const paidCompany = round2(
+      sum(
+        bills.flatMap((e) =>
+          e.payments.filter((x) => x.partnerId === p.id).map((x) => x.amount),
+        ),
       ),
     );
-    const paidProjects = sum(
-      costs.filter((e) => e.paidByPartnerId === p.id).map((e) => e.amount),
+    const paidProjects = round2(
+      sum(costs.filter((e) => e.paidByPartnerId === p.id).map((e) => e.amount)),
     );
     const paid = round2(paidCompany + paidProjects);
+    const paidLines: MonthlyPaidLine[] = [
+      ...bills.flatMap((e) =>
+        e.payments
+          .filter((x) => x.partnerId === p.id)
+          .map((x) => ({
+            kind: e.kind as "fixed" | "variable",
+            title: e.title ?? e.id.slice(0, 8),
+            amount: x.amount,
+            date: e.expenseDate,
+          })),
+      ),
+      ...costs
+        .filter((e) => e.paidByPartnerId === p.id)
+        .map((e) => ({
+          kind: "project" as const,
+          title: e.title ?? e.projectName ?? "",
+          amount: e.amount,
+          date: e.expenseDate,
+        })),
+    ].sort(byNewest);
     return {
       partnerId: p.id,
       name: p.name,
       sharePercentage: p.defaultSharePercentage,
       share,
+      shareFixed,
+      shareVariable,
+      shareDirect,
       paid,
+      paidCompany,
+      paidProjects,
+      paidLines,
       balance: round2(paid - share),
     };
   });
@@ -770,5 +838,25 @@ export function getMonthlySummary(
     })),
   ];
 
-  return { month, fixedTotal, variableTotal, directTotal, monthTotal, rows, details };
+  const clientCoveredLines: MonthlyDetailLine[] = clientCosts
+    .map((e) => ({
+      kind: "client" as const,
+      title: e.title ?? e.projectName ?? "",
+      amount: e.amount,
+      paidByName: nameOf(e.paidByPartnerId),
+      date: e.expenseDate,
+    }))
+    .sort(byNewest);
+
+  return {
+    month,
+    fixedTotal,
+    variableTotal,
+    directTotal,
+    monthTotal,
+    rows,
+    details,
+    clientCoveredTotal,
+    clientCoveredLines,
+  };
 }

@@ -3,7 +3,7 @@ import { getLang } from "@/lib/i18n";
 import { toNumber } from "@/lib/ledger";
 import { ProjectsManager } from "./projects-manager";
 
-export const dynamic = "force-dynamic";
+// Cached by default — mutations revalidate on demand via revalidatePath().
 
 export default async function ProjectsPage() {
   const lang = await getLang();

@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { prisma as db } from "@/lib/prisma";
 import { createProjectSchema, updateProjectSplitsSchema } from "@/lib/validations";
 import { normalizeShares, CLIENT_PAYER } from "@/lib/shares";
 
 export async function GET() {
   const projects = await db.project.findMany({
     orderBy: { createdAt: "desc" },
-    include: { projectPartners: true, clientPayments: true, expenses: true },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      contractValue: true,
+      projectPartners: { select: { partnerId: true } },
+      clientPayments: { select: { amount: true } },
+      expenses: { select: { amount: true } },
+    },
   });
   return NextResponse.json(projects);
 }

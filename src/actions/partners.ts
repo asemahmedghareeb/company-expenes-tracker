@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
+import { prisma as db } from "@/lib/prisma";
 import {
   partnerSchema,
   defaultSplitsSchema,
@@ -33,6 +33,9 @@ export async function addPartner(
       },
     });
     revalidatePath("/partners");
+    revalidatePath("/ledger");
+    revalidatePath("/company");
+    revalidatePath("/summary");
     revalidatePath("/");
     return { ok: true, data: { id: partner.id } };
   } catch (e: unknown) {
@@ -69,6 +72,8 @@ export async function editPartner(
     });
     revalidatePath("/partners");
     revalidatePath("/ledger");
+    revalidatePath("/company");
+    revalidatePath("/summary");
     revalidatePath("/");
     return { ok: true, data: { id: partner.id } };
   } catch (e: unknown) {
@@ -87,6 +92,9 @@ export async function setPartnerActive(
   try {
     await db.partner.update({ where: { id }, data: { isActive } });
     revalidatePath("/partners");
+    revalidatePath("/ledger");
+    revalidatePath("/company");
+    revalidatePath("/summary");
     revalidatePath("/");
     return { ok: true, data: { id } };
   } catch (e: unknown) {
@@ -117,6 +125,7 @@ export async function deletePartner(
     }
     await db.partner.delete({ where: { id } });
     revalidatePath("/partners");
+    revalidatePath("/ledger");
     revalidatePath("/");
     return { ok: true, data: { id } };
   } catch (e: unknown) {
@@ -157,6 +166,9 @@ export async function updateDefaultSplits(
       ),
     );
     revalidatePath("/partners");
+    revalidatePath("/ledger");
+    revalidatePath("/company");
+    revalidatePath("/summary");
     revalidatePath("/");
     return { ok: true, data: { updated: parsed.data.length } };
   } catch (e: unknown) {
@@ -174,6 +186,7 @@ export async function getDefaultSplitsSnapshot(): Promise<
   const partners = await db.partner.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
+    select: { id: true, name: true, defaultSharePercentage: true },
   });
   return partners.map((p) => ({
     partnerId: p.id,

@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/lib/db";
+import { prisma as db } from "@/lib/prisma";
 import {
   getAllPartnerLedgers,
   getFirmOverview,
@@ -17,12 +17,18 @@ export async function getPartners() {
 }
 
 export async function getProjects() {
+  // List view only needs aggregates — select scalar amounts instead of
+  // hydrating full relation graphs (no descriptions, dates, or joins).
   return db.project.findMany({
     orderBy: { createdAt: "desc" },
-    include: {
-      projectPartners: { include: { partner: true } },
-      clientPayments: true,
-      expenses: true,
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      contractValue: true,
+      projectPartners: { select: { partnerId: true } },
+      clientPayments: { select: { amount: true } },
+      expenses: { select: { amount: true } },
     },
   });
 }
@@ -30,15 +36,41 @@ export async function getProjects() {
 export async function getProjectDetail(id: string) {
   const project = await db.project.findUnique({
     where: { id },
-    include: {
-      projectPartners: { include: { partner: true }, orderBy: { partner: { name: "asc" } } },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      contractValue: true,
+      status: true,
+      projectPartners: {
+        select: {
+          partnerId: true,
+          sharePercentage: true,
+          partner: { select: { id: true, name: true } },
+        },
+        orderBy: { partner: { name: "asc" } },
+      },
       clientPayments: {
         orderBy: { paidAt: "desc" },
-        include: { receivedBy: true },
+        select: {
+          id: true,
+          amount: true,
+          milestoneLabel: true,
+          paidAt: true,
+          receivedBy: { select: { id: true, name: true } },
+        },
       },
       expenses: {
         orderBy: { expenseDate: "desc" },
-        include: { paidBy: true },
+        select: {
+          id: true,
+          amount: true,
+          description: true,
+          expenseDate: true,
+          paidByPartnerId: true,
+          isReimbursed: true,
+          paidBy: { select: { id: true, name: true } },
+        },
       },
     },
   });
@@ -114,26 +146,73 @@ export async function getDashboardData(range?: {
     range !== undefined
       ? { gte: range.from, lt: range.toExclusive }
       : undefined;
+  // Independent reads run concurrently; selects stay minimal so the
+  // pooled connection moves only the scalars the ledger engine needs
+  // (no text blobs, timestamps, or nested partner joins).
   const [partners, projectsRaw, drawingsRaw, companyRaw, fixedCostsRaw] = await Promise.all([
-    db.partner.findMany({ orderBy: { name: "asc" } }),
+    db.partner.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, defaultSharePercentage: true, isActive: true },
+    }),
     db.project.findMany({
       where: window ? { createdAt: window } : undefined,
-      include: {
-        projectPartners: true,
-        clientPayments: window ? { where: { paidAt: window } } : true,
-        expenses: window ? { where: { expenseDate: window } } : true,
+      select: {
+        id: true,
+        name: true,
+        contractValue: true,
+        status: true,
+        projectPartners: {
+          select: { partnerId: true, sharePercentage: true },
+        },
+        clientPayments: window
+          ? { where: { paidAt: window }, select: { amount: true } }
+          : { select: { amount: true } },
+        expenses: window
+          ? {
+              where: { expenseDate: window },
+              select: {
+                id: true,
+                description: true,
+                amount: true,
+                paidByPartnerId: true,
+                isReimbursed: true,
+                expenseDate: true,
+              },
+            }
+          : {
+              select: {
+                id: true,
+                description: true,
+                amount: true,
+                paidByPartnerId: true,
+                isReimbursed: true,
+                expenseDate: true,
+              },
+            },
       },
       orderBy: { createdAt: "desc" },
     }),
-    db.partnerDrawing.findMany(
-      window ? { where: { drawnAt: window } } : undefined,
-    ),
+    db.partnerDrawing.findMany({
+      where: window ? { drawnAt: window } : undefined,
+      select: { partnerId: true, amount: true },
+    }),
     db.companyExpense.findMany({
       where: window ? { expenseDate: window } : undefined,
-      include: { payments: true, payouts: true },
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        kind: true,
+        expenseDate: true,
+        payments: { select: { partnerId: true, amount: true } },
+        payouts: { select: { partnerId: true, amount: true, expenseId: true } },
+      },
       orderBy: { expenseDate: "desc" },
     }),
-    db.companyFixedCost.findMany({ orderBy: { title: "asc" } }),
+    db.companyFixedCost.findMany({
+      orderBy: { title: "asc" },
+      select: { id: true, title: true, amount: true },
+    }),
   ]);
 
   const projects: LedgerProject[] = projectsRaw.map((p) =>
@@ -273,16 +352,50 @@ export async function getDashboardData(range?: {
 export async function getCompanyData() {
   const [expenses, partners, fixedCosts, payouts] = await Promise.all([
     db.companyExpense.findMany({
-      include: {
-        payments: { include: { partner: true }, orderBy: { paidAt: "desc" } },
-        payouts: { include: { partner: true }, orderBy: { paidAt: "desc" } },
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        kind: true,
+        expenseDate: true,
+        payments: {
+          select: {
+            id: true,
+            partnerId: true,
+            amount: true,
+            partner: { select: { id: true, name: true } },
+          },
+          orderBy: { paidAt: "desc" },
+        },
+        payouts: {
+          select: {
+            id: true,
+            partnerId: true,
+            amount: true,
+            expenseId: true,
+            partner: { select: { id: true, name: true } },
+          },
+          orderBy: { paidAt: "desc" },
+        },
       },
       orderBy: { expenseDate: "desc" },
     }),
-    db.partner.findMany({ orderBy: { name: "asc" } }),
-    db.companyFixedCost.findMany({ orderBy: { title: "asc" } }),
+    db.partner.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, defaultSharePercentage: true, isActive: true },
+    }),
+    db.companyFixedCost.findMany({
+      orderBy: { title: "asc" },
+      select: { id: true, title: true, amount: true },
+    }),
     db.companyPayout.findMany({
-      include: { partner: true, expense: true },
+      select: {
+        id: true,
+        amount: true,
+        paidAt: true,
+        partner: { select: { id: true, name: true } },
+        expense: { select: { id: true, title: true } },
+      },
       orderBy: { paidAt: "desc" },
       take: 50,
     }),
@@ -293,12 +406,22 @@ export async function getCompanyData() {
 /** Treasury page data: every project with its frozen splits + custodied payments. */
 export async function getTreasuryData() {
   const [partners, projects] = await Promise.all([
-    db.partner.findMany({ orderBy: { name: "asc" } }),
+    db.partner.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
     db.project.findMany({
       orderBy: { createdAt: "desc" },
-      include: {
-        projectPartners: true,
-        clientPayments: { orderBy: { paidAt: "desc" } },
+      select: {
+        id: true,
+        name: true,
+        projectPartners: {
+          select: { partnerId: true, sharePercentage: true },
+        },
+        clientPayments: {
+          orderBy: { paidAt: "desc" },
+          select: { amount: true, receivedByPartnerId: true },
+        },
       },
     }),
   ]);
@@ -309,31 +432,63 @@ export async function getTreasuryData() {
 export async function getSummaryData() {
   const [company, projectCosts, partners] = await Promise.all([
     db.companyExpense.findMany({
-      include: { payments: true },
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        kind: true,
+        expenseDate: true,
+        payments: { select: { partnerId: true, amount: true } },
+      },
       orderBy: { expenseDate: "desc" },
     }),
     db.projectExpense.findMany({
-      include: { paidBy: true, project: true },
+      select: {
+        amount: true,
+        description: true,
+        expenseDate: true,
+        paidByPartnerId: true,
+        project: { select: { id: true, name: true } },
+      },
       orderBy: { expenseDate: "desc" },
     }),
-    db.partner.findMany({ orderBy: { name: "asc" } }),
+    db.partner.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, defaultSharePercentage: true, isActive: true },
+    }),
   ]);
   return { company, projectCosts, partners };
 }
 
 /** Partner ledger page data (ledgers + drawings detail). */
 export async function getLedgerData() {
-  const { partners, ledgers, overview } = await getDashboardData();
-  const drawings = await db.partnerDrawing.findMany({
-    include: { partner: true },
-    orderBy: { drawnAt: "desc" },
-    take: 100,
-  });
-  const expenses = await db.projectExpense.findMany({
-    // Client-covered rows owe nobody — never appear as pending.
-    where: { isReimbursed: false, paidByPartnerId: { not: null } },
-    include: { paidBy: true, project: true },
-    orderBy: { expenseDate: "desc" },
-  });
+  // All three reads are independent — fan out concurrently instead of
+  // awaiting the dashboard first and stalling the other two behind it.
+  const [dashboard, drawings, expenses] = await Promise.all([
+    getDashboardData(),
+    db.partnerDrawing.findMany({
+      select: {
+        id: true,
+        amount: true,
+        notes: true,
+        drawnAt: true,
+        partner: { select: { id: true, name: true } },
+      },
+      orderBy: { drawnAt: "desc" },
+      take: 100,
+    }),
+    db.projectExpense.findMany({
+      // Client-covered rows owe nobody — never appear as pending.
+      where: { isReimbursed: false, paidByPartnerId: { not: null } },
+      select: {
+        id: true,
+        amount: true,
+        paidBy: { select: { id: true, name: true } },
+        project: { select: { id: true, name: true } },
+      },
+      orderBy: { expenseDate: "desc" },
+    }),
+  ]);
+  const { partners, ledgers, overview } = dashboard;
   return { partners, ledgers, overview, drawings, pendingExpenses: expenses };
 }

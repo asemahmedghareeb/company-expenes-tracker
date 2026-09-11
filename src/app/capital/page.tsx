@@ -20,7 +20,7 @@ import { toNumber } from "@/lib/ledger";
 import { getTreasurySummary, suggestSettlements } from "@/lib/treasury";
 import { getTreasuryData } from "@/actions/queries";
 
-export const dynamic = "force-dynamic";
+// Cached by default — mutations revalidate on demand via revalidatePath().
 
 export default async function CapitalPage() {
   const lang = await getLang();

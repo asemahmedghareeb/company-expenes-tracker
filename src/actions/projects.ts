@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
+import { prisma as db } from "@/lib/prisma";
 import {
   createProjectSchema,
   updateProjectSchema,
@@ -31,15 +31,7 @@ export async function createProject(
   const { name, description, contractValue, status, splits, initialExpenses } =
     parsed.data;
 
-  // All split partners must exist.
-  const partners = await db.partner.findMany({
-    where: { id: { in: splits.map((s) => s.partnerId) } },
-    select: { id: true },
-  });
-  if (partners.length !== splits.length) {
-    return { ok: false, error: "One or more split partners do not exist." };
-  }
-
+  // Both existence checks are independent — fan out concurrently.
   // All expense payers must exist (client-covered rows need none).
   const payerIds = [
     ...new Set(
@@ -48,14 +40,23 @@ export async function createProject(
         .filter((id) => id !== CLIENT_PAYER),
     ),
   ];
-  if (payerIds.length > 0) {
-    const payers = await db.partner.findMany({
-      where: { id: { in: payerIds } },
+  const [partners, payers] = await Promise.all([
+    db.partner.findMany({
+      where: { id: { in: splits.map((s) => s.partnerId) } },
       select: { id: true },
-    });
-    if (payers.length !== payerIds.length) {
-      return { ok: false, error: "One or more expense payers do not exist." };
-    }
+    }),
+    payerIds.length > 0
+      ? db.partner.findMany({
+          where: { id: { in: payerIds } },
+          select: { id: true },
+        })
+      : Promise.resolve([] as { id: string }[]),
+  ]);
+  if (partners.length !== splits.length) {
+    return { ok: false, error: "One or more split partners do not exist." };
+  }
+  if (payers.length !== payerIds.length) {
+    return { ok: false, error: "One or more expense payers do not exist." };
   }
 
   try {
@@ -85,6 +86,8 @@ export async function createProject(
       },
     });
     revalidatePath("/projects");
+    revalidatePath("/ledger");
+    revalidatePath("/summary");
     revalidatePath("/");
     return { ok: true, data: { id: project.id } };
   } catch (e: unknown) {
@@ -124,6 +127,8 @@ export async function updateProject(
     });
     revalidatePath("/projects");
     revalidatePath(`/projects/${projectId}`);
+    revalidatePath("/ledger");
+    revalidatePath("/summary");
     revalidatePath("/");
     return { ok: true, data: { id: projectId } };
   } catch (e: unknown) {
@@ -153,16 +158,18 @@ export async function updateProjectSplits(
   }
   const { projectId, splits } = parsed.data;
 
-  const existing = await db.project.findUnique({
-    where: { id: projectId },
-    select: { id: true },
-  });
+  // Independent existence checks — run concurrently.
+  const [existing, partners] = await Promise.all([
+    db.project.findUnique({
+      where: { id: projectId },
+      select: { id: true },
+    }),
+    db.partner.findMany({
+      where: { id: { in: splits.map((s) => s.partnerId) } },
+      select: { id: true },
+    }),
+  ]);
   if (!existing) return { ok: false, error: "Project not found." };
-
-  const partners = await db.partner.findMany({
-    where: { id: { in: splits.map((s) => s.partnerId) } },
-    select: { id: true },
-  });
   if (partners.length !== splits.length) {
     return { ok: false, error: "One or more split partners do not exist." };
   }
@@ -182,6 +189,8 @@ export async function updateProjectSplits(
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/projects");
     revalidatePath("/ledger");
+    revalidatePath("/capital");
+    revalidatePath("/summary");
     revalidatePath("/");
     return { ok: true, data: { id: projectId } };
   } catch (e: unknown) {
@@ -204,6 +213,8 @@ export async function deleteProject(
     await db.project.delete({ where: { id: projectId } });
     revalidatePath("/projects");
     revalidatePath("/ledger");
+    revalidatePath("/capital");
+    revalidatePath("/summary");
     revalidatePath("/");
     return { ok: true, data: { id: projectId } };
   } catch (e: unknown) {

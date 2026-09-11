@@ -340,10 +340,21 @@ export interface Dictionary {
     colTitle: string;
     colAmount: string;
     colPaidBy: string;
+    colDate: string;
     kindFixed: string;
     kindVariable: string;
     kindProject: string;
+    kindClient: string;
     empty: string;
+    whyToggle: string;
+    paidCompanyLabel: string;
+    paidProjectsLabel: string;
+    whyOwes: (paid: string, share: string, diff: string) => string;
+    whyOwed: (paid: string, share: string, diff: string) => string;
+    whySettled: string;
+    excludedTitle: string;
+    excludedDesc: string;
+    excludedTotal: string;
   };
   /* ------------------------------- Capital ------------------------------ */
   capital: {
@@ -748,10 +759,24 @@ export const dict: Record<Lang, Dictionary> = {
       colTitle: "Description",
       colAmount: "Amount",
       colPaidBy: "Paid by",
+      colDate: "Date",
       kindFixed: "Fixed",
       kindVariable: "Variable",
       kindProject: "Projects",
+      kindClient: "Client-paid",
       empty: "No costs recorded this month.",
+      whyToggle: "Why?",
+      paidCompanyLabel: "Paid to company bills",
+      paidProjectsLabel: "Paid out-of-pocket on projects",
+      whyOwes: (paid, share, diff) =>
+        `Paid ${paid} of an owed ${share} — still owes ${diff}.`,
+      whyOwed: (paid, share, diff) =>
+        `Paid ${paid}, above an owed ${share} — is owed ${diff}.`,
+      whySettled: "Paid exactly their share — settled.",
+      excludedTitle: "Client-paid, excluded",
+      excludedDesc:
+        "Paid directly by the client — no partner covered it, so it never enters shares or balances.",
+      excludedTotal: "Excluded total",
     },
     capital: {
       title: "Firm treasury & custody",
@@ -1151,10 +1176,22 @@ export const dict: Record<Lang, Dictionary> = {
       colTitle: "البيان",
       colAmount: "المبلغ",
       colPaidBy: "مين دفع",
+      colDate: "التاريخ",
       kindFixed: "ثابتة",
       kindVariable: "متغيرة",
       kindProject: "مشاريع",
+      kindClient: "مدفوعة من العميل",
       empty: "لا توجد مصاريف مسجلة هذا الشهر.",
+      whyToggle: "ليه؟",
+      paidCompanyLabel: "دفع لفواتير الشركة",
+      paidProjectsLabel: "دفع من جيبه في المشاريع",
+      whyOwes: (paid, share, diff) => `دفع ${paid} من نصيب ${share} — فعليه ${diff}.`,
+      whyOwed: (paid, share, diff) => `دفع ${paid} زيادة عن نصيب ${share} — فله ${diff}.`,
+      whySettled: "دفع نصيبه بالظبط — متساوي.",
+      excludedTitle: "مدفوع من العميل — مستبعد",
+      excludedDesc:
+        "مدفوعة من العميل مباشرة — مفيش شريك دفعها، فمش داخلة في النصيب ولا في الرصيد.",
+      excludedTotal: "الإجمالي المستبعد",
     },
     capital: {
       title: "رأس مال الشركة والخزينة",

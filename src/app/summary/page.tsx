@@ -14,13 +14,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatEGP, formatPct } from "@/lib/format";
+import { formatDate, formatEGP } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getMonthlySummary, toNumber } from "@/lib/ledger";
 import { getSummaryData } from "@/actions/queries";
 import { MonthPicker } from "./month-picker";
+import { SummaryRows } from "./summary-rows";
 
-export const dynamic = "force-dynamic";
+// Cached by default — mutations revalidate on demand via revalidatePath().
+// Uses searchParams (month), so Next renders dynamically per request.
 
 function currentMonth(): string {
   const d = new Date();
@@ -104,42 +106,49 @@ export default async function SummaryPage({
           <CardTitle>{t.colBalance}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t.colPartner}</TableHead>
-                <TableHead className="text-end">{t.colPaid}</TableHead>
-                <TableHead className="text-end">{t.colOwe}</TableHead>
-                <TableHead className="text-end">{t.colBalance}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {summary.rows.map((r) => (
-                <TableRow key={r.partnerId}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell className="text-end">{formatEGP(r.paid, lang)}</TableCell>
-                  <TableCell className="text-end">
-                    {formatEGP(r.share, lang)} ({formatPct(r.sharePercentage)})
-                  </TableCell>
-                  <TableCell
-                    className={`text-end font-semibold ${r.balance > 0 ? "text-emerald-700" : r.balance < 0 ? "text-red-600" : "text-muted-foreground"}`}
-                  >
-                    {formatEGP(Math.abs(r.balance), lang)}{" "}
-                    {r.balance > 0 ? t.toHim : r.balance < 0 ? t.owes : t.settled}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {summary.rows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    {t.empty}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <SummaryRows lang={lang} rows={summary.rows} />
         </CardContent>
       </Card>
+
+      {summary.clientCoveredTotal > 0.005 && (
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+              {t.excludedTitle}
+              <Badge variant="secondary">{t.kindClient}</Badge>
+            </CardTitle>
+            <CardDescription>{t.excludedDesc}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-3 flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{t.excludedTotal}</span>
+              <span dir="ltr" className="font-mono font-semibold tabular-nums">
+                {formatEGP(summary.clientCoveredTotal, lang)}
+              </span>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t.colTitle}</TableHead>
+                  <TableHead>{t.colDate}</TableHead>
+                  <TableHead className="text-end">{t.colAmount}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {summary.clientCoveredLines.map((d, i) => (
+                  <TableRow key={`client-${i}`}>
+                    <TableCell>{d.title}</TableCell>
+                    <TableCell>{formatDate(d.date, lang)}</TableCell>
+                    <TableCell dir="ltr" className="text-end font-mono tabular-nums">
+                      {formatEGP(d.amount, lang)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

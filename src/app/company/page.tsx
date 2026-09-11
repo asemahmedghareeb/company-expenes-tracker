@@ -31,7 +31,7 @@ import {
   SettleRowButton,
 } from "@/components/forms/company-forms";
 
-export const dynamic = "force-dynamic";
+// Cached by default — mutations revalidate on demand via revalidatePath().
 
 export default async function CompanyPage() {
   const lang = await getLang();

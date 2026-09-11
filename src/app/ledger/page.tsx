@@ -20,7 +20,7 @@ import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
 import { DeleteDrawingButton, DrawingForm } from "@/components/forms/transaction-forms";
 
-export const dynamic = "force-dynamic";
+// Cached by default — mutations revalidate on demand via revalidatePath().
 
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLang();

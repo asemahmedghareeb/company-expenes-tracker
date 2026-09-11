@@ -35,7 +35,9 @@ import {
 } from "lucide-react";
 import { RangeFilter } from "./range-filter";
 
-export const dynamic = "force-dynamic";
+// Cached by default — mutations revalidate on demand via revalidatePath()
+// in src/actions/*.ts. Uses searchParams/cookies, so Next renders it
+// dynamically per request without blanket force-dynamic.
 
 export default async function DashboardPage({
   searchParams,

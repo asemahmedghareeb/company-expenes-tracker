@@ -20,7 +20,7 @@ import { dict, getLang } from "@/lib/i18n";
 import { sharesSumTo100 } from "@/lib/shares";
 import { PartnerRow } from "./partner-buttons";
 
-export const dynamic = "force-dynamic";
+// Cached by default — mutations revalidate on demand via revalidatePath().
 
 export default async function PartnersPage() {
   const lang = await getLang();

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { prisma as db } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export async function GET() {
       ]);
     return NextResponse.json({
       status: "ok",
-      database: "neon-postgres",
+      database: "supabase-postgres",
       ping: ping[0]?.ok === 1,
       latencyMs: Date.now() - started,
       tables: { partners, projects, payments, expenses, drawings },
@@ -31,7 +31,7 @@ export async function GET() {
     return NextResponse.json(
       {
         status: "error",
-        database: "neon-postgres",
+        database: "supabase-postgres",
         latencyMs: Date.now() - started,
         error: e instanceof Error ? e.message : "Health check failed.",
       },

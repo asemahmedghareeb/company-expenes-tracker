@@ -1,18 +1,6 @@
-import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const db =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["warn", "error"]
-        : ["error"],
-  });
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
-
-export default db;
+/**
+ * Backwards-compatible alias — the canonical singleton lives in
+ * `@/lib/prisma`. Re-exporting (not re-instantiating) guarantees every
+ * `import { db } from "@/lib/db"` shares ONE PrismaClient in serverless.
+ */
+export { prisma as db, prisma as default } from "./prisma";

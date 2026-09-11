@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
+import { prisma as db } from "@/lib/prisma";
 import {
   clientPaymentSchema,
   projectExpenseSchema,
@@ -17,6 +17,7 @@ function revalidateFinance(projectId?: string) {
   revalidatePath("/ledger");
   revalidatePath("/projects");
   revalidatePath("/capital");
+  revalidatePath("/summary");
   if (projectId) revalidatePath(`/projects/${projectId}`);
 }
 
