@@ -8,6 +8,7 @@ import {
   companyFixedCostSchema,
   companyPaymentSchema,
   companyPayoutSchema,
+  settleCompanyBillSchema,
   settleCompanyRowSchema,
   type ActionResult,
   zodFieldErrors,
@@ -308,6 +309,95 @@ export async function settleCompanyRow(
     });
     revalidateCompany();
     return { ok: true, data: { id: payout.id, kind: "payout", amount: due } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to settle.",
+    };
+  }
+}
+
+/**
+ * One-click settlement of the WHOLE bill: every owing row gets a
+ * partner→firm payment, every overpaid row gets a firm→partner payout —
+ * atomically, so the bill ends fully settled in a single click.
+ */
+export async function settleCompanyBill(
+  raw: unknown,
+): Promise<
+  ActionResult<{ payments: number; payouts: number; settled: number }>
+> {
+  const parsed = settleCompanyBillSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid settlement data." };
+  }
+  const { expenseId } = parsed.data;
+
+  const [bills, partners] = await Promise.all([
+    db.companyExpense.findMany({
+      where: { id: expenseId },
+      include: { payments: true, payouts: true },
+    }),
+    db.partner.findMany(),
+  ]);
+  const bill = bills[0];
+  if (!bill) return { ok: false, error: "Expense not found." };
+
+  const settlement = getCompanyExpenseSettlement(
+    {
+      id: bill.id,
+      title: bill.title,
+      amount: Number(bill.amount),
+      payments: bill.payments.map((x) => ({
+        partnerId: x.partnerId,
+        amount: Number(x.amount),
+      })),
+      payouts: bill.payouts.map((x) => ({
+        partnerId: x.partnerId,
+        amount: Number(x.amount),
+        expenseId: x.expenseId ?? undefined,
+      })),
+    },
+    partners.map((p) => ({
+      id: p.id,
+      name: p.name,
+      defaultSharePercentage: p.defaultSharePercentage,
+      isActive: p.isActive,
+    })),
+  );
+
+  const duePayments = settlement.rows
+    .filter((r) => r.net < -0.005)
+    .map((r) => ({ partnerId: r.partnerId, amount: round2(-r.net) }));
+  const duePayouts = settlement.rows
+    .filter((r) => r.net > 0.005)
+    .map((r) => ({ partnerId: r.partnerId, amount: round2(r.net) }));
+  if (duePayments.length === 0 && duePayouts.length === 0) {
+    return { ok: false, error: "Already settled." };
+  }
+
+  try {
+    await db.$transaction([
+      ...duePayments.map((p) =>
+        db.companyExpensePayment.create({
+          data: { expenseId, partnerId: p.partnerId, amount: p.amount },
+        }),
+      ),
+      ...duePayouts.map((p) =>
+        db.companyPayout.create({
+          data: { expenseId, partnerId: p.partnerId, amount: p.amount },
+        }),
+      ),
+    ]);
+    revalidateCompany();
+    return {
+      ok: true,
+      data: {
+        payments: duePayments.length,
+        payouts: duePayouts.length,
+        settled: duePayments.length + duePayouts.length,
+      },
+    };
   } catch (e: unknown) {
     return {
       ok: false,

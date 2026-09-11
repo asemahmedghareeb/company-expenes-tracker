@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cairo, Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { themeInitScript } from "@/components/theme-toggle";
@@ -55,6 +56,7 @@ export default async function RootLayout({
         <main className="animate-rise mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
           {children}
         </main>
+        <Toaster position="top-center" dir={dir} gap={8} />
         <footer className="border-t border-border/70 py-6 text-center text-xs text-muted-foreground">
           {dict[lang].footer}
         </footer>

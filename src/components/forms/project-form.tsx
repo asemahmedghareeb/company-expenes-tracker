@@ -1,16 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
 import { SplitsEditor, type SplitRow } from "./splits-editor";
+import { EquityBar } from "@/components/projects/equity-bar";
+import { FinancePill } from "@/components/projects/finance-pill";
 import { createProject } from "@/actions/projects";
 import { dict } from "@/lib/dict";
-import { formatEGP, type Lang } from "@/lib/format";
+import { type Lang } from "@/lib/format";
 import {
+  equalSplit,
   normalizeShares,
   sanitizeNumericInput,
   sharesSumTo100,
@@ -31,12 +35,15 @@ function newKey() {
 export function ProjectForm({
   partners,
   lang,
+  onSuccess,
 }: {
   partners: { id: string; name: string; defaultSharePercentage: number }[];
   lang: Lang;
+  onSuccess?: () => void;
 }) {
   const t = dict[lang].projectForm;
   const tf = dict[lang].expenseForm;
+  const tp = dict[lang].projectsPage;
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +57,17 @@ export function ProjectForm({
   const [contractStr, setContractStr] = useState("");
   const [items, setItems] = useState<ExpenseRow[]>([]);
 
+  // Focus target for the next created expense row (its description input).
+  const pendingFocusKey = useRef<string | null>(null);
+  const titleRefs = useRef(new Map<string, HTMLInputElement>());
+
+  useEffect(() => {
+    const key = pendingFocusKey.current;
+    if (!key) return;
+    pendingFocusKey.current = null;
+    titleRefs.current.get(key)?.focus();
+  }, [items.length]);
+
   // ---- Real-time computations (react to every keystroke) ----
   // Client-covered rows never touch firm books: excluded from totals/profit.
   const contractValue = Number(contractStr) || 0;
@@ -61,13 +79,14 @@ export function ProjectForm({
     (a, it) => a + (it.paidBy === CLIENT_PAYER ? Number(it.amount) || 0 : 0),
     0,
   );
-  const netProfit = Math.max(0, contractValue - totalExpenses);
 
-  function addItem() {
+  function addItem(focusNext = false) {
+    const key = newKey();
     setItems((xs) => [
       ...xs,
-      { key: newKey(), title: "", amount: "", paidBy: partners[0]?.id ?? "" },
+      { key, title: "", amount: "", paidBy: partners[0]?.id ?? "" },
     ]);
+    if (focusNext) pendingFocusKey.current = key;
   }
 
   function updateItem(key: string, patch: Partial<ExpenseRow>) {
@@ -75,16 +94,23 @@ export function ProjectForm({
   }
 
   function removeItem(key: string) {
+    titleRefs.current.delete(key);
     setItems((xs) => xs.filter((x) => x.key !== key));
+  }
+
+  function fail(msg: string) {
+    setError(msg);
+    toast.error(msg);
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
+    const name = String(fd.get("name") ?? "").trim();
     const total = rows.reduce((a, r) => a + (Number(r.sharePercentage) || 0), 0);
     if (!sharesSumTo100(rows.map((r) => r.sharePercentage))) {
-      setError(t.splitsError(total.toFixed(2)));
+      fail(t.splitsError(total.toFixed(2)));
       return;
     }
     // Drop fully-empty rows; the rest must be complete.
@@ -93,14 +119,14 @@ export function ProjectForm({
     );
     for (const r of filled) {
       if (r.title.trim() === "" || !(Number(r.amount) > 0) || !r.paidBy) {
-        setError(t.expenseError);
+        fail(t.expenseError);
         return;
       }
     }
     const shares = normalizeShares(rows.map((r) => Number(r.sharePercentage) || 0));
     start(async () => {
       const res = await createProject({
-        name: String(fd.get("name") ?? ""),
+        name,
         description: String(fd.get("description") ?? ""),
         contractValue: Number(contractStr) || 0,
         status: String(fd.get("status") ?? "ACTIVE"),
@@ -114,8 +140,13 @@ export function ProjectForm({
           paidByPartnerId: r.paidBy,
         })),
       });
-      if (!res.ok) setError(res.error);
-      else router.push(`/projects/${res.data.id}`);
+      if (!res.ok) {
+        fail(res.error);
+      } else {
+        toast.success(tp.createdToast(name || "—"));
+        onSuccess?.();
+        router.push(`/projects/${res.data.id}`);
+      }
     });
   }
 
@@ -131,18 +162,31 @@ export function ProjectForm({
     setRows(next);
   }
 
+  function splitEqually() {
+    const shares = equalSplit(rows.length);
+    setRows(rows.map((r, i) => ({ ...r, sharePercentage: shares[i] ?? 0 })));
+  }
+
   function resetDefaults() {
-    setRows(
-      partners.map((p) => ({
-        partnerId: p.id,
-        name: p.name,
-        sharePercentage: p.defaultSharePercentage,
-      })),
-    );
+    const next = partners.map((p) => ({
+      partnerId: p.id,
+      name: p.name,
+      sharePercentage: p.defaultSharePercentage,
+    }));
+    setRows(next);
+    toast.success(t.copyDefaults);
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-5">
+      {/* Live financial preview */}
+      <FinancePill
+        lang={lang}
+        contractValue={contractValue}
+        firmExpenses={totalExpenses}
+        clientCovered={clientExpenses}
+      />
+
       <div className="grid gap-2">
         <Label htmlFor="name">{t.name}</Label>
         <Input id="name" name="name" required maxLength={150} placeholder={t.namePh} />
@@ -150,15 +194,21 @@ export function ProjectForm({
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="contractValue">{t.contractValue}</Label>
-          <Input
-            id="contractValue"
-            name="contractValue"
-            type="number"
-            required
-            placeholder="50000"
-            value={contractStr}
-            onChange={(e) => setContractStr(sanitizeNumericInput(e.target.value))}
-          />
+          <div className="flex items-center gap-1.5">
+            <Input
+              id="contractValue"
+              name="contractValue"
+              type="number"
+              required
+              placeholder="50000"
+              value={contractStr}
+              onChange={(e) => setContractStr(sanitizeNumericInput(e.target.value))}
+              className="min-w-0 flex-1 text-end font-mono tabular-nums"
+            />
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {lang === "ar" ? "ج.م" : "EGP"}
+            </span>
+          </div>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="status">{t.status}</Label>
@@ -166,7 +216,7 @@ export function ProjectForm({
             id="status"
             name="status"
             defaultValue="ACTIVE"
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className="flex h-10 w-full rounded-xl border border-input bg-card px-3 text-sm shadow-sm"
           >
             <option value="UPCOMING">{t.statuses.UPCOMING}</option>
             <option value="ACTIVE">{t.statuses.ACTIVE}</option>
@@ -177,12 +227,21 @@ export function ProjectForm({
         </div>
       </div>
 
-      {/* Initial project expenses (المصروفات) */}
-      <div className="space-y-2">
-        <Label>{t.expensesTitle}</Label>
+      {/* Initial project expenses */}
+      <div className="space-y-2 border-t border-border/60 pt-4">
+        <div className="flex items-center justify-between gap-2">
+          <Label>{t.expensesTitle}</Label>
+          <Button type="button" variant="outline" size="sm" onClick={() => addItem(true)}>
+            <Plus className="h-4 w-4" /> {t.addItem}
+          </Button>
+        </div>
         {items.map((it) => (
           <div key={it.key} className="flex items-center gap-2">
             <Input
+              ref={(el) => {
+                if (el) titleRefs.current.set(it.key, el);
+                else titleRefs.current.delete(it.key);
+              }}
               value={it.title}
               onChange={(e) => updateItem(it.key, { title: e.target.value })}
               placeholder={t.itemNamePh}
@@ -194,7 +253,7 @@ export function ProjectForm({
               value={it.paidBy}
               onChange={(e) => updateItem(it.key, { paidBy: e.target.value })}
               aria-label={tf.paidBy}
-              className="h-9 w-28 shrink-0 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-10 w-28 shrink-0 rounded-xl border border-input bg-card px-2 text-sm shadow-sm"
             >
               {partners.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -205,13 +264,20 @@ export function ProjectForm({
             </select>
             <div className="flex w-32 shrink-0 items-center gap-1">
               <Input
+                type="number"
                 value={it.amount}
                 onChange={(e) =>
                   updateItem(it.key, { amount: sanitizeNumericInput(e.target.value) })
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addItem(true);
+                  }
+                }}
                 placeholder="5000"
                 aria-label={t.cost}
-                className="min-w-0 flex-1 text-end"
+                className="min-w-0 flex-1 text-end font-mono tabular-nums"
               />
               <span className="shrink-0 text-xs text-muted-foreground">
                 {lang === "ar" ? "ج.م" : "EGP"}
@@ -222,41 +288,12 @@ export function ProjectForm({
               onClick={() => removeItem(it.key)}
               title={t.cost}
               aria-label={t.cost}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
         ))}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={addItem}
-          className="w-full"
-        >
-          <Plus className="h-4 w-4" /> {t.addItem}
-        </Button>
-        {items.length > 0 && (
-          <div className="space-y-1.5 rounded-lg border border-border bg-muted/40 p-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t.totalExpenses}</span>
-              <span className="font-medium">{formatEGP(totalExpenses, lang)}</span>
-            </div>
-            {clientExpenses > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t.clientCovered}</span>
-                <span className="font-medium">{formatEGP(clientExpenses, lang)}</span>
-              </div>
-            )}
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t.estProfit}</span>
-              <span className="text-lg font-bold text-emerald-700 dark:text-emerald-400">
-                {formatEGP(netProfit, lang)}
-              </span>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="grid gap-2">
@@ -264,18 +301,31 @@ export function ProjectForm({
         <Textarea id="description" name="description" placeholder={t.descPh} />
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
+      <div className="space-y-3 border-t border-border/60 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Label>{t.snapshot}</Label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" onClick={resetDefaults}>
               {t.copyDefaults}
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={splitEqually}>
+              {t.equalSplit}
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={preset5050}>
               {t.half}
             </Button>
           </div>
         </div>
+        <EquityBar
+          rows={rows.map((r) => ({
+            partnerId: r.partnerId,
+            name: r.name,
+            sharePercentage: Number(r.sharePercentage) || 0,
+          }))}
+          lang={lang}
+          balancedLabel={t.balanced}
+          offLabel={t.offBy}
+        />
         <SplitsEditor rows={rows} onChange={setRows} lang={lang} />
       </div>
 

@@ -22,7 +22,10 @@ import { getDashboardData } from "@/actions/queries";
 import {
   ArrowRight,
   Briefcase,
+  Coins,
+  Construction,
   HandCoins,
+  Landmark,
   PiggyBank,
   Plus,
   Receipt,
@@ -77,6 +80,15 @@ export default async function DashboardPage() {
   }
 
   const { overview, ledgers, projectCards } = data;
+  const companyTotals = (
+    data as { companyTotals?: { fixed: number; variable: number; total: number } }
+  ).companyTotals ?? {
+    fixed: overview.totalFixedExpenses ?? 0,
+    variable: overview.totalVariableExpenses ?? 0,
+    total: overview.totalCompanyExpenses ?? 0,
+  };
+  const totalExpensesValue =
+    overview.totalExpenses + (overview.totalCompanyExpenses ?? companyTotals.total);
 
   const stats = [
     {
@@ -86,14 +98,34 @@ export default async function DashboardPage() {
       tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     },
     {
-      label: t.stats.expenses,
+      label: t.stats.project,
       value: overview.totalExpenses,
+      icon: Construction,
+      tint: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
+    },
+    {
+      label: t.stats.fixed,
+      value: companyTotals.fixed,
+      icon: Landmark,
+      tint: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+    },
+    {
+      label: t.stats.variable,
+      value: companyTotals.variable,
+      icon: Coins,
+      tint: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
+    },
+    {
+      label: t.stats.expenses,
+      value: totalExpensesValue,
+      hint: t.stats.expensesHint,
       icon: TrendingDown,
       tint: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
     },
     {
       label: t.stats.netProfit,
-      value: overview.netProfit,
+      value: overview.netProfitAfterCompany ?? overview.netProfit,
+      hint: t.stats.netProfitHint,
       icon: PiggyBank,
       tint: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
     },
@@ -154,6 +186,9 @@ export default async function DashboardPage() {
                 <CardTitle className="text-2xl tabular-nums tracking-tight">
                   {formatEGP(s.value, lang)}
                 </CardTitle>
+                {"hint" in s && s.hint ? (
+                  <p className="text-xs text-muted-foreground">{s.hint as string}</p>
+                ) : null}
               </div>
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 ${s.tint}`}

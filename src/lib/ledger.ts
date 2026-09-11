@@ -547,6 +547,16 @@ export interface FirmOverview {
   outstandingReimbursements: number;
   clientCoveredTotal: number;
   netProfit: number;
+  /** Σ CompanyExpense where kind === FIXED (actual recorded bills). */
+  totalFixedExpenses: number;
+  /** Σ CompanyExpense where kind === VARIABLE. */
+  totalVariableExpenses: number;
+  /** Fixed + variable company overhead. */
+  totalCompanyExpenses: number;
+  /** Inflow − project expenses − fixed company expenses. */
+  netProfitAfterFixed: number;
+  /** Inflow − project expenses − all company overhead. */
+  netProfitAfterCompany: number;
   totalDrawings: number;
   partnerBalancesTotal: number;
   projectCount: number;
@@ -557,6 +567,7 @@ export function getFirmOverview(
   projects: (LedgerProject & { contractValue?: number })[],
   drawings: LedgerDrawing[],
   ledgers?: PartnerLedger[],
+  company?: { fixedTotal?: number; variableTotal?: number },
 ): FirmOverview {
   const totalContractValue = round2(
     sum(projects.map((p) => p.contractValue ?? 0)),
@@ -588,6 +599,11 @@ export function getFirmOverview(
     ),
   );
   const netProfit = round2(totalInflow - totalExpenses);
+  const totalFixedExpenses = round2(company?.fixedTotal ?? 0);
+  const totalVariableExpenses = round2(company?.variableTotal ?? 0);
+  const totalCompanyExpenses = round2(totalFixedExpenses + totalVariableExpenses);
+  const netProfitAfterFixed = round2(netProfit - totalFixedExpenses);
+  const netProfitAfterCompany = round2(netProfit - totalCompanyExpenses);
   const totalDrawings = round2(sum(drawings.map((d) => d.amount)));
   const partnerBalancesTotal = ledgers
     ? round2(sum(ledgers.map((l) => l.balance)))
@@ -600,6 +616,11 @@ export function getFirmOverview(
     outstandingReimbursements,
     clientCoveredTotal,
     netProfit,
+    totalFixedExpenses,
+    totalVariableExpenses,
+    totalCompanyExpenses,
+    netProfitAfterFixed,
+    netProfitAfterCompany,
     totalDrawings,
     partnerBalancesTotal,
     projectCount: projects.length,

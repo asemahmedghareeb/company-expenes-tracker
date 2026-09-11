@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   Card,
   CardContent,
@@ -20,6 +21,13 @@ import { getLedgerData, getPartners } from "@/actions/queries";
 import { DeleteDrawingButton, DrawingForm } from "@/components/forms/transaction-forms";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await getLang();
+  return {
+    title: lang === "ar" ? "دفتر الشركاء" : "Partner Ledger",
+  };
+}
 
 export default async function LedgerPage() {
   const lang = await getLang();

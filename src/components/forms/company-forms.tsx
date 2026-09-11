@@ -15,6 +15,7 @@ import {
   deleteFixedCost,
   recordCompanyPayment,
   recordCompanyPayout,
+  settleCompanyBill,
   settleCompanyRow,
 } from "@/actions/company";
 import { dict } from "@/lib/dict";
@@ -42,7 +43,8 @@ export function CompanyExpenseForm({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [fixedId, setFixedId] = useState("");
+  const [fixedIds, setFixedIds] = useState<string[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   // Manually touched payer rows: { text }. Untouched rows derive live
@@ -70,16 +72,35 @@ export function CompanyExpenseForm({
     setTouched({});
   }
 
-  /** Pick a fixed cost → snapshot its title/amount into this recording (editable after). */
-  function pickFixed(id: string) {
-    setFixedId(id);
-    const f = fixedCosts.find((x) => x.id === id);
-    if (f) {
-      setTitle(f.title);
-      setAmount(String(f.amount));
+  /** Toggle a fixed cost → snapshot combined title/total into this recording (editable after). */
+  function applyFixedSelection(next: string[]) {
+    setFixedIds(next);
+    const picked = fixedCosts.filter((x) => next.includes(x.id));
+    if (picked.length === 1) {
+      setTitle(picked[0].title);
+      setAmount(String(picked[0].amount));
+      setTouched({});
+    } else if (picked.length > 1) {
+      setTitle(picked.map((x) => x.title).join(" + "));
+      setAmount(String(picked.reduce((a, x) => a + x.amount, 0)));
       setTouched({});
     }
   }
+
+  function toggleFixed(id: string) {
+    const next = fixedIds.includes(id)
+      ? fixedIds.filter((x) => x !== id)
+      : [...fixedIds, id];
+    applyFixedSelection(next);
+  }
+
+  function clearFixed() {
+    setFixedIds([]);
+  }
+
+  const pickedTotal = fixedCosts
+    .filter((x) => fixedIds.includes(x.id))
+    .reduce((a, x) => a + x.amount, 0);
 
   return (
     <form
@@ -92,7 +113,7 @@ export function CompanyExpenseForm({
           const res = await addCompanyExpenseWithPayments({
             title,
             amount: bill,
-            kind: fixedId ? "FIXED" : "VARIABLE",
+            kind: fixedIds.length > 0 ? "FIXED" : "VARIABLE",
             notes: String(fd.get("notes") ?? ""),
             expenseDate: fd.get("expenseDate")
               ? new Date(String(fd.get("expenseDate")))
@@ -107,7 +128,8 @@ export function CompanyExpenseForm({
           if (!res.ok) setError(res.error);
           else {
             (e.target as HTMLFormElement).reset();
-            setFixedId("");
+            setFixedIds([]);
+            setMenuOpen(false);
             setTitle("");
             setAmount("");
             setTouched({});
@@ -118,18 +140,66 @@ export function CompanyExpenseForm({
     >
       <div className="grid gap-1">
         <Label>{t.chooseExpense}</Label>
-        <select
-          value={fixedId}
-          onChange={(e) => pickFixed(e.target.value)}
-          className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">{t.customOption}</option>
-          {fixedCosts.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.title} · {formatEGP(f.amount, lang)}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm"
+            aria-expanded={menuOpen}
+          >
+            <span className="truncate">
+              {fixedIds.length === 0
+                ? t.customOption
+                : `${t.chosenCount(fixedIds.length)} · ${formatEGP(pickedTotal, lang)}`}
+            </span>
+            <span className="ms-2 shrink-0 text-muted-foreground">▾</span>
+          </button>
+          {menuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setMenuOpen(false)}
+              />
+              <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border border-input bg-background p-1 shadow-lg">
+                <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted">
+                  <input
+                    type="checkbox"
+                    checked={fixedIds.length === 0}
+                    onChange={clearFixed}
+                    className="h-4 w-4 shrink-0"
+                  />
+                  <span className="flex-1">{t.customOption}</span>
+                </label>
+                {fixedCosts.map((f) => (
+                  <label
+                    key={f.id}
+                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={fixedIds.includes(f.id)}
+                      onChange={() => toggleFixed(f.id)}
+                      className="h-4 w-4 shrink-0"
+                    />
+                    <span className="flex-1 truncate">{f.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {formatEGP(f.amount, lang)}
+                    </span>
+                  </label>
+                ))}
+                {fixedIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearFixed}
+                    className="mt-1 w-full rounded px-2 py-1.5 text-center text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    {t.clearSel}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
       <div className="grid gap-1">
         <Label>{t.fTitle}</Label>
@@ -338,6 +408,51 @@ export function SettleRowButton({
         }}
       >
         {pending ? t.settling : `${t.settle} · ${formatEGP(Math.abs(net), lang)}`}
+      </Button>
+      {error && <span className="text-xs text-red-600">{error}</span>}
+    </span>
+  );
+}
+
+/* --------------------- One-click whole-bill settlement --------------------- */
+
+/**
+ * Settles EVERY row on a bill in one click: owing partners pay in,
+ * overpaying partners get paid back — the bill ends fully settled.
+ * Hidden when nothing is outstanding.
+ */
+export function SettleBillButton({
+  expenseId,
+  hasOutstanding,
+  lang,
+}: {
+  expenseId: string;
+  hasOutstanding: boolean;
+  lang: Lang;
+}) {
+  const t = dict[lang].company;
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  if (!hasOutstanding) return null;
+
+  return (
+    <span className="inline-flex flex-col items-end gap-1">
+      <Button
+        type="button"
+        size="sm"
+        disabled={pending}
+        onClick={() => {
+          setError(null);
+          start(async () => {
+            const res = await settleCompanyBill({ expenseId });
+            if (!res.ok) setError(res.error);
+            else router.refresh();
+          });
+        }}
+      >
+        {pending ? t.settling : t.settleAll}
       </Button>
       {error && <span className="text-xs text-red-600">{error}</span>}
     </span>
@@ -720,101 +835,5 @@ export function DeleteFixedCostButton({
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
-  );
-}
-
-/* ------------------------- Quick variable form -------------------------- */
-/* One-off overhead paid by a single partner (Facebook ads, …). */
-
-export function QuickVariableForm({
-  lang,
-  partners,
-}: {
-  lang: Lang;
-  partners: { id: string; name: string }[];
-}) {
-  const t = dict[lang].company;
-  const te = dict[lang].expenseForm;
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const [amount, setAmount] = useState("");
-
-  return (
-    <form
-      className="space-y-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        setError(null);
-        start(async () => {
-          const paidBy = String(fd.get("paidBy") ?? "");
-          const res = await addCompanyExpenseWithPayments({
-            title: String(fd.get("title") ?? ""),
-            amount: Number(amount) || 0,
-            kind: "VARIABLE",
-            notes: String(fd.get("notes") ?? ""),
-            expenseDate: fd.get("expenseDate")
-              ? new Date(String(fd.get("expenseDate")))
-              : new Date(),
-            payments:
-              paidBy !== ""
-                ? [{ partnerId: paidBy, amount: Number(amount) || 0 }]
-                : [],
-          });
-          if (!res.ok) setError(res.error);
-          else {
-            (e.target as HTMLFormElement).reset();
-            setAmount("");
-            router.refresh();
-          }
-        });
-      }}
-    >
-      <div className="grid gap-1">
-        <Label>{t.fTitle}</Label>
-        <Input name="title" required maxLength={200} placeholder={t.titlePh} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="grid gap-1">
-          <Label>{t.amount}</Label>
-          <Input
-            value={amount}
-            onChange={(e) => setAmount(sanitizeNumericInput(e.target.value))}
-            required
-            placeholder="500"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label>{t.date}</Label>
-          <Input name="expenseDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="grid gap-1">
-          <Label>{te.paidBy}</Label>
-          <select
-            name="paidBy"
-            defaultValue=""
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">{te.selectPartner}</option>
-            {partners.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid gap-1">
-          <Label>{t.notes}</Label>
-          <Input name="notes" maxLength={1000} />
-        </div>
-      </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? t.saving : t.varAdd}
-      </Button>
-    </form>
   );
 }

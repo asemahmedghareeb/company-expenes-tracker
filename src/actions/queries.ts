@@ -99,7 +99,7 @@ function toLedgerProject(p: {
 
 /** Full dashboard + ledger data, computed via the pure ledger engine. */
 export async function getDashboardData() {
-  const [partners, projectsRaw, drawingsRaw, companyRaw] = await Promise.all([
+  const [partners, projectsRaw, drawingsRaw, companyRaw, fixedCostsRaw] = await Promise.all([
     db.partner.findMany({ orderBy: { name: "asc" } }),
     db.project.findMany({
       include: { projectPartners: true, clientPayments: true, expenses: true },
@@ -110,6 +110,7 @@ export async function getDashboardData() {
       include: { payments: true, payouts: true },
       orderBy: { expenseDate: "desc" },
     }),
+    db.companyFixedCost.findMany({ orderBy: { title: "asc" } }),
   ]);
 
   const projects: LedgerProject[] = projectsRaw.map((p) =>
@@ -167,7 +168,21 @@ export async function getDashboardData() {
     company,
   );
 
-  const overview = getFirmOverview(projects, drawings, ledgers);
+  const fixedTotal = toNumber(
+    companyRaw
+      .filter((e) => e.kind === "FIXED")
+      .reduce((a, e) => a + toNumber(e.amount), 0),
+  );
+  const variableTotal = toNumber(
+    companyRaw
+      .filter((e) => e.kind !== "FIXED")
+      .reduce((a, e) => a + toNumber(e.amount), 0),
+  );
+
+  const overview = getFirmOverview(projects, drawings, ledgers, {
+    fixedTotal,
+    variableTotal,
+  });
   overview.activePartnerCount = partners.filter((p) => p.isActive).length;
 
   const projectCards = projectsRaw.map((p, i) => ({
@@ -179,7 +194,56 @@ export async function getDashboardData() {
     partnerCount: p.projectPartners.length,
   }));
 
-  return { partners, ledgers, overview, projectCards, drawings: drawingsRaw };
+  const fixedCosts = fixedCostsRaw.map((f) => ({
+    id: f.id,
+    title: f.title,
+    amount: toNumber(f.amount),
+  }));
+
+  const toBillLine = (e: (typeof companyRaw)[number]) => ({
+    id: e.id,
+    title: e.title,
+    amount: toNumber(e.amount),
+    kind: e.kind as "FIXED" | "VARIABLE",
+    expenseDate: e.expenseDate instanceof Date ? e.expenseDate.toISOString() : String(e.expenseDate),
+  });
+
+  const partnerNameById = Object.fromEntries(partners.map((p) => [p.id, p.name]));
+  const projectExpenses = projectsRaw
+    .flatMap((p) =>
+      (p.expenses ?? [])
+        .filter((e) => e.paidByPartnerId)
+        .map((e) => ({
+          id: e.id,
+          title: e.description,
+          amount: toNumber(e.amount),
+          projectName: p.name,
+          projectId: p.id,
+          paidByName: (e.paidByPartnerId && partnerNameById[e.paidByPartnerId]) || "",
+          isReimbursed: e.isReimbursed,
+          expenseDate:
+            e.expenseDate instanceof Date ? e.expenseDate.toISOString() : String(e.expenseDate),
+        })),
+    )
+    .sort((a, b) => +new Date(b.expenseDate) - +new Date(a.expenseDate))
+    .slice(0, 8);
+
+  return {
+    partners,
+    ledgers,
+    overview,
+    projectCards,
+    drawings: drawingsRaw,
+    fixedCosts,
+    companyTotals: {
+      fixed: fixedTotal,
+      variable: variableTotal,
+      total: toNumber(fixedTotal + variableTotal),
+    },
+    fixedBills: companyRaw.filter((e) => e.kind === "FIXED").slice(0, 8).map(toBillLine),
+    variableBills: companyRaw.filter((e) => e.kind !== "FIXED").slice(0, 8).map(toBillLine),
+    projectExpenses,
+  };
 }
 
 /** Company page data: bills with payments + payouts + partners for settlement. */

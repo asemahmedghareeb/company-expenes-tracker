@@ -7,13 +7,31 @@ export interface Dictionary {
   nav: { dashboard: string; projects: string; partners: string; ledger: string; company: string; summary: string };
   firmOverview: string;
   overviewSubtitle: (projectCount: number, activePartners: number) => string;
+  fixedCostsTitle: string;
+  fixedCostsSubtitle: string;
+  fixedCostsEmpty: string;
+  fixedCostsTotal: string;
+  manageFixed: string;
+  variableCostsTitle: string;
+  variableCostsSubtitle: string;
+  variableCostsEmpty: string;
+  variableCostsTotal: string;
+  projectCostsTitle: string;
+  projectCostsSubtitle: string;
+  projectCostsEmpty: string;
+  projectCostsTotal: string;
   newProject: string;
   viewLedger: string;
   allProjects: string;
   stats: {
     inflow: string;
     expenses: string;
+    expensesHint: string;
+    fixed: string;
+    variable: string;
+    project: string;
     netProfit: string;
+    netProfitHint: string;
     outstanding: string;
     drawings: string;
     contractValue: string;
@@ -91,6 +109,22 @@ export interface Dictionary {
     contractWord: string;
     partnersWord: string;
     noProjects: string;
+    newProjectBtn: string;
+    statsActive: string;
+    statsPipeline: string;
+    filterAll: string;
+    searchPh: string;
+    emptyTitle: string;
+    emptyDesc: string;
+    emptyCta: string;
+    colProject: string;
+    colStatus: string;
+    colContract: string;
+    colInflow: string;
+    colOut: string;
+    colNet: string;
+    noResults: string;
+    createdToast: (name: string) => string;
   };
   projectForm: {
     name: string;
@@ -109,6 +143,9 @@ export interface Dictionary {
     snapshot: string;
     copyDefaults: string;
     half: string;
+    equalSplit: string;
+    balanced: string;
+    offBy: (delta: string) => string;
     creating: string;
     create: string;
     splitsError: (total: string) => string;
@@ -248,6 +285,8 @@ export interface Dictionary {
     fixedAdd: string;
     chooseExpense: string;
     customOption: string;
+    chosenCount: (n: number) => string;
+    clearSel: string;
     varTitle: string;
     varDesc: string;
     varAdd: string;
@@ -256,6 +295,8 @@ export interface Dictionary {
     settling: string;
     settleCollect: string;
     settlePayout: string;
+    settleAll: string;
+    settledAll: string;
     alreadySettled: string;
     colPayout: string;
     payoutTitle: string;
@@ -328,17 +369,35 @@ export interface Dictionary {
 export const dict: Record<Lang, Dictionary> = {
   en: {
     brand: "Partner Ledger",
-    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Ledger", company: "Company Expenses", summary: "Summary" },
+    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Partner Ledger", company: "Company Expenses", summary: "Summary" },
     firmOverview: "Firm overview",
     overviewSubtitle: (p, a) =>
       `${p} projects · ${a} active partners · expenses settle before profit splits`,
+    fixedCostsTitle: "Fixed expenses",
+    fixedCostsSubtitle: "Recurring overhead — rent, subscriptions… Net profit is calculated after these.",
+    fixedCostsEmpty: "No fixed costs defined yet.",
+    fixedCostsTotal: "Monthly fixed total",
+    manageFixed: "Manage fixed costs",
+    variableCostsTitle: "Variable expenses",
+    variableCostsSubtitle: "One-off overhead — included in total expenses and net profit.",
+    variableCostsEmpty: "No variable expenses recorded yet.",
+    variableCostsTotal: "Variable total",
+    projectCostsTitle: "Project expenses",
+    projectCostsSubtitle: "Direct costs paid by partners — part of total expenses.",
+    projectCostsEmpty: "No project expenses recorded yet.",
+    projectCostsTotal: "Projects total",
     newProject: "New project",
     viewLedger: "View ledger",
     allProjects: "All projects",
     stats: {
       inflow: "Total inflow",
       expenses: "Total expenses",
-      netProfit: "Net profit",
+      expensesHint: "Projects + fixed + variable",
+      fixed: "Fixed expenses",
+      variable: "Variable expenses",
+      project: "Project expenses",
+      netProfit: "Net profit (after overhead)",
+      netProfitHint: "Inflow − projects − fixed − variable",
       outstanding: "Outstanding reimbursements",
       drawings: "Total drawings",
       contractValue: "Contract value",
@@ -419,6 +478,22 @@ export const dict: Record<Lang, Dictionary> = {
       contractWord: "contract",
       partnersWord: "partners",
       noProjects: "No projects yet — create your first.",
+      newProjectBtn: "New Project",
+      statsActive: "Active",
+      statsPipeline: "Pipeline",
+      filterAll: "All",
+      searchPh: "Search projects…",
+      emptyTitle: "No projects yet",
+      emptyDesc: "Create your first project to start tracking inflow, expenses and equity.",
+      emptyCta: "Create project",
+      colProject: "Project",
+      colStatus: "Status",
+      colContract: "Contract",
+      colInflow: "In",
+      colOut: "Out",
+      colNet: "Net",
+      noResults: "No projects match this filter.",
+      createdToast: (name) => `Project “${name}” created.`,
     },
     projectForm: {
       name: "Project name",
@@ -437,6 +512,9 @@ export const dict: Record<Lang, Dictionary> = {
       snapshot: "Project equity snapshot (must = 100%)",
       copyDefaults: "Copy defaults",
       half: "50/50 first two",
+      equalSplit: "Equal",
+      balanced: "Balanced · 100%",
+      offBy: (delta) => `Off by ${delta}`,
       creating: "Creating…",
       create: "Create project",
       splitsError: (total) => `Splits must sum to 100% (currently ${total}%).`,
@@ -580,14 +658,18 @@ export const dict: Record<Lang, Dictionary> = {
       fixedAdd: "Add fixed cost",
       chooseExpense: "Expense",
       customOption: "Custom (one-off)…",
+      chosenCount: (n) => (n === 1 ? "1 selected" : `${n} selected`),
+      clearSel: "Clear",
       varTitle: "Record variable expense",
-      varDesc: "One-off overhead paid by one partner.",
+      varDesc: "One-off overhead paid by one or more partners.",
       varAdd: "Add",
       colSettle: "Settle",
       settle: "Settle",
       settling: "Settling…",
       settleCollect: "Collect",
       settlePayout: "Pay out",
+      settleAll: "Settle all",
+      settledAll: "Bill fully settled ✓",
       alreadySettled: "Already settled.",
       colPayout: "Paid back",
       payoutTitle: "Pay partner back",
@@ -657,17 +739,35 @@ export const dict: Record<Lang, Dictionary> = {
   },
   ar: {
     brand: "دفتر الشركاء",
-    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "الدفتر", company: "مصاريف الشركة", summary: "الملخص" },
+    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "دفتر الشركاء", company: "مصاريف الشركة", summary: "الملخص" },
     firmOverview: "نظرة عامة على الشركة",
     overviewSubtitle: (p, a) =>
       `${p} مشاريع · ${a} شركاء نشطون · تُسوَّى المصروفات قبل توزيع الأرباح`,
+    fixedCostsTitle: "المصاريف الثابتة",
+    fixedCostsSubtitle: "مصاريف عمومية متكررة — إيجار، اشتراكات… صافي الربح محسوب بعد خصمها.",
+    fixedCostsEmpty: "لا توجد مصاريف ثابتة معرفة بعد.",
+    fixedCostsTotal: "إجمالي الثابت الشهري",
+    manageFixed: "إدارة المصاريف الثابتة",
+    variableCostsTitle: "المصاريف المتغيرة",
+    variableCostsSubtitle: "مصاريف لمرة واحدة — داخلة في إجمالي المصروفات وصافي الربح.",
+    variableCostsEmpty: "لا توجد مصاريف متغيرة مسجلة بعد.",
+    variableCostsTotal: "إجمالي المتغير",
+    projectCostsTitle: "مصاريف المشروعات",
+    projectCostsSubtitle: "تكاليف مباشرة دفعها الشركاء — جزء من إجمالي المصروفات.",
+    projectCostsEmpty: "لا توجد مصاريف مشروعات مسجلة بعد.",
+    projectCostsTotal: "إجمالي المشروعات",
     newProject: "مشروع جديد",
     viewLedger: "عرض الدفتر",
     allProjects: "كل المشاريع",
     stats: {
       inflow: "إجمالي الوارد",
       expenses: "إجمالي المصروفات",
-      netProfit: "صافي الربح",
+      expensesHint: "مشاريع + ثابتة + متغيرة",
+      fixed: "المصاريف الثابتة",
+      variable: "المصاريف المتغيرة",
+      project: "مصاريف المشروعات",
+      netProfit: "صافي الربح (بعد المصاريف)",
+      netProfitHint: "الوارد − مشاريع − ثابتة − متغيرة",
       outstanding: "المستحقات المعلقة",
       drawings: "إجمالي المسحوبات",
       contractValue: "قيمة العقود",
@@ -748,6 +848,22 @@ export const dict: Record<Lang, Dictionary> = {
       contractWord: "عقد",
       partnersWord: "شركاء",
       noProjects: "لا توجد مشاريع بعد — أنشئ الأول.",
+      newProjectBtn: "مشروع جديد",
+      statsActive: "النشطة",
+      statsPipeline: "إجمالي العقود",
+      filterAll: "الكل",
+      searchPh: "ابحث في المشاريع…",
+      emptyTitle: "لا توجد مشاريع بعد",
+      emptyDesc: "أنشئ أول مشروع لبدء تتبع الوارد والمصروفات والحصص.",
+      emptyCta: "إنشاء مشروع",
+      colProject: "المشروع",
+      colStatus: "الحالة",
+      colContract: "العقد",
+      colInflow: "الوارد",
+      colOut: "المنصرف",
+      colNet: "الصافي",
+      noResults: "لا توجد مشاريع مطابقة لهذا الفلتر.",
+      createdToast: (name) => `تم إنشاء مشروع «${name}».`,
     },
     projectForm: {
       name: "اسم المشروع",
@@ -766,6 +882,9 @@ export const dict: Record<Lang, Dictionary> = {
       snapshot: "لقطة حصص المشروع (يجب = 100%)",
       copyDefaults: "نسخ القيم الافتراضية",
       half: "50/50 للأولين",
+      equalSplit: "بالتساوي",
+      balanced: "متوازنة · 100%",
+      offBy: (delta) => `الفرق ${delta}`,
       creating: "جارٍ الإنشاء…",
       create: "إنشاء المشروع",
       splitsError: (total) => `يجب أن تساوي الحصص 100% (الحالي ${total}%).`,
@@ -908,14 +1027,18 @@ export const dict: Record<Lang, Dictionary> = {
       fixedAdd: "إضافة ثابت",
       chooseExpense: "المصروف",
       customOption: "مخصص (مرة واحدة)…",
+      chosenCount: (n) => `تم اختيار ${n}`,
+      clearSel: "مسح الاختيار",
       varTitle: "تسجيل مصروف متغير",
-      varDesc: "مصروف لمرة واحدة دفعه شريك واحد.",
+      varDesc: "مصروف لمرة واحدة دفعه شريك واحد أو أكثر.",
       varAdd: "إضافة",
       colSettle: "تسوية",
       settle: "سوِّ",
       settling: "جارٍ التسوية…",
       settleCollect: "حصّل منه",
       settlePayout: "ادفع له",
+      settleAll: "تسوية الكل",
+      settledAll: "تمت تسوية البند بالكامل ✓",
       alreadySettled: "متساوي بالفعل.",
       colPayout: "مدفوع له",
       payoutTitle: "رد مبلغ لشريك",

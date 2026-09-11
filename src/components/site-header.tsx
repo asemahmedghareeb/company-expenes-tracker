@@ -15,8 +15,8 @@ export function SiteHeader({ lang }: { lang: Lang }) {
     { href: "/", label: t.nav.dashboard },
     { href: "/projects", label: t.nav.projects },
     { href: "/partners", label: t.nav.partners },
-    { href: "/ledger", label: t.nav.ledger },
     { href: "/company", label: t.nav.company },
+    { href: "/ledger", label: t.nav.ledger },
     { href: "/summary", label: t.nav.summary },
   ];
 

@@ -139,6 +139,41 @@ body::before {
   animation: rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Slide-over sheet + overlay — dir-aware (panel docks at `end-0`) */
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sheet-in-ltr {
+  from { opacity: 0.4; transform: translateX(48px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes sheet-in-rtl {
+  from { opacity: 0.4; transform: translateX(-48px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.dialog-overlay[data-state="open"] {
+  animation: overlay-in 0.18s ease-out both;
+}
+.dialog-overlay[data-state="closed"] {
+  opacity: 0;
+}
+.sheet-panel {
+  will-change: transform;
+}
+[dir="ltr"] .sheet-panel[data-state="open"] {
+  animation: sheet-in-ltr 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[dir="rtl"] .sheet-panel[data-state="open"] {
+  animation: sheet-in-rtl 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dialog-overlay[data-state="open"],
+  .sheet-panel[data-state="open"] {
+    animation-duration: 0.01ms;
+  }
+}
+
 /* Numeric fields are type-only: hide native spinner arrows/wheels
    (Chrome/Safari + Firefox) so values are entered by typing. */
 input[type="number"]::-webkit-outer-spin-button,

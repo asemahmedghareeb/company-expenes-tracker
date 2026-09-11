@@ -27,7 +27,7 @@ import {
   DeleteCompanyPaymentButton,
   DeleteCompanyPayoutButton,
   FixedCostsManager,
-  QuickVariableForm,
+  SettleBillButton,
   SettleRowButton,
 } from "@/components/forms/company-forms";
 
@@ -128,18 +128,6 @@ export default async function CompanyPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>{t.varTitle}</CardTitle>
-              <CardDescription>{t.varDesc}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <QuickVariableForm
-                lang={lang}
-                partners={partners.map((p) => ({ id: p.id, name: p.name }))}
-              />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
               <CardTitle>{t.payoutTitle}</CardTitle>
               <CardDescription>{t.payoutDesc}</CardDescription>
             </CardHeader>
@@ -211,7 +199,14 @@ export default async function CompanyPage() {
                       )}
                     </CardDescription>
                   </div>
-                  <DeleteCompanyExpenseButton id={s.expenseId} lang={lang} />
+                  <div className="flex shrink-0 items-start gap-2">
+                    <SettleBillButton
+                      expenseId={s.expenseId}
+                      hasOutstanding={s.rows.some((r) => Math.abs(r.net) >= 0.005)}
+                      lang={lang}
+                    />
+                    <DeleteCompanyExpenseButton id={s.expenseId} lang={lang} />
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Table>

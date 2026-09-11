@@ -227,6 +227,13 @@ export const settleCompanyRowSchema = z.object({
 
 export type SettleCompanyRowInput = z.infer<typeof settleCompanyRowSchema>;
 
+/** One-click settlement of EVERY row on a company bill. */
+export const settleCompanyBillSchema = z.object({
+  expenseId: cuid,
+});
+
+export type SettleCompanyBillInput = z.infer<typeof settleCompanyBillSchema>;
+
 /** Create a bill together with its initial payer split (atomic). */
 export const companyExpenseWithPaymentsSchema = companyExpenseSchema.extend({
   kind: z.enum(["FIXED", "VARIABLE"]).default("VARIABLE"),
