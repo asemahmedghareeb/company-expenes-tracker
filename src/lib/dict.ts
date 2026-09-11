@@ -5,6 +5,17 @@ export type { Lang };
 export interface Dictionary {
   brand: string;
   nav: { dashboard: string; projects: string; partners: string; ledger: string; company: string; summary: string; capital: string };
+  auth: {
+    title: string;
+    subtitle: string;
+    username: string;
+    password: string;
+    signIn: string;
+    signingIn: string;
+    invalid: string;
+    unavailable: string;
+    logout: string;
+  };
   firmOverview: string;
   overviewSubtitle: (projectCount: number, activePartners: number) => string;
   rangeFilter: {
@@ -417,6 +428,17 @@ export const dict: Record<Lang, Dictionary> = {
   en: {
     brand: "Partner Ledger",
     nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Partner Ledger", company: "Company Expenses", summary: "Summary", capital: "Firm Treasury & Custody" },
+    auth: {
+      title: "Sign in",
+      subtitle: "Restricted area — company financial data is private.",
+      username: "Username",
+      password: "Password",
+      signIn: "Sign in",
+      signingIn: "Signing in…",
+      invalid: "Invalid username or password.",
+      unavailable: "Login is unavailable — try again later.",
+      logout: "Log out",
+    },
     firmOverview: "Firm overview",
     overviewSubtitle: (p, a) =>
       `${p} projects · ${a} active partners · expenses settle before profit splits`,
@@ -837,6 +859,17 @@ export const dict: Record<Lang, Dictionary> = {
   ar: {
     brand: "دفتر الشركاء",
     nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "دفتر الشركاء", company: "مصاريف الشركة", summary: "الملخص", capital: "رأس مال الشركة" },
+    auth: {
+      title: "تسجيل الدخول",
+      subtitle: "منطقة محظورة — البيانات المالية للشركة سرية.",
+      username: "اسم المستخدم",
+      password: "كلمة المرور",
+      signIn: "دخول",
+      signingIn: "جارٍ الدخول…",
+      invalid: "اسم المستخدم أو كلمة المرور غير صحيحة.",
+      unavailable: "تسجيل الدخول غير متاح — حاول لاحقًا.",
+      logout: "تسجيل الخروج",
+    },
     firmOverview: "نظرة عامة على الشركة",
     overviewSubtitle: (p, a) =>
       `${p} مشاريع · ${a} شركاء نشطون · تُسوَّى المصروفات قبل توزيع الأرباح`,

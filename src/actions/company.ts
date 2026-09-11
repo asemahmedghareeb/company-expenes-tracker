@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateSystem } from "@/lib/revalidate";
 import { prisma as db } from "@/lib/prisma";
 import {
   companyExpenseSchema,
@@ -16,10 +16,7 @@ import {
 import { getCompanyExpenseSettlement, round2 } from "@/lib/ledger";
 
 function revalidateCompany() {
-  revalidatePath("/company");
-  revalidatePath("/ledger");
-  revalidatePath("/summary");
-  revalidatePath("/");
+  revalidateSystem();
 }
 
 /** Record a company overhead bill (rent, subscriptions…). Split happens live by default equity. */

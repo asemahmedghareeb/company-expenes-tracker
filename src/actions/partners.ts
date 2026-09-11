@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateSystem } from "@/lib/revalidate";
 import { prisma as db } from "@/lib/prisma";
 import {
   partnerSchema,
@@ -32,11 +32,7 @@ export async function addPartner(
         isActive,
       },
     });
-    revalidatePath("/partners");
-    revalidatePath("/ledger");
-    revalidatePath("/company");
-    revalidatePath("/summary");
-    revalidatePath("/");
+    revalidateSystem();
     return { ok: true, data: { id: partner.id } };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Failed to create partner.";
@@ -70,11 +66,7 @@ export async function editPartner(
         isActive: parsed.data.isActive,
       },
     });
-    revalidatePath("/partners");
-    revalidatePath("/ledger");
-    revalidatePath("/company");
-    revalidatePath("/summary");
-    revalidatePath("/");
+    revalidateSystem();
     return { ok: true, data: { id: partner.id } };
   } catch (e: unknown) {
     return {
@@ -91,11 +83,7 @@ export async function setPartnerActive(
 ): Promise<ActionResult<{ id: string }>> {
   try {
     await db.partner.update({ where: { id }, data: { isActive } });
-    revalidatePath("/partners");
-    revalidatePath("/ledger");
-    revalidatePath("/company");
-    revalidatePath("/summary");
-    revalidatePath("/");
+    revalidateSystem();
     return { ok: true, data: { id } };
   } catch (e: unknown) {
     return {
@@ -124,9 +112,7 @@ export async function deletePartner(
       return { ok: false, error: "HAS_HISTORY" };
     }
     await db.partner.delete({ where: { id } });
-    revalidatePath("/partners");
-    revalidatePath("/ledger");
-    revalidatePath("/");
+    revalidateSystem();
     return { ok: true, data: { id } };
   } catch (e: unknown) {
     return {
@@ -165,11 +151,7 @@ export async function updateDefaultSplits(
         }),
       ),
     );
-    revalidatePath("/partners");
-    revalidatePath("/ledger");
-    revalidatePath("/company");
-    revalidatePath("/summary");
-    revalidatePath("/");
+    revalidateSystem();
     return { ok: true, data: { updated: parsed.data.length } };
   } catch (e: unknown) {
     return {

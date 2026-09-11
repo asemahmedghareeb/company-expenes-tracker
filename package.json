@@ -13,6 +13,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:health": "tsx scripts/db-health.ts",
     "db:migrate-neon": "tsx scripts/migrate-neon-to-supabase.ts",
+    "db:seed-admin": "tsx scripts/seed-admin.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
+    "jose": "^6.2.12",
     "lucide-react": "^1.44.0",
     "next": "16.3.4",
     "react": "19.2.8",

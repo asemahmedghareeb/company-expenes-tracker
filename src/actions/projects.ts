@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateSystem } from "@/lib/revalidate";
 import { prisma as db } from "@/lib/prisma";
 import {
   createProjectSchema,
@@ -9,7 +9,7 @@ import {
   type ActionResult,
   zodFieldErrors,
 } from "@/lib/validations";
-import { normalizeShares, CLIENT_PAYER } from "@/lib/shares";
+import { CLIENT_PAYER, normalizeShares } from "@/lib/shares";
 
 /**
  * Create a project + snapshot its equity into ProjectPartner.
@@ -85,10 +85,7 @@ export async function createProject(
         },
       },
     });
-    revalidatePath("/projects");
-    revalidatePath("/ledger");
-    revalidatePath("/summary");
-    revalidatePath("/");
+    revalidateSystem();
     return { ok: true, data: { id: project.id } };
   } catch (e: unknown) {
     return {
@@ -125,11 +122,7 @@ export async function updateProject(
         ...(data.status !== undefined ? { status: data.status } : {}),
       },
     });
-    revalidatePath("/projects");
-    revalidatePath(`/projects/${projectId}`);
-    revalidatePath("/ledger");
-    revalidatePath("/summary");
-    revalidatePath("/");
+    revalidateSystem(`/projects/${projectId}`);
     return { ok: true, data: { id: projectId } };
   } catch (e: unknown) {
     return {
@@ -186,12 +179,7 @@ export async function updateProjectSplits(
         })),
       }),
     ]);
-    revalidatePath(`/projects/${projectId}`);
-    revalidatePath("/projects");
-    revalidatePath("/ledger");
-    revalidatePath("/capital");
-    revalidatePath("/summary");
-    revalidatePath("/");
+    revalidateSystem(`/projects/${projectId}`);
     return { ok: true, data: { id: projectId } };
   } catch (e: unknown) {
     return {
@@ -211,11 +199,7 @@ export async function deleteProject(
 ): Promise<ActionResult<{ id: string }>> {
   try {
     await db.project.delete({ where: { id: projectId } });
-    revalidatePath("/projects");
-    revalidatePath("/ledger");
-    revalidatePath("/capital");
-    revalidatePath("/summary");
-    revalidatePath("/");
+    revalidateSystem();
     return { ok: true, data: { id: projectId } };
   } catch (e: unknown) {
     return {

@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SwRegister } from "@/components/sw-register";
 import { themeInitScript } from "@/components/theme-toggle";
 import { dict, getLang } from "@/lib/i18n";
+import { getSessionUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const geistSans = Geist({
@@ -62,6 +63,7 @@ export default async function RootLayout({
 }) {
   const lang = await getLang();
   const dir = lang === "ar" ? "rtl" : "ltr";
+  const user = await getSessionUser().catch(() => null);
 
   return (
     <html
@@ -79,7 +81,7 @@ export default async function RootLayout({
           lang === "ar" && "font-arabic",
         )}
       >
-        <SiteHeader lang={lang} />
+        <SiteHeader lang={lang} user={user} />
         <main className="animate-rise mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
           {children}
         </main>

@@ -1,41 +1,41 @@
 import { NextResponse } from "next/server";
-import { prisma as db } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/health — Neon connectivity check.
- * Runs a trivial query through the pooled DATABASE_URL and reports
- * latency plus per-table row counts so you can confirm the schema is live.
+ * GET /api/health — Lightweight warmer & health check endpoint.
+ * Keeps serverless cold starts at bay and verifies live DB connectivity.
  */
 export async function GET() {
-  const started = Date.now();
   try {
-    const ping = await db.$queryRaw<[{ ok: number }]>`SELECT 1 AS ok`;
-    const [partners, projects, payments, expenses, drawings] =
-      await Promise.all([
-        db.partner.count(),
-        db.project.count(),
-        db.clientPayment.count(),
-        db.projectExpense.count(),
-        db.partnerDrawing.count(),
-      ]);
-    return NextResponse.json({
-      status: "ok",
-      database: "supabase-postgres",
-      ping: ping[0]?.ok === 1,
-      latencyMs: Date.now() - started,
-      tables: { partners, projects, payments, expenses, drawings },
-    });
-  } catch (e) {
+    await prisma.$queryRaw`SELECT 1`;
+    return NextResponse.json(
+      {
+        status: "ok",
+        timestamp: Date.now(),
+        db: "connected",
+      },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      },
+    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Database connection error";
     return NextResponse.json(
       {
         status: "error",
-        database: "supabase-postgres",
-        latencyMs: Date.now() - started,
-        error: e instanceof Error ? e.message : "Health check failed.",
+        error: message,
       },
-      { status: 500 },
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      },
     );
   }
 }
