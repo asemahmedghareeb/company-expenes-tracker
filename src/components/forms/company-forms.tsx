@@ -240,9 +240,17 @@ export function CompanyExpenseForm({
             {active.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between gap-2.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2 transition-colors"
+                className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors"
               >
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{p.name}</span>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                    {p.name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className="truncate text-sm font-semibold block">{p.name}</span>
+                    <span className="text-[11px] text-muted-foreground block">{p.defaultSharePercentage}%</span>
+                  </div>
+                </div>
                 <div className="flex w-32 sm:w-36 shrink-0 items-center gap-1.5">
                   <Input
                     value={displayOf(p.id)}

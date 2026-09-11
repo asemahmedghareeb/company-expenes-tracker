@@ -228,55 +228,112 @@ export default async function DashboardPage({
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+      <div className="grid gap-6 lg:grid-cols-2 min-w-0">
+        <Card className="min-w-0 overflow-hidden">
           <CardHeader>
             <CardTitle>{t.partnerBalances}</CardTitle>
             <CardDescription>{t.balancesSubtitle}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t.table.partner}</TableHead>
-                  <TableHead className="text-end">{t.table.pending}</TableHead>
-                  <TableHead className="text-end">{t.table.profit}</TableHead>
-                  <TableHead className="text-end">{t.table.balance}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ledgers.map((l) => (
-                  <TableRow key={l.partnerId}>
-                    <TableCell className="font-medium">{l.partnerName}</TableCell>
-                    <TableCell className="text-end">
-                      {formatEGP(l.pendingReimbursements, lang)}
-                    </TableCell>
-                    <TableCell className="text-end">
-                      {formatEGP(l.realizedProfitShare, lang)}
-                    </TableCell>
-                    <TableCell
-                      className={`text-end font-semibold tabular-nums ${l.balance < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}
+          <CardContent className="min-w-0">
+            {/* Mobile card view */}
+            <div className="space-y-2.5 sm:hidden">
+              {ledgers.map((l) => (
+                <div
+                  key={l.partnerId}
+                  className="rounded-xl border border-border/70 bg-card p-3 shadow-xs space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                        {l.partnerName.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span className="font-semibold text-sm">{l.partnerName}</span>
+                    </div>
+                    <span
+                      className={`font-semibold text-sm tabular-nums ${
+                        l.balance < 0
+                          ? "text-rose-600 dark:text-rose-400"
+                          : "text-emerald-600 dark:text-emerald-400"
+                      }`}
                     >
                       {formatEGP(l.balance, lang)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {ledgers.length === 0 && (
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-1.5 border-t border-border/50">
+                    <span>
+                      {t.table.pending}:{" "}
+                      <strong className="text-foreground font-mono">
+                        {formatEGP(l.pendingReimbursements, lang)}
+                      </strong>
+                    </span>
+                    <span>
+                      {t.table.profit}:{" "}
+                      <strong className="text-foreground font-mono">
+                        {formatEGP(l.realizedProfitShare, lang)}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {ledgers.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-3">
+                  {t.noPartners}{" "}
+                  <Link href="/partners" className="underline">
+                    {t.addOne}
+                  </Link>
+                </p>
+              )}
+            </div>
+
+            {/* Desktop / tablet table */}
+            <div className="hidden sm:block">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
-                      {t.noPartners}{" "}
-                      <Link href="/partners" className="underline">
-                        {t.addOne}
-                      </Link>
-                    </TableCell>
+                    <TableHead>{t.table.partner}</TableHead>
+                    <TableHead className="text-end">{t.table.pending}</TableHead>
+                    <TableHead className="text-end">{t.table.profit}</TableHead>
+                    <TableHead className="text-end">{t.table.balance}</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {ledgers.map((l) => (
+                    <TableRow key={l.partnerId}>
+                      <TableCell className="font-medium whitespace-nowrap">{l.partnerName}</TableCell>
+                      <TableCell className="text-end whitespace-nowrap">
+                        {formatEGP(l.pendingReimbursements, lang)}
+                      </TableCell>
+                      <TableCell className="text-end whitespace-nowrap">
+                        {formatEGP(l.realizedProfitShare, lang)}
+                      </TableCell>
+                      <TableCell
+                        className={`text-end font-semibold tabular-nums whitespace-nowrap ${
+                          l.balance < 0
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-emerald-600 dark:text-emerald-400"
+                        }`}
+                      >
+                        {formatEGP(l.balance, lang)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {ledgers.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground">
+                        {t.noPartners}{" "}
+                        <Link href="/partners" className="underline">
+                          {t.addOne}
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-w-0 overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>{t.projects}</CardTitle>
@@ -286,19 +343,27 @@ export default async function DashboardPage({
               <Link href="/projects">{t.allProjects}</Link>
             </Button>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 min-w-0">
             {projectCards.slice(0, 5).map((p) => (
               <Link
                 key={p.id}
                 href={`/projects/${p.id}`}
-                className="flex items-center justify-between rounded-xl border border-border/80 bg-background/60 p-3 transition-all duration-200 hover:-translate-y-px hover:bg-accent hover:shadow-md"
+                className="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-background/60 p-3 transition-all duration-200 hover:-translate-y-px hover:bg-accent hover:shadow-md min-w-0"
               >
-                <div>
-                  <div className="font-medium">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {t.in} {formatEGP(p.financials.totalInflow, lang)} · {t.out}{" "}
-                    {formatEGP(p.financials.totalExpenses, lang)} · {t.net}{" "}
-                    {formatEGP(p.financials.netProfit, lang)}
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate text-sm sm:text-base">{p.name}</div>
+                  <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                    <span>
+                      {t.in} {formatEGP(p.financials.totalInflow, lang)}
+                    </span>
+                    <span>·</span>
+                    <span>
+                      {t.out} {formatEGP(p.financials.totalExpenses, lang)}
+                    </span>
+                    <span>·</span>
+                    <span className="font-semibold text-foreground">
+                      {t.net} {formatEGP(p.financials.netProfit, lang)}
+                    </span>
                   </div>
                 </div>
                 <Badge
@@ -309,6 +374,7 @@ export default async function DashboardPage({
                         ? "default"
                         : "secondary"
                   }
+                  className="shrink-0"
                 >
                   {p.status}
                 </Badge>

@@ -84,7 +84,7 @@ export default async function RootLayout({
         )}
       >
         <SiteHeader lang={lang} user={user} />
-        <main className="animate-rise mx-auto w-full max-w-6xl flex-1 px-3.5 py-4 sm:px-6 sm:py-8">
+        <main className="animate-rise mx-auto w-full max-w-6xl flex-1 min-w-0 px-3.5 py-4 sm:px-6 sm:py-8 overflow-x-hidden">
           {children}
         </main>
         <Toaster position="top-center" dir={dir} gap={8} />

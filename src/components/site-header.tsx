@@ -68,7 +68,7 @@ export function SiteHeader({
         {user && (
           <nav
             aria-label="Primary"
-            className="hidden min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto text-sm [-ms-overflow-style:none] [scrollbar-width:none] lg:flex [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] rtl:[mask-image:linear-gradient(to_left,black_calc(100%-2rem),transparent)]"
+            className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 text-xs xl:gap-1.5 xl:text-sm lg:flex"
           >
             {links.map((l) => {
               const active = isActive(l.href);
@@ -79,7 +79,7 @@ export function SiteHeader({
                   prefetch={true}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "rounded-full px-2.5 py-1.5 whitespace-nowrap transition-colors hover:bg-accent hover:text-accent-foreground xl:px-3",
+                    "rounded-full px-2 py-1 whitespace-nowrap transition-colors hover:bg-accent hover:text-accent-foreground xl:px-3 xl:py-1.5",
                     active
                       ? "bg-accent font-medium text-accent-foreground"
                       : "text-muted-foreground",

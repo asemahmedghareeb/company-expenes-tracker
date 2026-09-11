@@ -435,7 +435,7 @@ export interface Dictionary {
 export const dict: Record<Lang, Dictionary> = {
   en: {
     brand: "Partner Ledger",
-    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Partner Ledger", company: "Company Expenses", summary: "Summary", capital: "Firm Treasury & Custody" },
+    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Ledger", company: "Company", summary: "Summary", capital: "Treasury" },
     auth: {
       title: "Sign in",
       subtitle: "Restricted area — company financial data is private.",

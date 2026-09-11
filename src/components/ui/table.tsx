@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto rounded-xl border border-border/80 bg-card">
+    <div className="relative w-full min-w-0 max-w-full overflow-x-auto rounded-xl border border-border/80 bg-card [-webkit-overflow-scrolling:touch]">
       <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   ),
@@ -43,7 +43,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
     <th
       ref={ref}
       className={cn(
-        "h-10 bg-muted/70 px-4 text-start align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
+        "h-10 bg-muted/70 px-3 sm:px-4 text-start align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap",
         className,
       )}
       {...props}
@@ -54,7 +54,7 @@ TableHead.displayName = "TableHead";
 
 const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTableCellElement>>(
   ({ className, ...props }, ref) => (
-    <td ref={ref} className={cn("p-4 align-middle", className)} {...props} />
+    <td ref={ref} className={cn("p-3 sm:p-4 align-middle", className)} {...props} />
   ),
 );
 TableCell.displayName = "TableCell";
