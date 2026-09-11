@@ -435,7 +435,7 @@ export interface Dictionary {
 export const dict: Record<Lang, Dictionary> = {
   en: {
     brand: "Partner Ledger",
-    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Ledger", company: "Company", summary: "Summary", capital: "Treasury" },
+    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Ledger", company: "Company", summary: "Partner Balances", capital: "Treasury" },
     auth: {
       title: "Sign in",
       subtitle: "Restricted area — company financial data is private.",
@@ -779,8 +779,8 @@ export const dict: Record<Lang, Dictionary> = {
       payoutTo: "to",
     },
     summary: {
-      title: "Monthly summary",
-      subtitle: "Firm-books basis: client-covered costs excluded.",
+      title: "Partner Balances",
+      subtitle: "Monthly expense settlement and net balance owed to or by each partner.",
       chooseMonth: "Choose month",
       fixed: "Fixed",
       variable: "Variable",
@@ -874,7 +874,7 @@ export const dict: Record<Lang, Dictionary> = {
   },
   ar: {
     brand: "دفتر الشركاء",
-    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "دفتر الشركاء", company: "مصاريف الشركة", summary: "الملخص", capital: "رأس مال الشركة" },
+    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "دفتر الشركاء", company: "مصاريف الشركة", summary: "الرصيد بين الشركاء", capital: "رأس مال الشركة" },
     auth: {
       title: "تسجيل الدخول",
       subtitle: "منطقة محظورة — البيانات المالية للشركة سرية.",
@@ -1217,7 +1217,7 @@ export const dict: Record<Lang, Dictionary> = {
       payoutTo: "إلى",
     },
     summary: {
-      title: "الملخص الشهري",
+      title: "الرصيد بين الشركاء",
       subtitle: "على أساس دفاتر الشركة: تكاليف العميل مستبعدة.",
       chooseMonth: "اختر الشهر",
       fixed: "ثابتة",
