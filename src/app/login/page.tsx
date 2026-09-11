@@ -13,13 +13,18 @@ import { dict, getLang } from "@/lib/i18n";
 import { getSessionUser } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Sign in",
 };
 
 /** Public gate — authenticated visitors bounce straight into the app. */
 export default async function LoginPage() {
-  const [lang, session] = await Promise.all([getLang(), getSessionUser()]);
+  const [lang, session] = await Promise.all([
+    getLang(),
+    getSessionUser().catch(() => null),
+  ]);
   if (session) redirect("/");
   const t = dict[lang].auth;
 

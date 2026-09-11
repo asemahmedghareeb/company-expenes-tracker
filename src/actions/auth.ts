@@ -35,7 +35,12 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   if (!user) {
     return { ok: false, error: "Invalid username or password." };
   }
-  await createSession(user);
+  try {
+    await createSession(user);
+  } catch (err) {
+    console.error("Failed to create session:", err);
+    return { ok: false, error: "Unable to establish session. Please try again." };
+  }
   const next = (formData.get("next") as string) || "/";
   redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/");
 }

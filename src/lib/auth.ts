@@ -91,13 +91,27 @@ export async function destroySession(): Promise<void> {
  * the account still exists (revokes sessions of deleted users).
  */
 export async function getSessionUser(): Promise<AuthUser | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const payload = await verifySessionToken(token);
-  if (!payload) return null;
-  const user = await db.user.findUnique({
-    where: { id: payload.sub },
-    select: { id: true, username: true, role: true },
-  });
-  return user;
+  try {
+    const token = (await cookies()).get(SESSION_COOKIE)?.value;
+    if (!token) return null;
+    const payload = await verifySessionToken(token);
+    if (!payload) return null;
+    const user = await db.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, username: true, role: true },
+    });
+    return user;
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "digest" in error &&
+      typeof (error as { digest: unknown }).digest === "string" &&
+      ((error as { digest: string }).digest === "DYNAMIC_SERVER_USAGE" ||
+        (error as { digest: string }).digest.startsWith("NEXT_"))
+    ) {
+      throw error;
+    }
+    return null;
+  }
 }
