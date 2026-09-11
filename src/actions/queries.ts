@@ -32,7 +32,10 @@ export async function getProjectDetail(id: string) {
     where: { id },
     include: {
       projectPartners: { include: { partner: true }, orderBy: { partner: { name: "asc" } } },
-      clientPayments: { orderBy: { paidAt: "desc" } },
+      clientPayments: {
+        orderBy: { paidAt: "desc" },
+        include: { receivedBy: true },
+      },
       expenses: {
         orderBy: { expenseDate: "desc" },
         include: { paidBy: true },
@@ -98,15 +101,35 @@ function toLedgerProject(p: {
 }
 
 /** Full dashboard + ledger data, computed via the pure ledger engine. */
-export async function getDashboardData() {
+export async function getDashboardData(range?: {
+  from: Date;
+  toExclusive: Date;
+}) {
+  // Half-open UTC window. When omitted → all time (legacy behavior).
+  // Scoping convention (matches the summary page): every dated record is
+  // grouped by its OWN date — bills by expenseDate (payments follow their
+  // bill), client payments by paidAt, project costs by expenseDate,
+  // drawings by drawnAt, projects by createdAt.
+  const window =
+    range !== undefined
+      ? { gte: range.from, lt: range.toExclusive }
+      : undefined;
   const [partners, projectsRaw, drawingsRaw, companyRaw, fixedCostsRaw] = await Promise.all([
     db.partner.findMany({ orderBy: { name: "asc" } }),
     db.project.findMany({
-      include: { projectPartners: true, clientPayments: true, expenses: true },
+      where: window ? { createdAt: window } : undefined,
+      include: {
+        projectPartners: true,
+        clientPayments: window ? { where: { paidAt: window } } : true,
+        expenses: window ? { where: { expenseDate: window } } : true,
+      },
       orderBy: { createdAt: "desc" },
     }),
-    db.partnerDrawing.findMany(),
+    db.partnerDrawing.findMany(
+      window ? { where: { drawnAt: window } } : undefined,
+    ),
     db.companyExpense.findMany({
+      where: window ? { expenseDate: window } : undefined,
       include: { payments: true, payouts: true },
       orderBy: { expenseDate: "desc" },
     }),
@@ -265,6 +288,21 @@ export async function getCompanyData() {
     }),
   ]);
   return { expenses, partners, fixedCosts, payouts };
+}
+
+/** Treasury page data: every project with its frozen splits + custodied payments. */
+export async function getTreasuryData() {
+  const [partners, projects] = await Promise.all([
+    db.partner.findMany({ orderBy: { name: "asc" } }),
+    db.project.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        projectPartners: true,
+        clientPayments: { orderBy: { paidAt: "desc" } },
+      },
+    }),
+  ]);
+  return { partners, projects };
 }
 
 /** Monthly summary data: everything the engine needs to settle one month. */

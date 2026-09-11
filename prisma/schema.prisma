@@ -31,6 +31,8 @@ model Partner {
   drawings               PartnerDrawing[]
   companyPayments        CompanyExpensePayment[]
   companyPayouts         CompanyPayout[]
+  /// Client payments physically received into this partner's custody.
+  custodyPayments        ClientPayment[]  @relation("PaymentsReceivedInCustody")
 
   @@index([isActive])
   @@map("partners")
@@ -46,9 +48,9 @@ model Project {
   updatedAt       DateTime         @updatedAt
   // Relations — snapshot equity lives in ProjectPartner and NEVER mutates
   // when Partner.defaultSharePercentage changes.
-  projectPartners ProjectPartner[]
-  clientPayments  ClientPayment[]
-  expenses        ProjectExpense[]
+  projectPartners        ProjectPartner[]
+  clientPayments         ClientPayment[]
+  expenses               ProjectExpense[]
 
   @@index([status])
   @@map("projects")
@@ -82,11 +84,15 @@ model ClientPayment {
   notes          String?
   paidAt         DateTime @default(now())
   createdAt      DateTime @default(now())
+  /// Partner who physically received the cash/transfer into custody.
+  receivedByPartnerId String
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  receivedBy Partner @relation("PaymentsReceivedInCustody", fields: [receivedByPartnerId], references: [id], onDelete: Restrict)
 
   @@index([projectId])
   @@index([paidAt])
+  @@index([receivedByPartnerId])
   @@map("client_payments")
 }
 

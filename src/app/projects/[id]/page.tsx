@@ -216,7 +216,14 @@ export default async function ProjectDetailPage({
             <CardDescription>{td.recordPaymentDesc}</CardDescription>
           </CardHeader>
           <CardContent>
-            <PaymentForm projectId={project.id} lang={lang} />
+            <PaymentForm
+              projectId={project.id}
+              lang={lang}
+              partners={project.projectPartners.map((s) => ({
+                id: s.partnerId,
+                name: s.partner.name,
+              }))}
+            />
           </CardContent>
         </Card>
       </div>
@@ -232,6 +239,7 @@ export default async function ProjectDetailPage({
               <TableRow>
                 <TableHead>{td.colDate}</TableHead>
                 <TableHead>{td.colMilestone}</TableHead>
+                <TableHead>{td.colReceivedBy}</TableHead>
                 <TableHead className="text-end">{td.colAmount}</TableHead>
               </TableRow>
             </TableHeader>
@@ -240,6 +248,7 @@ export default async function ProjectDetailPage({
                 <TableRow key={p.id}>
                   <TableCell>{formatDate(p.paidAt, lang)}</TableCell>
                   <TableCell>{p.milestoneLabel ?? "—"}</TableCell>
+                  <TableCell>{p.receivedBy?.name ?? "—"}</TableCell>
                   <TableCell className="text-end font-medium">
                     {formatEGP(Number(p.amount), lang)}
                   </TableCell>
@@ -247,7 +256,7 @@ export default async function ProjectDetailPage({
               ))}
               {project.clientPayments.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
                     {td.noPayments}
                   </TableCell>
                 </TableRow>

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { formatEGP } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
+import { parseRangeParams } from "@/lib/range";
 import { getDashboardData } from "@/actions/queries";
 import {
   ArrowRight,
@@ -32,17 +33,33 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import { RangeFilter } from "./range-filter";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    range?: string;
+    month?: string;
+    year?: string;
+    from?: string;
+    to?: string;
+  }>;
+}) {
   const lang = await getLang();
   const t = dict[lang];
+  const range = parseRangeParams(await searchParams);
 
   let data: Awaited<ReturnType<typeof getDashboardData>> | null = null;
   let dbError: string | null = null;
   try {
-    data = await getDashboardData();
+    data = await getDashboardData(
+      range.bounds
+        ? { from: range.bounds.from, toExclusive: range.bounds.toExclusive }
+        : undefined,
+    );
   } catch (e) {
     dbError =
       e instanceof Error ? e.message : "Database connection failed.";
@@ -173,6 +190,15 @@ export default async function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      <RangeFilter
+        lang={lang}
+        mode={range.mode}
+        month={range.month}
+        year={range.year}
+        fromStr={range.fromStr}
+        toStr={range.toStr}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((s) => (

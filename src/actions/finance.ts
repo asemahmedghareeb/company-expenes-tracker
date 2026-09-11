@@ -16,12 +16,13 @@ function revalidateFinance(projectId?: string) {
   revalidatePath("/");
   revalidatePath("/ledger");
   revalidatePath("/projects");
+  revalidatePath("/capital");
   if (projectId) revalidatePath(`/projects/${projectId}`);
 }
 
 /* ------------------------- Client payments ------------------------- */
 
-/** Record a milestone payment received from the client. */
+/** Record a milestone payment received from the client into a partner's custody. */
 export async function recordClientPayment(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
@@ -33,6 +34,19 @@ export async function recordClientPayment(
       fieldErrors: zodFieldErrors(parsed.error),
     };
   }
+  const [project, custodian] = await Promise.all([
+    db.project.findUnique({
+      where: { id: parsed.data.projectId },
+      select: { id: true },
+    }),
+    db.partner.findUnique({
+      where: { id: parsed.data.receivedByPartnerId },
+      select: { id: true },
+    }),
+  ]);
+  if (!project) return { ok: false, error: "Project not found." };
+  if (!custodian) return { ok: false, error: "Receiving partner not found." };
+
   try {
     const payment = await db.clientPayment.create({
       data: {
@@ -41,6 +55,7 @@ export async function recordClientPayment(
         milestoneLabel: parsed.data.milestoneLabel || null,
         notes: parsed.data.notes || null,
         paidAt: parsed.data.paidAt,
+        receivedByPartnerId: parsed.data.receivedByPartnerId,
       },
     });
     revalidateFinance(parsed.data.projectId);

@@ -4,9 +4,17 @@ export type { Lang };
 
 export interface Dictionary {
   brand: string;
-  nav: { dashboard: string; projects: string; partners: string; ledger: string; company: string; summary: string };
+  nav: { dashboard: string; projects: string; partners: string; ledger: string; company: string; summary: string; capital: string };
   firmOverview: string;
   overviewSubtitle: (projectCount: number, activePartners: number) => string;
+  rangeFilter: {
+    all: string;
+    month: string;
+    year: string;
+    custom: string;
+    from: string;
+    to: string;
+  };
   fixedCostsTitle: string;
   fixedCostsSubtitle: string;
   fixedCostsEmpty: string;
@@ -183,6 +191,7 @@ export interface Dictionary {
     paymentsTitle: (n: number) => string;
     colDate: string;
     colMilestone: string;
+    colReceivedBy: string;
     colAmount: string;
     noPayments: string;
     logExpense: string;
@@ -223,6 +232,8 @@ export interface Dictionary {
     notesPh: string;
     recording: string;
     record: string;
+    receivedBy: string;
+    selectCustodian: string;
   };
   expenseForm: {
     paidBy: string;
@@ -334,6 +345,30 @@ export interface Dictionary {
     kindProject: string;
     empty: string;
   };
+  /* ------------------------------- Capital ------------------------------ */
+  capital: {
+    title: string;
+    subtitle: string;
+    totalCollected: string;
+    totalCollectedHint: string;
+    heldByTitle: string;
+    heldByDesc: string;
+    tableTitle: string;
+    tableDesc: string;
+    colPartner: string;
+    colHeld: string;
+    colEarned: string;
+    colNet: string;
+    owesPartners: string;
+    owedByPartners: string;
+    balanced: string;
+    noPartners: string;
+    noCash: string;
+    settleTitle: string;
+    settleDesc: string;
+    settleAllClear: string;
+    settleLine: (from: string, to: string, amount: string) => string;
+  };
   /* ------------------------------- Ledger ------------------------------- */
   ledger: {
     title: string;
@@ -369,10 +404,18 @@ export interface Dictionary {
 export const dict: Record<Lang, Dictionary> = {
   en: {
     brand: "Partner Ledger",
-    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Partner Ledger", company: "Company Expenses", summary: "Summary" },
+    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Partner Ledger", company: "Company Expenses", summary: "Summary", capital: "Firm Treasury & Custody" },
     firmOverview: "Firm overview",
     overviewSubtitle: (p, a) =>
       `${p} projects · ${a} active partners · expenses settle before profit splits`,
+    rangeFilter: {
+      all: "All time",
+      month: "Month",
+      year: "Year",
+      custom: "Custom",
+      from: "From",
+      to: "To",
+    },
     fixedCostsTitle: "Fixed expenses",
     fixedCostsSubtitle: "Recurring overhead — rent, subscriptions… Net profit is calculated after these.",
     fixedCostsEmpty: "No fixed costs defined yet.",
@@ -552,6 +595,7 @@ export const dict: Record<Lang, Dictionary> = {
       paymentsTitle: (n) => `Client payments (${n})`,
       colDate: "Date",
       colMilestone: "Milestone",
+      colReceivedBy: "Received by",
       colAmount: "Amount",
       noPayments: "No payments recorded yet.",
       logExpense: "Log out-of-pocket expense",
@@ -594,6 +638,8 @@ export const dict: Record<Lang, Dictionary> = {
       notesPh: "Bank ref, invoice no…",
       recording: "Recording…",
       record: "Record payment",
+      receivedBy: "Received by (cash custodian)",
+      selectCustodian: "Select who holds the money…",
     },
     expenseForm: {
       paidBy: "Paid by",
@@ -707,6 +753,29 @@ export const dict: Record<Lang, Dictionary> = {
       kindProject: "Projects",
       empty: "No costs recorded this month.",
     },
+    capital: {
+      title: "Firm treasury & custody",
+      subtitle: "Who physically holds the collected cash vs. who earned it by project equity.",
+      totalCollected: "Total collected inflow",
+      totalCollectedHint: "All client payments, all projects",
+      heldByTitle: "Cash held per partner",
+      heldByDesc: "Physical custody right now",
+      tableTitle: "Partner custody breakdown",
+      tableDesc: "Held − earned = net position. Positive owes partners, negative is owed.",
+      colPartner: "Partner",
+      colHeld: "Cash held",
+      colEarned: "Earned share",
+      colNet: "Net position",
+      owesPartners: "owes partners",
+      owedByPartners: "owed by partners",
+      balanced: "balanced",
+      noPartners: "No partners yet.",
+      noCash: "No client payments recorded yet — custody appears here once cash arrives.",
+      settleTitle: "Settlement suggestions",
+      settleDesc: "Simplified partner-to-partner transfers that zero out every net position.",
+      settleAllClear: "Everyone is balanced — no transfers needed. ✓",
+      settleLine: (from, to, amount) => `${from} → ${to}: ${amount}`,
+    },
     ledger: {
       title: "Partner ledger",
       subtitle: "Balance = Pending reimbursements + Realized profit shares + Company net − Drawings",
@@ -739,10 +808,18 @@ export const dict: Record<Lang, Dictionary> = {
   },
   ar: {
     brand: "دفتر الشركاء",
-    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "دفتر الشركاء", company: "مصاريف الشركة", summary: "الملخص" },
+    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "دفتر الشركاء", company: "مصاريف الشركة", summary: "الملخص", capital: "رأس مال الشركة" },
     firmOverview: "نظرة عامة على الشركة",
     overviewSubtitle: (p, a) =>
       `${p} مشاريع · ${a} شركاء نشطون · تُسوَّى المصروفات قبل توزيع الأرباح`,
+    rangeFilter: {
+      all: "كل الفترات",
+      month: "شهر",
+      year: "سنة",
+      custom: "مخصص",
+      from: "من",
+      to: "إلى",
+    },
     fixedCostsTitle: "المصاريف الثابتة",
     fixedCostsSubtitle: "مصاريف عمومية متكررة — إيجار، اشتراكات… صافي الربح محسوب بعد خصمها.",
     fixedCostsEmpty: "لا توجد مصاريف ثابتة معرفة بعد.",
@@ -922,6 +999,7 @@ export const dict: Record<Lang, Dictionary> = {
       paymentsTitle: (n) => `دفعات العملاء (${n})`,
       colDate: "التاريخ",
       colMilestone: "المرحلة",
+      colReceivedBy: "استلمها",
       colAmount: "المبلغ",
       noPayments: "لا توجد دفعات مسجلة بعد.",
       logExpense: "تسجيل مصروف مدفوع مقدمًا",
@@ -964,6 +1042,8 @@ export const dict: Record<Lang, Dictionary> = {
       notesPh: "مرجع البنك، رقم الفاتورة…",
       recording: "جارٍ التسجيل…",
       record: "تسجيل الدفعة",
+      receivedBy: "المستلم الفعلي للدفعة",
+      selectCustodian: "اختر من يستلم المبلغ…",
     },
     expenseForm: {
       paidBy: "دُفع بواسطة",
@@ -1075,6 +1155,29 @@ export const dict: Record<Lang, Dictionary> = {
       kindVariable: "متغيرة",
       kindProject: "مشاريع",
       empty: "لا توجد مصاريف مسجلة هذا الشهر.",
+    },
+    capital: {
+      title: "رأس مال الشركة والخزينة",
+      subtitle: "مين ماسك الكاش المتحصل فعلًا مقابل نصيب كل شريك حسب حصص المشاريع.",
+      totalCollected: "إجمالي السيولة المحصلة",
+      totalCollectedHint: "كل دفعات العملاء في كل المشاريع",
+      heldByTitle: "النقدية في حوزة الشركاء",
+      heldByDesc: "التوزيع الفعلي للكاش الآن",
+      tableTitle: "تفصيل عهدة الشركاء",
+      tableDesc: "الممسوك − المستحق = صافي العهدة. الموجب عليه للشركاء، والسالب له عند الشركاء.",
+      colPartner: "الشريك",
+      colHeld: "النقدية في حوزته",
+      colEarned: "نصيبه المستحق",
+      colNet: "صافي العهدة",
+      owesPartners: "عليه للشركاء",
+      owedByPartners: "له عند الشركاء",
+      balanced: "متساوي",
+      noPartners: "لا يوجد شركاء بعد.",
+      noCash: "لا توجد دفعات عملاء مسجلة بعد — العهدة هتظهر هنا أول ما يوصل كاش.",
+      settleTitle: "اقتراح التسويات البينية",
+      settleDesc: "تحويلات مبسطة بين الشركاء تصفّر كل صافي عهدة.",
+      settleAllClear: "الكل متساوي — لا توجد تحويلات مطلوبة. ✓",
+      settleLine: (from, to, amount) => `${from} يدفع إلى ${to}: ${amount}`,
     },
     ledger: {
       title: "دفتر الشركاء",

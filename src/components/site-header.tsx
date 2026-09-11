@@ -18,6 +18,7 @@ export function SiteHeader({ lang }: { lang: Lang }) {
     { href: "/company", label: t.nav.company },
     { href: "/ledger", label: t.nav.ledger },
     { href: "/summary", label: t.nav.summary },
+    { href: "/capital", label: t.nav.capital },
   ];
 
   return (

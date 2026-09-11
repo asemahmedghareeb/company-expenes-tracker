@@ -25,6 +25,7 @@ export async function POST(req: Request) {
           milestoneLabel: parsed.data.milestoneLabel || null,
           notes: parsed.data.notes || null,
           paidAt: parsed.data.paidAt,
+          receivedByPartnerId: parsed.data.receivedByPartnerId,
         },
       });
       return NextResponse.json(p, { status: 201 });

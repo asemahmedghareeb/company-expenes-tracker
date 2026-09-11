@@ -70,10 +70,12 @@ export function ProjectSplitsEditor({
 
 export function PaymentForm({
   projectId,
+  partners,
   lang,
   onDone,
 }: {
   projectId: string;
+  partners: { id: string; name: string }[];
   lang: Lang;
   onDone?: () => void;
 }) {
@@ -96,6 +98,7 @@ export function PaymentForm({
             milestoneLabel: String(fd.get("milestoneLabel") ?? ""),
             notes: String(fd.get("notes") ?? ""),
             paidAt: fd.get("paidAt") ? new Date(String(fd.get("paidAt"))) : new Date(),
+            receivedByPartnerId: String(fd.get("receivedByPartnerId") ?? ""),
           });
           if (!res.ok) setError(res.error);
           else {
@@ -115,6 +118,22 @@ export function PaymentForm({
           <Label>{t.paidAt}</Label>
           <Input name="paidAt" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
         </div>
+      </div>
+      <div className="grid gap-1">
+        <Label>{t.receivedBy}</Label>
+        <select
+          name="receivedByPartnerId"
+          required
+          defaultValue=""
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">{t.selectCustodian}</option>
+          {partners.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="grid gap-1">
         <Label>{t.milestone}</Label>

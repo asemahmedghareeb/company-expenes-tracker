@@ -154,6 +154,8 @@ export const clientPaymentSchema = z.object({
   milestoneLabel: z.string().trim().max(150).optional().or(z.literal("")),
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
   paidAt: z.coerce.date().default(() => new Date()),
+  /// Partner who physically received the cash/transfer into custody.
+  receivedByPartnerId: cuid,
 });
 
 export type ClientPaymentInput = z.infer<typeof clientPaymentSchema>;
