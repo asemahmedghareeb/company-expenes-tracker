@@ -13,10 +13,10 @@ import { getCompanyData } from "@/actions/queries";
 import {
   CompanyExpenseForm,
   CompanyPayoutForm,
-  DeleteCompanyPayoutButton,
   FixedCostsManager,
 } from "@/components/forms/company-forms";
 import { CompanyExpensesList } from "@/components/company-expenses-list";
+import { CompanyPayoutsList } from "@/components/company-payouts-list";
 import { PageGuide } from "@/components/ui/page-guide";
 
 // Cached by default — mutations revalidate on demand via revalidatePath().
@@ -155,31 +155,17 @@ export default async function CompanyPage() {
               <CardTitle>{t.payoutHistory}</CardTitle>
               <CardDescription>{t.payoutHistoryDesc}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {payouts.map((x) => (
-                <div
-                  key={x.id}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-border p-2 text-sm"
-                >
-                  <span className="min-w-0 flex-1 truncate">
-                    {x.partner.name} · {formatEGP(Number(x.amount), lang)}
-                    {x.expense && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · {t.payoutTo} {x.expense.title}
-                      </span>
-                    )}
-                    <span className="text-muted-foreground">
-                      {" "}
-                      · {formatDate(x.paidAt, lang)}
-                    </span>
-                  </span>
-                  <DeleteCompanyPayoutButton id={x.id} lang={lang} />
-                </div>
-              ))}
-              {payouts.length === 0 && (
-                <p className="text-sm text-muted-foreground">{t.noPayouts}</p>
-              )}
+            <CardContent>
+              <CompanyPayoutsList
+                lang={lang}
+                payouts={payouts.map((x) => ({
+                  id: x.id,
+                  amount: Number(x.amount),
+                  paidAt: x.paidAt.toISOString(),
+                  partner: { id: x.partner.id, name: x.partner.name },
+                  expense: x.expense ? { id: x.expense.id, title: x.expense.title } : null,
+                }))}
+              />
             </CardContent>
           </Card>
         </div>

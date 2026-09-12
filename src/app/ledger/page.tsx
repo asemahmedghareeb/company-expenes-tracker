@@ -19,6 +19,10 @@ import { formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
 import { DeleteDrawingButton, DrawingForm } from "@/components/forms/transaction-forms";
+import {
+  PaginatedPendingExpensesTable,
+  PaginatedDrawingsTable,
+} from "@/components/ledger-tables";
 import { PageGuide } from "@/components/ui/page-guide";
 
 // Cached by default — mutations revalidate on demand via revalidatePath().
@@ -141,33 +145,15 @@ export default async function LedgerPage() {
             <CardDescription>{t.pendingDesc}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t.colProject}</TableHead>
-                  <TableHead>{t.colPartner}</TableHead>
-                  <TableHead className="text-end">{t.colAmount}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingExpenses.slice(0, 10).map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell>{e.project?.name ?? "—"}</TableCell>
-                    <TableCell>{e.paidBy?.name ?? "—"}</TableCell>
-                    <TableCell className="text-end">
-                      {formatEGP(Number(e.amount), lang)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {pendingExpenses.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
-                      {t.allSettled}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <PaginatedPendingExpensesTable
+              lang={lang}
+              expenses={pendingExpenses.map((e) => ({
+                id: e.id,
+                amount: Number(e.amount),
+                project: e.project ? { name: e.project.name } : null,
+                paidBy: e.paidBy ? { name: e.paidBy.name } : null,
+              }))}
+            />
           </CardContent>
         </Card>
       </div>
@@ -177,39 +163,16 @@ export default async function LedgerPage() {
           <CardTitle>{t.recentTitle}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t.colDate}</TableHead>
-                <TableHead>{t.colPartner}</TableHead>
-                <TableHead>{t.colNotes}</TableHead>
-                <TableHead className="text-end">{t.colAmount}</TableHead>
-                <TableHead className="text-end">{t.colAction}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {drawings.slice(0, 20).map((d) => (
-                <TableRow key={d.id}>
-                  <TableCell>{formatDate(d.drawnAt, lang)}</TableCell>
-                  <TableCell className="font-medium">{d.partner.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{d.notes ?? "—"}</TableCell>
-                  <TableCell className="text-end">
-                    {formatEGP(Number(d.amount), lang)}
-                  </TableCell>
-                  <TableCell className="text-end">
-                    <DeleteDrawingButton id={d.id} lang={lang} />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {drawings.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    {t.noDrawings}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <PaginatedDrawingsTable
+            lang={lang}
+            drawings={drawings.map((d) => ({
+              id: d.id,
+              amount: Number(d.amount),
+              drawnAt: d.drawnAt instanceof Date ? d.drawnAt.toISOString() : String(d.drawnAt),
+              notes: d.notes,
+              partner: { name: d.partner.name },
+            }))}
+          />
         </CardContent>
       </Card>
 

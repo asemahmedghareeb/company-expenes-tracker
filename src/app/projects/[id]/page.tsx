@@ -29,6 +29,10 @@ import {
   ProjectSplitsEditor,
   ReimburseButton,
 } from "@/components/forms/transaction-forms";
+import {
+  PaginatedClientPaymentsTable,
+  PaginatedProjectExpensesTable,
+} from "@/components/project-tables";
 import { PageGuide } from "@/components/ui/page-guide";
 
 export default async function ProjectDetailPage({
@@ -358,35 +362,16 @@ export default async function ProjectDetailPage({
           <CardTitle>{td.paymentsTitle(project.clientPayments.length)}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{td.colDate}</TableHead>
-                <TableHead>{td.colMilestone}</TableHead>
-                <TableHead>{td.colReceivedBy}</TableHead>
-                <TableHead className="text-end">{td.colAmount}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {project.clientPayments.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>{formatDate(p.paidAt, lang)}</TableCell>
-                  <TableCell>{p.milestoneLabel ?? "—"}</TableCell>
-                  <TableCell>{p.receivedBy?.name ?? "—"}</TableCell>
-                  <TableCell className="text-end font-medium">
-                    {formatEGP(Number(p.amount), lang)}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {project.clientPayments.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    {td.noPayments}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <PaginatedClientPaymentsTable
+            lang={lang}
+            payments={project.clientPayments.map((p) => ({
+              id: p.id,
+              amount: Number(p.amount),
+              paidAt: p.paidAt,
+              milestoneLabel: p.milestoneLabel,
+              receivedBy: p.receivedBy ? { id: p.receivedBy.id, name: p.receivedBy.name } : null,
+            }))}
+          />
         </CardContent>
       </Card>
 
@@ -435,65 +420,19 @@ export default async function ProjectDetailPage({
           />
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{td.colDate}</TableHead>
-                <TableHead>{td.colDesc}</TableHead>
-                <TableHead>{td.colPaidBy}</TableHead>
-                <TableHead className="text-end">{td.colAmount}</TableHead>
-                <TableHead>{td.colStatus}</TableHead>
-                <TableHead className="text-end">{td.colAction}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {project.expenses.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell>{formatDate(e.expenseDate, lang)}</TableCell>
-                  <TableCell>{e.description}</TableCell>
-                  <TableCell>{e.paidBy?.name ?? td.clientPaid}</TableCell>
-                  <TableCell className="text-end font-medium">
-                    {formatEGP(Number(e.amount), lang)}
-                  </TableCell>
-                  <TableCell>
-                    {!e.paidBy ? (
-                      <Badge variant="secondary">{td.clientPaid}</Badge>
-                    ) : e.deductFromCustody ? (
-                      <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
-                        <Wallet className="h-3 w-3" />
-                        {td.deductedFromCustodyBadge}
-                      </Badge>
-                    ) : (
-                      <div className="flex flex-col gap-1 items-start">
-                        <Badge variant={e.isReimbursed ? "success" : "warning"}>
-                          {e.isReimbursed ? td.reimbursed : td.pending}
-                        </Badge>
-                        <Badge variant="outline" className="border-amber-500/50 text-amber-700 dark:text-amber-300 text-[10px] gap-1">
-                          <AlertCircle className="h-2.5 w-2.5" />
-                          {td.outOfPocketBadge}
-                        </Badge>
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-end">
-                    <div className="flex items-center justify-end gap-1">
-                      {e.paidBy && !e.deductFromCustody && (
-                        <ReimburseButton expenseId={e.id} isReimbursed={e.isReimbursed} lang={lang} />
-                      )}
-                      <DeleteExpenseButton id={e.id} projectId={project.id} lang={lang} />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {project.expenses.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    {td.noExpenses}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <PaginatedProjectExpensesTable
+            projectId={project.id}
+            lang={lang}
+            expenses={project.expenses.map((e) => ({
+              id: e.id,
+              description: e.description,
+              amount: Number(e.amount),
+              expenseDate: e.expenseDate,
+              paidBy: e.paidBy ? { id: e.paidBy.id, name: e.paidBy.name } : null,
+              deductFromCustody: Boolean(e.deductFromCustody),
+              isReimbursed: Boolean(e.isReimbursed),
+            }))}
+          />
         </CardContent>
       </Card>
 

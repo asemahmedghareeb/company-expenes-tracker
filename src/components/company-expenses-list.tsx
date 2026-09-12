@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -30,6 +30,7 @@ import {
   Sparkles,
   Vault,
 } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
 import {
   CompanyPaymentForm,
   DeleteCompanyExpenseButton,
@@ -128,10 +129,23 @@ export function CompanyExpensesList({
     });
   }, [items, kindFilter, monthFilter]);
 
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 4;
+
+  useEffect(() => {
+    setPage(1);
+  }, [kindFilter, monthFilter]);
+
   // Filtered total amount
   const filteredTotal = useMemo(() => {
     return filteredItems.reduce((acc, it) => acc + it.expense.amount, 0);
   }, [filteredItems]);
+
+  const totalPages = Math.ceil(filteredItems.length / PAGE_SIZE) || 1;
+  const paginatedItems = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredItems.slice(start, start + PAGE_SIZE);
+  }, [filteredItems, page]);
 
   const isDefaultFilter = kindFilter === "FIXED" && monthFilter === "ALL";
 
@@ -271,7 +285,7 @@ export function CompanyExpensesList({
       </div>
 
       {/* -------------------- Expense Cards -------------------- */}
-      {filteredItems.map(({ expense, settlement: s }) => {
+      {paginatedItems.map(({ expense, settlement: s }) => {
         return (
           <Card key={s.expenseId} className="min-w-0 overflow-hidden shadow-sm">
             <CardHeader className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -564,6 +578,18 @@ export function CompanyExpensesList({
           </Card>
         );
       })}
+
+      {filteredItems.length > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={filteredItems.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+          lang={lang}
+          itemLabel={lang === "ar" ? "مصروف" : "expenses"}
+        />
+      )}
 
       {/* Empty State when no items match filters */}
       {filteredItems.length === 0 && (

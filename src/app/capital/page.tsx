@@ -26,6 +26,10 @@ import {
   SettlementExecutionDialog,
   DeleteSettlementButton,
 } from "@/components/forms/settlement-dialog";
+import {
+  PaginatedCustodyPaymentsTable,
+  PaginatedExecutedSettlements,
+} from "@/components/capital-tables";
 
 // Cached by default — mutations revalidate on demand via revalidatePath().
 
@@ -335,57 +339,20 @@ export default async function CapitalPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{lang === "ar" ? "الشريك الحائز للكاش" : "Holding Partner"}</TableHead>
-                <TableHead>{lang === "ar" ? "المشروع التابع له" : "Project"}</TableHead>
-                <TableHead>{lang === "ar" ? "بيان الدفعة / المرحلة" : "Milestone / Description"}</TableHead>
-                <TableHead>{lang === "ar" ? "تاريخ الاستلام" : "Received Date"}</TableHead>
-                <TableHead className="text-end">{lang === "ar" ? "المبلغ المحصل" : "Amount Received"}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {allCustodyPayments.map((pay) => (
-                <TableRow key={pay.paymentId}>
-                  <TableCell className="font-semibold text-foreground">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs">
-                        {pay.partnerName.slice(0, 1)}
-                      </div>
-                      <span>{pay.partnerName}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/projects/${pay.projectId}`}
-                      className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
-                    >
-                      <FolderKanban className="h-3.5 w-3.5" />
-                      <span>{pay.projectName}</span>
-                      <ExternalLink className="h-3 w-3 opacity-60" />
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs sm:text-sm">
-                    {pay.milestoneLabel || pay.notes || (lang === "ar" ? "دفعة من العميل" : "Client Payment")}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {formatDate(pay.paidAt, lang)}
-                  </TableCell>
-                  <TableCell className="text-end font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                    {formatEGP(pay.amount, lang)}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {allCustodyPayments.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                    {lang === "ar" ? "لا توجد دفعات محصلة مسجلة حتى الآن." : "No client payments recorded yet."}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <PaginatedCustodyPaymentsTable
+            lang={lang}
+            payments={allCustodyPayments.map((pay) => ({
+              paymentId: pay.paymentId,
+              projectId: pay.projectId,
+              projectName: pay.projectName,
+              partnerId: pay.partnerId,
+              partnerName: pay.partnerName,
+              amount: pay.amount,
+              paidAt: pay.paidAt instanceof Date ? pay.paidAt.toISOString() : String(pay.paidAt),
+              milestoneLabel: pay.milestoneLabel,
+              notes: pay.notes,
+            }))}
+          />
         </CardContent>
       </Card>
 
@@ -446,96 +413,25 @@ export default async function CapitalPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {executedSettlements.length > 0 ? (
-            <div className="space-y-3">
-              {executedSettlements.map((s) => (
-                <div
-                  key={s.id}
-                  className="rounded-xl border border-border/80 bg-card p-4 space-y-3 transition-colors hover:border-border"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2.5">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm text-foreground">
-                          {s.title || (lang === "ar" ? "تسوية أرباح" : "Profit Settlement")}
-                        </span>
-                        {s.project && (
-                          <Badge variant="secondary" className="text-xs">
-                            {s.project.name}
-                          </Badge>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          · {formatDate(s.settledAt, lang)}
-                        </span>
-                      </div>
-                      {s.notes && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{s.notes}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-end">
-                        <div className="text-xs text-muted-foreground">
-                          {lang === "ar" ? "إجمالي المبلغ:" : "Total Settled:"}
-                        </div>
-                        <div className="font-mono font-bold text-sm">
-                          {formatEGP(toNumber(s.totalAmount), lang)}
-                        </div>
-                      </div>
-                      <DeleteSettlementButton id={s.id} lang={lang} />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                    <div className="rounded-lg bg-indigo-50/60 p-2.5 dark:bg-indigo-950/30 border border-indigo-200/50 dark:border-indigo-900/40">
-                      <div className="text-muted-foreground font-medium">
-                        {lang === "ar" ? "مستقطع خزنة الشركة" : "Company Vault Cut"}
-                      </div>
-                      <div className="font-mono font-bold text-indigo-700 dark:text-indigo-300 mt-0.5">
-                        {formatEGP(toNumber(s.vaultAmount), lang)}{" "}
-                        <span className="font-normal text-[11px]">({s.vaultPercentage}%)</span>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg bg-emerald-50/60 p-2.5 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-900/40 sm:col-span-2">
-                      <div className="text-muted-foreground font-medium mb-1">
-                        {lang === "ar" ? "الموزع على الشركاء (سحب نقدي)" : "Distributed to Partners"}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {s.distributions.map((d) => (
-                          <span
-                            key={d.id}
-                            className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-1 text-xs border border-border/70 shadow-2xs"
-                          >
-                            <span className="font-medium text-foreground">{d.partner.name}:</span>
-                            <span className="font-mono font-semibold text-emerald-700 dark:text-emerald-400">
-                              {formatEGP(toNumber(d.amount), lang)}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground font-mono">
-                              ({formatPct(d.percentage)})
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-8 text-center text-sm text-muted-foreground space-y-2">
-              <Vault className="h-8 w-8 text-muted-foreground/50 mx-auto" />
-              <p>
-                {lang === "ar"
-                  ? "لم يتم تنفيذ أي تسويات نقدية حتى الآن."
-                  : "No settlements have been executed yet."}
-              </p>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                {lang === "ar"
-                  ? "اضغط على زر «تنفيذ تسوية وتوزيع أرباح» في أعلى الصفحة لتسوية الأرباح وتحديد نسبة خزنة الشركة وتوزيع الكاش على الشركاء."
-                  : "Click 'Execute Profit Settlement' above to distribute cash and withhold vault reserves."}
-              </p>
-            </div>
-          )}
+          <PaginatedExecutedSettlements
+            lang={lang}
+            settlements={executedSettlements.map((s) => ({
+              id: s.id,
+              title: s.title,
+              notes: s.notes,
+              settledAt: s.settledAt instanceof Date ? s.settledAt.toISOString() : String(s.settledAt),
+              totalAmount: toNumber(s.totalAmount),
+              vaultAmount: toNumber(s.vaultAmount),
+              vaultPercentage: s.vaultPercentage,
+              project: s.project ? { id: s.project.id, name: s.project.name } : null,
+              distributions: s.distributions.map((d) => ({
+                id: d.id,
+                amount: toNumber(d.amount),
+                percentage: d.percentage,
+                partner: { id: d.partner.id, name: d.partner.name },
+              })),
+            }))}
+          />
 
           {/* Company Expenses Vault Reserves */}
           {vaultCompanyExpenses.length > 0 && (

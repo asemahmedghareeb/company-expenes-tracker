@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ import { dict } from "@/lib/dict";
 import { formatEGP, type Lang } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PageGuide } from "@/components/ui/page-guide";
+import { Pagination } from "@/components/ui/pagination";
 
 export type ProjectRow = {
   id: string;
@@ -75,6 +76,13 @@ export function ProjectsManager({
     return m;
   }, [projects]);
 
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+
+  useEffect(() => {
+    setPage(1);
+  }, [status, query]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return projects.filter((p) => {
@@ -83,6 +91,12 @@ export function ProjectsManager({
       return true;
     });
   }, [projects, status, query]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+  const paginatedProjects = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   const Chevron = lang === "ar" ? ChevronLeft : ChevronRight;
 
@@ -168,70 +182,82 @@ export function ProjectsManager({
           {tp.noResults}
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-start text-[11px]">{tp.colProject}</TableHead>
-              <TableHead className="text-start text-[11px]">{tp.colStatus}</TableHead>
-              <TableHead className="text-end text-[11px]">{tp.colContract}</TableHead>
-              <TableHead className="text-end text-[11px]">{tp.colInflow}</TableHead>
-              <TableHead className="text-end text-[11px]">{tp.colOut}</TableHead>
-              <TableHead className="text-end text-[11px]">{tp.colNet}</TableHead>
-              <TableHead className="w-10" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((p) => (
-              <TableRow key={p.id} className="group">
-                <TableCell className="text-start">
-                  <Link
-                    href={`/projects/${p.id}`}
-                    className="font-medium hover:text-primary hover:underline"
-                  >
-                    {p.name}
-                  </Link>
-                  <span className="block text-xs text-muted-foreground">
-                    {p.partnerCount} {tp.partnersWord}
-                  </span>
-                </TableCell>
-                <TableCell className="text-start">
-                  <Badge
-                    variant={
-                      p.status === "ACTIVE"
-                        ? "success"
-                        : p.status === "COMPLETED"
-                          ? "default"
-                          : "secondary"
-                    }
-                  >
-                    {t.projectForm.statuses[p.status]}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-end font-mono tabular-nums">
-                  {formatEGP(p.contractValue, lang)}
-                </TableCell>
-                <TableCell className="text-end font-mono tabular-nums">
-                  {formatEGP(p.inflow, lang)}
-                </TableCell>
-                <TableCell className="text-end font-mono tabular-nums">
-                  {formatEGP(p.out, lang)}
-                </TableCell>
-                <TableCell className="text-end font-mono font-semibold tabular-nums">
-                  {formatEGP(p.net, lang)}
-                </TableCell>
-                <TableCell className="text-end">
-                  <Link
-                    href={`/projects/${p.id}`}
-                    aria-label={p.name}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                  >
-                    <Chevron className="h-4 w-4" />
-                  </Link>
-                </TableCell>
+        <div className="space-y-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-start text-[11px]">{tp.colProject}</TableHead>
+                <TableHead className="text-start text-[11px]">{tp.colStatus}</TableHead>
+                <TableHead className="text-end text-[11px]">{tp.colContract}</TableHead>
+                <TableHead className="text-end text-[11px]">{tp.colInflow}</TableHead>
+                <TableHead className="text-end text-[11px]">{tp.colOut}</TableHead>
+                <TableHead className="text-end text-[11px]">{tp.colNet}</TableHead>
+                <TableHead className="w-10" />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {paginatedProjects.map((p) => (
+                <TableRow key={p.id} className="group">
+                  <TableCell className="text-start">
+                    <Link
+                      href={`/projects/${p.id}`}
+                      className="font-medium hover:text-primary hover:underline"
+                    >
+                      {p.name}
+                    </Link>
+                    <span className="block text-xs text-muted-foreground">
+                      {p.partnerCount} {tp.partnersWord}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-start">
+                    <Badge
+                      variant={
+                        p.status === "ACTIVE"
+                          ? "success"
+                          : p.status === "COMPLETED"
+                            ? "default"
+                            : "secondary"
+                      }
+                    >
+                      {t.projectForm.statuses[p.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-end font-mono tabular-nums">
+                    {formatEGP(p.contractValue, lang)}
+                  </TableCell>
+                  <TableCell className="text-end font-mono tabular-nums">
+                    {formatEGP(p.inflow, lang)}
+                  </TableCell>
+                  <TableCell className="text-end font-mono tabular-nums">
+                    {formatEGP(p.out, lang)}
+                  </TableCell>
+                  <TableCell className="text-end font-mono font-semibold tabular-nums">
+                    {formatEGP(p.net, lang)}
+                  </TableCell>
+                  <TableCell className="text-end">
+                    <Link
+                      href={`/projects/${p.id}`}
+                      aria-label={p.name}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    >
+                      <Chevron className="h-4 w-4" />
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            lang={lang}
+            itemLabel={lang === "ar" ? "مشروع" : "projects"}
+          />
+        </div>
       )}
 
       {/* Creation sheet */}
