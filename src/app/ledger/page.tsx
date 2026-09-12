@@ -18,7 +18,7 @@ import {
 import { formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
-import { computeInterPartnerDebts } from "@/lib/ledger";
+import { computeInterPartnerDebts, round2 } from "@/lib/ledger";
 import { PaginatedPendingExpensesTable } from "@/components/ledger-tables";
 import { PageGuide } from "@/components/ui/page-guide";
 
@@ -74,16 +74,73 @@ export default async function LedgerPage() {
 
       {/* Partner balance cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {ledgers.map((l) => (
-          <Card key={l.partnerId}>
-            <CardHeader className="pb-2">
-              <CardDescription>{l.partnerName}</CardDescription>
-              <CardTitle
-                className={`text-2xl ${l.balance < 0 ? "text-red-600" : "text-emerald-700"}`}
-              >
-                {formatEGP(l.balance, lang)}
-              </CardTitle>
-            </CardHeader>
+        {ledgers.map((l) => {
+          const totalReceived = l.totalDrawings;
+          // Cumulative entitlement = What was received via settlements + remaining balance owed to him (if positive)
+          const totalEntitled = round2(totalReceived + Math.max(0, l.balance));
+          let receivedPct = 0;
+          let remainingPct = 0;
+          if (totalEntitled > 0) {
+            receivedPct = Math.min(100, Math.max(0, Math.round((totalReceived / totalEntitled) * 100)));
+            remainingPct = 100 - receivedPct;
+          } else if (l.balance <= 0 && totalReceived > 0) {
+            receivedPct = 100;
+            remainingPct = 0;
+          }
+
+          return (
+            <Card key={l.partnerId} className="min-w-0 overflow-hidden shadow-xs hover:shadow-sm transition-all border-border/80">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardDescription className="font-semibold text-foreground text-sm">{l.partnerName}</CardDescription>
+                  {totalEntitled > 0 && (
+                    <Badge
+                      variant={receivedPct === 100 ? "success" : receivedPct > 0 ? "secondary" : "outline"}
+                      className="text-[11px] font-mono font-medium px-2 py-0.5"
+                    >
+                      {receivedPct === 100
+                        ? (lang === "ar" ? "مستلم 100% ✓" : "100% Settled ✓")
+                        : (lang === "ar" ? `تم استلام ${receivedPct}%` : `Received ${receivedPct}%`)}
+                    </Badge>
+                  )}
+                </div>
+                <CardTitle
+                  className={`text-2xl font-bold font-mono tracking-tight ${l.balance < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-700 dark:text-emerald-400"}`}
+                >
+                  {formatEGP(l.balance, lang)}
+                </CardTitle>
+
+                {/* Settlement payout progress indicator */}
+                <div className="pt-2 pb-0.5 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                      {lang === "ar" ? `تم استلام: ${receivedPct}%` : `Received: ${receivedPct}%`}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      {totalEntitled > 0
+                        ? (lang === "ar" ? `متبقي: ${remainingPct}%` : `${remainingPct}% remaining`)
+                        : (lang === "ar" ? "لا توجد أرباح بعد" : "No dues yet")}
+                    </span>
+                  </div>
+
+                  {/* Visual progress bar */}
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted/70 dark:bg-muted/30 border border-border/40">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 transition-all duration-500 rounded-full"
+                      style={{ width: `${receivedPct}%` }}
+                    />
+                  </div>
+
+                  {/* Summary: Received vs Total Entitled */}
+                  {totalEntitled > 0 && (
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5 font-mono">
+                      <span>{lang === "ar" ? "المستلم بالتسويات:" : "Settled:"} {formatEGP(totalReceived, lang)}</span>
+                      <span>{lang === "ar" ? "الإجمالي:" : "Total:"} {formatEGP(totalEntitled, lang)}</span>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
             <CardContent className="space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t.pendingShort}</span>
@@ -146,7 +203,8 @@ export default async function LedgerPage() {
               )}
             </CardContent>
           </Card>
-        ))}
+        );
+      })}
         {ledgers.length === 0 && (
           <p className="text-sm text-muted-foreground">{t.noPartners}</p>
         )}
