@@ -2,10 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Vault, CheckCircle2, Pencil, Calendar } from "lucide-react";
+import { Trash2, Vault, CheckCircle2, Pencil, Calendar, Plus, ChevronDown, ChevronUp, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogBody,
@@ -56,6 +64,7 @@ export function CompanyExpenseForm({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [fixedIds, setFixedIds] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -148,8 +157,58 @@ export function CompanyExpenseForm({
     .reduce((a, x) => a + x.amount, 0);
 
   return (
-    <form
-      className="space-y-3"
+    <Card className="min-w-0 overflow-hidden border-border/80 shadow-xs transition-all">
+      <CardHeader
+        className="cursor-pointer select-none p-4 transition-colors hover:bg-muted/40 sm:p-5"
+        onClick={() => setIsExpanded((prev) => !prev)}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <PlusCircle className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <CardTitle className="text-base font-bold text-foreground">
+                {t.addTitle}
+              </CardTitle>
+              <CardDescription className="text-xs truncate">
+                {t.addDesc}
+              </CardDescription>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant={isExpanded ? "ghost" : "default"}
+            size="sm"
+            className={cn(
+              "shrink-0 gap-1.5 rounded-xl h-8.5 font-semibold text-xs",
+              !isExpanded &&
+                "bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow-xs hover:from-indigo-500 hover:to-sky-500",
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded((prev) => !prev);
+            }}
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="h-4 w-4" />
+                <span>{lang === "ar" ? "طي النموذج" : "Collapse"}</span>
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                <span>{lang === "ar" ? "تسجيل دفعة" : "Add Payment"}</span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </>
+            )}
+          </Button>
+        </div>
+      </CardHeader>
+      {isExpanded && (
+        <CardContent className="border-t border-border/60 p-4 sm:p-5 animate-rise">
+          <form
+            className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
@@ -185,6 +244,7 @@ export function CompanyExpenseForm({
             setTitle("");
             setAmount("");
             setTouched({});
+            setIsExpanded(false);
             router.refresh();
           }
         });
@@ -510,10 +570,22 @@ export function CompanyExpenseForm({
         <Textarea name="notes" />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? t.saving : t.add}
-      </Button>
+      <div className="flex items-center gap-2 pt-1">
+        <Button type="submit" disabled={pending} className="flex-1">
+          {pending ? t.saving : t.add}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setIsExpanded(false)}
+        >
+          {lang === "ar" ? "إلغاء" : "Cancel"}
+        </Button>
+      </div>
     </form>
+        </CardContent>
+      )}
+    </Card>
   );
 }
 

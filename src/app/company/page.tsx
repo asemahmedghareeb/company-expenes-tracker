@@ -104,23 +104,15 @@ export default async function CompanyPage() {
 
       <div className="grid gap-6 lg:grid-cols-3 min-w-0">
         <div className="space-y-6 lg:col-span-1 min-w-0">
-          <Card className="min-w-0 overflow-hidden">
-            <CardHeader>
-              <CardTitle>{t.addTitle}</CardTitle>
-              <CardDescription>{t.addDesc}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CompanyExpenseForm
-                lang={lang}
-                partners={partners}
-                fixedCosts={fixedCosts.map((f) => ({
-                  id: f.id,
-                  title: f.title,
-                  amount: toNumber(f.amount),
-                }))}
-              />
-            </CardContent>
-          </Card>
+          <CompanyExpenseForm
+            lang={lang}
+            partners={partners}
+            fixedCosts={fixedCosts.map((f) => ({
+              id: f.id,
+              title: f.title,
+              amount: toNumber(f.amount),
+            }))}
+          />
           <Card className="min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle>{t.fixedTitle}</CardTitle>
