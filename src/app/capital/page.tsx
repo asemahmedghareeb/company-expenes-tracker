@@ -82,6 +82,11 @@ export default async function CapitalPage() {
         amount: toNumber(x.amount),
         receivedByPartnerId: x.receivedByPartnerId,
       })),
+      expenses: p.expenses.map((e) => ({
+        amount: toNumber(e.amount),
+        paidById: e.paidById,
+        deductFromCustody: e.deductFromCustody,
+      })),
     })),
   );
   const settlements = suggestSettlements(rows);

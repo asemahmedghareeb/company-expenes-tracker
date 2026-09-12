@@ -32,11 +32,18 @@ export interface TreasurySplit {
   sharePercentage: number;
 }
 
+export interface TreasuryExpense {
+  amount: number;
+  paidById?: string | null;
+  deductFromCustody?: boolean;
+}
+
 export interface TreasuryProject {
   id: string;
   name?: string;
   splits: TreasurySplit[];
   payments: TreasuryPayment[];
+  expenses?: TreasuryExpense[];
 }
 
 export interface TreasuryPartner {
@@ -54,7 +61,7 @@ export interface ProjectCustodyLine {
 export interface PartnerCustody {
   partnerId: string;
   partnerName: string;
-  /** Σ payments where receivedByPartnerId === partner. */
+  /** Σ payments where receivedByPartnerId === partner minus custody expenses. */
   cashHeld: number;
   /** Σ (payment × frozen snapshot share) across all projects on the split. */
   earnedShare: number;
@@ -105,15 +112,52 @@ export function getTreasurySummary(
     // Accumulate per-project lines first so parts stay exact per payment.
     const heldBy = new Map<string, number>();
     const earnedBy = new Map<string, number>();
+
+    // 1. Inflows: Client payments received by partners
     for (const pay of project.payments) {
       heldBy.set(
         pay.receivedByPartnerId,
         round2((heldBy.get(pay.receivedByPartnerId) ?? 0) + pay.amount),
       );
-      for (const [pid, part] of splitPayment(pay.amount, project.splits)) {
-        earnedBy.set(pid, round2((earnedBy.get(pid) ?? 0) + part));
+    }
+
+    // 2. Outflows: Deduct expenses paid from project/contract custody
+    const expenses = project.expenses ?? [];
+    for (const exp of expenses) {
+      if (!exp.deductFromCustody && exp.deductFromCustody !== undefined) continue;
+      if (exp.paidById && heldBy.has(exp.paidById)) {
+        heldBy.set(
+          exp.paidById,
+          round2((heldBy.get(exp.paidById) ?? 0) - exp.amount),
+        );
+      } else {
+        // Unassigned contract expense: deduct from the partner(s) holding positive cash in this project
+        let remainingExp = exp.amount;
+        for (const [pid, held] of heldBy.entries()) {
+          if (remainingExp <= 0) break;
+          if (held > 0) {
+            const deduct = Math.min(held, remainingExp);
+            heldBy.set(pid, round2(held - deduct));
+            remainingExp = round2(remainingExp - deduct);
+          }
+        }
+        if (remainingExp > 0 && heldBy.size > 0) {
+          const firstPid = heldBy.keys().next().value;
+          if (firstPid) {
+            heldBy.set(firstPid, round2((heldBy.get(firstPid) ?? 0) - remainingExp));
+          }
+        }
       }
     }
+
+    // 3. Net distributable cash for this project = sum of net cash held
+    const netProjectCash = round2(Math.max(0, sum([...heldBy.values()])));
+
+    // 4. Split net cash among partners by frozen snapshot shares
+    for (const [pid, part] of splitPayment(netProjectCash, project.splits)) {
+      earnedBy.set(pid, round2((earnedBy.get(pid) ?? 0) + part));
+    }
+
     const involved = new Set([...heldBy.keys(), ...earnedBy.keys()]);
     for (const pid of involved) {
       const row = byId.get(pid);
@@ -121,7 +165,7 @@ export function getTreasurySummary(
       // deactivated partner hidden from the listing) still moves cash, but
       // has no row to attribute — skip defensively, totals stay exact.
       if (!row) continue;
-      const held = heldBy.get(pid) ?? 0;
+      const held = Math.max(0, heldBy.get(pid) ?? 0);
       const earned = earnedBy.get(pid) ?? 0;
       row.cashHeld = round2(row.cashHeld + held);
       row.earnedShare = round2(row.earnedShare + earned);
