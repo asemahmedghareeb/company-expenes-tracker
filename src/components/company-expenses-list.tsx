@@ -78,8 +78,8 @@ export function CompanyExpensesList({
 }: CompanyExpensesListProps) {
   const t = dict[lang].company;
 
-  // 1. Kind filter: DEFAULT IS VARIABLE ("المصاريف المتغيرة")
-  const [kindFilter, setKindFilter] = useState<"VARIABLE" | "FIXED" | "ALL">("VARIABLE");
+  // 1. Kind filter: DEFAULT IS FIXED ("المصاريف الثابتة")
+  const [kindFilter, setKindFilter] = useState<"VARIABLE" | "FIXED" | "ALL">("FIXED");
 
   // 2. Month filter: DEFAULT IS ALL TIME ("ALL")
   const [monthFilter, setMonthFilter] = useState<string>("ALL");
@@ -133,7 +133,7 @@ export function CompanyExpensesList({
     return filteredItems.reduce((acc, it) => acc + it.expense.amount, 0);
   }, [filteredItems]);
 
-  const isDefaultFilter = kindFilter === "VARIABLE" && monthFilter === "ALL";
+  const isDefaultFilter = kindFilter === "FIXED" && monthFilter === "ALL";
 
   return (
     <div className="space-y-4 min-w-0">
@@ -142,28 +142,6 @@ export function CompanyExpensesList({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Kind Filter Tabs / Pills */}
           <div className="flex flex-wrap items-center gap-1.5 p-1 bg-muted/60 dark:bg-muted/40 rounded-lg border border-border/50">
-            <button
-              type="button"
-              onClick={() => setKindFilter("VARIABLE")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                kindFilter === "VARIABLE"
-                  ? "bg-background text-foreground shadow-sm border border-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-              }`}
-            >
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              <span>{lang === "ar" ? "المصاريف المتغيرة" : "Variable Expenses"}</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                  kindFilter === "VARIABLE"
-                    ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {variableCount}
-              </span>
-            </button>
-
             <button
               type="button"
               onClick={() => setKindFilter("FIXED")}
@@ -183,6 +161,28 @@ export function CompanyExpensesList({
                 }`}
               >
                 {fixedCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setKindFilter("VARIABLE")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                kindFilter === "VARIABLE"
+                  ? "bg-background text-foreground shadow-sm border border-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              <span>{lang === "ar" ? "المصاريف المتغيرة" : "Variable Expenses"}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                  kindFilter === "VARIABLE"
+                    ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {variableCount}
               </span>
             </button>
 
@@ -233,11 +233,11 @@ export function CompanyExpensesList({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setKindFilter("VARIABLE");
+                  setKindFilter("FIXED");
                   setMonthFilter("ALL");
                 }}
                 className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
-                title={lang === "ar" ? "إعادة تعيين للوضع الافتراضي (المتغيرة - كل الأوقات)" : "Reset to default"}
+                title={lang === "ar" ? "إعادة تعيين للوضع الافتراضي (الثابتة - كل الأوقات)" : "Reset to default"}
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{lang === "ar" ? "افتراضي" : "Reset"}</span>
@@ -615,6 +615,18 @@ export function CompanyExpensesList({
                   className="text-xs"
                 >
                   {lang === "ar" ? "عرض جميع المصاريف (الكل)" : "Show all expenses"}
+                </Button>
+              )}
+              {kindFilter === "FIXED" && variableCount > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setKindFilter("VARIABLE")}
+                  className="text-xs"
+                >
+                  {lang === "ar"
+                    ? `عرض المصاريف المتغيرة (${variableCount})`
+                    : `Show variable expenses (${variableCount})`}
                 </Button>
               )}
               {kindFilter === "VARIABLE" && fixedCount > 0 && (
