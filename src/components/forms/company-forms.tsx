@@ -774,6 +774,13 @@ export function CompanyPayoutForm({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
+  const [recipientId, setRecipientId] = useState("");
+  /** "company" = vault pays, "partner" = a partner pays directly */
+  const [payerSource, setPayerSource] = useState<"company" | "partner">("company");
+  const [paidByPartnerId, setPaidByPartnerId] = useState("");
+
+  const recipientName = partners.find((p) => p.id === recipientId)?.name ?? "";
+  const payerName = partners.find((p) => p.id === paidByPartnerId)?.name ?? "";
 
   return (
     <form
@@ -784,8 +791,9 @@ export function CompanyPayoutForm({
         setError(null);
         start(async () => {
           const res = await recordCompanyPayout({
-            partnerId: String(fd.get("partnerId") ?? ""),
+            partnerId: recipientId,
             expenseId: String(fd.get("expenseId") ?? ""),
+            paidByPartnerId: payerSource === "partner" ? paidByPartnerId : "",
             amount: Number(amount) || 0,
             notes: String(fd.get("notes") ?? ""),
             paidAt: fd.get("paidAt")
@@ -796,18 +804,26 @@ export function CompanyPayoutForm({
           else {
             (e.target as HTMLFormElement).reset();
             setAmount("");
+            setRecipientId("");
+            setPaidByPartnerId("");
+            setPayerSource("company");
             router.refresh();
           }
         });
       }}
     >
+      {/* Recipient partner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="grid gap-1">
           <Label>{t.colPartner}</Label>
           <select
-            name="partnerId"
             required
-            defaultValue=""
+            value={recipientId}
+            onChange={(e) => {
+              setRecipientId(e.target.value);
+              // Reset payer if same as new recipient
+              if (paidByPartnerId === e.target.value) setPaidByPartnerId("");
+            }}
             className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
           >
             <option value="">…</option>
@@ -834,6 +850,70 @@ export function CompanyPayoutForm({
           </select>
         </div>
       </div>
+
+      {/* Payer source toggle */}
+      <div className="grid gap-1">
+        <Label>{lang === "ar" ? "مصدر الدفع" : "Paid By"}</Label>
+        <div className="flex rounded-md overflow-hidden border border-input text-sm">
+          <button
+            type="button"
+            onClick={() => { setPayerSource("company"); setPaidByPartnerId(""); }}
+            className={cn(
+              "flex-1 px-3 py-1.5 font-medium transition-colors",
+              payerSource === "company"
+                ? "bg-primary text-primary-foreground"
+                : "bg-background hover:bg-muted/50 text-muted-foreground",
+            )}
+          >
+            {lang === "ar" ? "🏢 الشركة (الخزينة)" : "🏢 Company Vault"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setPayerSource("partner")}
+            className={cn(
+              "flex-1 px-3 py-1.5 font-medium transition-colors",
+              payerSource === "partner"
+                ? "bg-primary text-primary-foreground"
+                : "bg-background hover:bg-muted/50 text-muted-foreground",
+            )}
+          >
+            {lang === "ar" ? "🤝 شريك" : "🤝 Partner"}
+          </button>
+        </div>
+      </div>
+
+      {/* Partner payer selector (shown only when source = partner) */}
+      {payerSource === "partner" && (
+        <div className="space-y-2 animate-rise">
+          <div className="grid gap-1">
+            <Label>{lang === "ar" ? "الشريك الدافع" : "Paying Partner"}</Label>
+            <select
+              required
+              value={paidByPartnerId}
+              onChange={(e) => setPaidByPartnerId(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
+            >
+              <option value="">…</option>
+              {partners
+                .filter((p) => p.id !== recipientId)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+          {paidByPartnerId && recipientId && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/60 px-3 py-2 text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+              {lang === "ar"
+                ? `✅ سيدفع ${payerName} المبلغ مباشرةً لـ ${recipientName || "المستفيد"} — وسيُضاف هذا المبلغ كمستحق لـ ${payerName} في رصيده الخاص.`
+                : `✅ ${payerName} will hand cash directly to ${recipientName || "recipient"} — ${payerName} gains an equivalent credit in their own balance.`}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Amount + Date */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="grid gap-1">
           <Label>{t.amount}</Label>

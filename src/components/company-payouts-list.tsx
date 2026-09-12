@@ -10,8 +10,11 @@ export interface CompanyPayoutItem {
   id: string;
   amount: number;
   paidAt: string | Date;
+  notes?: string | null;
   partner: { id: string; name: string };
   expense: { id: string; title: string } | null;
+  /** Set when a partner (not the company) physically funded the reimbursement. */
+  paidBy?: { id: string; name: string } | null;
 }
 
 interface CompanyPayoutsListProps {
@@ -40,21 +43,33 @@ export function CompanyPayoutsList({ payouts, lang }: CompanyPayoutsListProps) {
         {paginatedPayouts.map((x) => (
           <div
             key={x.id}
-            className="flex items-center justify-between gap-2 rounded-lg border border-border p-2 text-sm"
+            className="flex items-start justify-between gap-2 rounded-lg border border-border p-2 text-sm"
           >
-            <span className="min-w-0 flex-1 truncate">
-              <span className="font-medium text-foreground">{x.partner.name}</span> ·{" "}
+            <span className="min-w-0 flex-1 leading-relaxed">
+              <span className="font-medium text-foreground">{x.partner.name}</span>
+              {" · "}
               <span className="font-mono">{formatEGP(x.amount, lang)}</span>
               {x.expense && (
                 <span className="text-muted-foreground text-xs">
-                  {" "}
-                  · {t.payoutTo} {x.expense.title}
+                  {" · "}{t.payoutTo} {x.expense.title}
                 </span>
               )}
               <span className="text-muted-foreground text-xs">
-                {" "}
-                · {formatDate(x.paidAt, lang)}
+                {" · "}{formatDate(x.paidAt, lang)}
               </span>
+              {/* P2P badge */}
+              {x.paidBy ? (
+                <span className="mt-0.5 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+                  🤝 {lang === "ar" ? `دُفع بواسطة: ${x.paidBy.name}` : `Paid by: ${x.paidBy.name}`}
+                </span>
+              ) : (
+                <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground/60">
+                  🏢 {lang === "ar" ? "الشركة" : "Company Vault"}
+                </span>
+              )}
+              {x.notes && (
+                <span className="mt-0.5 block text-xs text-muted-foreground truncate">{x.notes}</span>
+              )}
             </span>
             <DeleteCompanyPayoutButton id={x.id} lang={lang} />
           </div>
@@ -73,3 +88,4 @@ export function CompanyPayoutsList({ payouts, lang }: CompanyPayoutsListProps) {
     </div>
   );
 }
+

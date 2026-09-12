@@ -198,7 +198,9 @@ export async function addCompanyExpenseWithPayments(
 
 /* ------------------ Firm → partner payouts (settling credit) ------------------ */
 
-/** Record cash the firm paid BACK to a partner (settles pending company credit). */
+/** Record cash the firm paid BACK to a partner (settles pending company credit).
+ *  When `paidByPartnerId` is set, a partner (not the vault) handed the cash — they get a credit in return.
+ */
 export async function recordCompanyPayout(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
@@ -210,33 +212,43 @@ export async function recordCompanyPayout(
       fieldErrors: zodFieldErrors(parsed.error),
     };
   }
+  const { partnerId, amount, notes, paidAt } = parsed.data;
   const expenseId =
     parsed.data.expenseId && parsed.data.expenseId !== ""
       ? parsed.data.expenseId
       : null;
-  const [partner, expense] = await Promise.all([
-    db.partner.findUnique({
-      where: { id: parsed.data.partnerId },
-      select: { id: true },
-    }),
+  const paidByPartnerId =
+    parsed.data.paidByPartnerId && parsed.data.paidByPartnerId !== ""
+      ? parsed.data.paidByPartnerId
+      : null;
+
+  if (paidByPartnerId && paidByPartnerId === partnerId) {
+    return { ok: false, error: "الشريك الدافع لا يمكن أن يكون نفس المستفيد." };
+  }
+
+  const [partner, expense, payer] = await Promise.all([
+    db.partner.findUnique({ where: { id: partnerId }, select: { id: true } }),
     expenseId
-      ? db.companyExpense.findUnique({
-          where: { id: expenseId },
-          select: { id: true },
-        })
+      ? db.companyExpense.findUnique({ where: { id: expenseId }, select: { id: true } })
+      : Promise.resolve(null),
+    paidByPartnerId
+      ? db.partner.findUnique({ where: { id: paidByPartnerId }, select: { id: true } })
       : Promise.resolve(null),
   ]);
+
   if (!partner) return { ok: false, error: "Partner not found." };
   if (expenseId && !expense) return { ok: false, error: "Expense not found." };
+  if (paidByPartnerId && !payer) return { ok: false, error: "Paying partner not found." };
 
   try {
     const payout = await db.companyPayout.create({
       data: {
-        partnerId: parsed.data.partnerId,
+        partnerId,
         expenseId,
-        amount: parsed.data.amount,
-        notes: parsed.data.notes || null,
-        paidAt: parsed.data.paidAt,
+        paidByPartnerId,
+        amount,
+        notes: notes || null,
+        paidAt,
       },
     });
     revalidateCompany();

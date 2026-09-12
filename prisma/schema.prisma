@@ -31,6 +31,8 @@ model Partner {
   drawings               PartnerDrawing[]
   companyPayments        CompanyExpensePayment[]
   companyPayouts         CompanyPayout[]
+  /// Payouts this partner physically funded (partner-to-partner reimbursements).
+  companyPayoutsPaid     CompanyPayout[]  @relation("PayoutPaidBy")
   /// Client payments physically received into this partner's custody.
   custodyPayments        ClientPayment[]  @relation("PaymentsReceivedInCustody")
   settlementDistributions PartnerSettlementDistribution[]
@@ -180,12 +182,16 @@ model CompanyPayout {
   notes     String?
   paidAt    DateTime @default(now())
   createdAt DateTime @default(now())
+  /// When set: a partner (not the company vault) physically handed cash to the recipient.
+  paidByPartnerId String?
 
   partner Partner         @relation(fields: [partnerId], references: [id], onDelete: Restrict)
   expense CompanyExpense? @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  paidBy  Partner?        @relation("PayoutPaidBy", fields: [paidByPartnerId], references: [id], onDelete: Restrict)
 
   @@index([partnerId])
   @@index([expenseId])
+  @@index([paidByPartnerId])
   @@map("company_payouts")
 }
 

@@ -298,6 +298,8 @@ export interface CompanyPayoutInput {
   partnerId: string;
   amount: number;
   expenseId?: string;
+  /** When set: this partner physically funded the payout (P2P), so they gain an equivalent credit. */
+  paidByPartnerId?: string;
 }
 
 export interface CompanyExpenseInput {
@@ -398,6 +400,8 @@ export function getCompanyExpenseSettlement(
 /**
  * Per-partner net across ALL company bills: paid − share − payouts (signed).
  * `loosePayouts` = firm→partner payouts not linked to any bill.
+ * P2P payouts: when `paidByPartnerId` is set, the paying partner gets a credit
+ * (they funded someone else's reimbursement, so the company now owes them).
  */
 export function getPartnerCompanyNet(
   partnerId: string,
@@ -433,18 +437,41 @@ export function getPartnerCompanyNet(
       });
     }
   }
-  for (const x of loosePayouts) {
-    if (x.partnerId !== partnerId) continue;
-    payout = round2(payout + x.amount);
-    lines.push({
-      expenseId: "",
-      title: undefined,
-      share: 0,
-      paid: 0,
-      payout: round2(x.amount),
-      net: round2(-x.amount),
-    });
+
+  // Collect all payouts (loose + from expenses) so we can process P2P credits
+  const allPayouts: CompanyPayoutInput[] = [
+    ...loosePayouts,
+    ...expenses.flatMap((e) => (e.payouts ?? []).map((p) => ({ ...p, expenseId: p.expenseId ?? e.id }))),
+  ];
+
+  for (const x of allPayouts) {
+    // Partner received a payout (already handled per-bill above; skip bill-scoped ones here)
+    if (x.partnerId === partnerId && !x.expenseId) {
+      // Loose payout received
+      payout = round2(payout + x.amount);
+      lines.push({
+        expenseId: "",
+        title: undefined,
+        share: 0,
+        paid: 0,
+        payout: round2(x.amount),
+        net: round2(-x.amount),
+      });
+    }
+    // P2P: this partner PAID someone else's reimbursement → earns a credit
+    if (x.paidByPartnerId && x.paidByPartnerId === partnerId) {
+      paid = round2(paid + x.amount);
+      lines.push({
+        expenseId: x.expenseId ?? "",
+        title: "رد مبلغ (دُفع منك)",
+        share: 0,
+        paid: round2(x.amount),
+        payout: 0,
+        net: round2(x.amount),
+      });
+    }
   }
+
   return { share, paid, payout, net: round2(paid - share - payout), lines };
 }
 

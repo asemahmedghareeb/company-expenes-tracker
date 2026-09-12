@@ -289,6 +289,8 @@ export type CompanyPaymentInput = z.infer<typeof companyPaymentSchema>;
 export const companyPayoutSchema = z.object({
   partnerId: cuid,
   expenseId: cuid.optional().or(z.literal("")),
+  /// Optional: when a partner (not company vault) physically hands cash to the recipient.
+  paidByPartnerId: cuid.optional().or(z.literal("")),
   amount: moneyAmount,
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
   paidAt: z.coerce.date().default(() => new Date()),

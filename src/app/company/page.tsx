@@ -154,8 +154,10 @@ export default async function CompanyPage() {
                   id: x.id,
                   amount: Number(x.amount),
                   paidAt: x.paidAt.toISOString(),
+                  notes: x.notes,
                   partner: { id: x.partner.id, name: x.partner.name },
                   expense: x.expense ? { id: x.expense.id, title: x.expense.title } : null,
+                  paidBy: x.paidBy ? { id: x.paidBy.id, name: x.paidBy.name } : null,
                 }))}
               />
             </CardContent>
