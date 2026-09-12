@@ -423,6 +423,7 @@ export default async function ProjectDetailPage({
         <CardContent>
           <PaginatedProjectExpensesTable
             projectId={project.id}
+            partners={partners.map((p) => ({ id: p.id, name: p.name }))}
             lang={lang}
             expenses={project.expenses.map((e) => ({
               id: e.id,

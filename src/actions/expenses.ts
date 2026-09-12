@@ -236,3 +236,47 @@ export async function deleteExpense(
 export async function deleteProjectExpense(id: string, projectId: string) {
   return deleteExpense(id, projectId);
 }
+
+export async function updateProjectExpense(
+  id: string,
+  raw: {
+    projectId: string;
+    description: string;
+    amount: number;
+    expenseDate: Date;
+    paidById: string | null;
+    deductFromCustody?: boolean;
+  },
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const isClientCovered =
+      !raw.paidById ||
+      raw.paidById === CLIENT_PAYER ||
+      raw.paidById === "null" ||
+      raw.paidById === "undefined";
+
+    const deductFromCustody = isClientCovered || Boolean(raw.deductFromCustody);
+
+    await db.expense.update({
+      where: { id },
+      data: {
+        description: raw.description,
+        amount: raw.amount,
+        expenseDate: raw.expenseDate,
+        paidById: isClientCovered ? null : raw.paidById,
+        deductFromCustody,
+        isReimbursed: deductFromCustody,
+        reimbursedAt: deductFromCustody ? new Date() : null,
+      },
+    });
+
+    revalidateFinance(raw.projectId);
+    return { ok: true, data: { id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to update expense.",
+    };
+  }
+}
+

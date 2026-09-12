@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Trash2, Wallet, Check, ChevronDown, Plus, X } from "lucide-react";
+import { AlertCircle, Trash2, Wallet, Check, ChevronDown, Plus, Pencil, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
   deleteExpense,
   logProjectExpense,
   markExpenseReimbursed,
+  updateProjectExpense,
 } from "@/actions/expenses";
 import {
   recordPartnerDrawing,
@@ -1196,3 +1197,196 @@ export function AddProjectExpenseDialog({
     </>
   );
 }
+
+/* ---------------------------- Edit Project Expense Dialog ---------------------------- */
+
+export function EditProjectExpenseDialog({
+  expense,
+  projectId,
+  partners,
+  lang,
+}: {
+  expense: {
+    id: string;
+    description: string;
+    amount: number;
+    expenseDate: string | Date;
+    paidById?: string | null;
+    deductFromCustody: boolean;
+  };
+  projectId: string;
+  partners: { id: string; name: string }[];
+  lang: Lang;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const isAr = lang === "ar";
+  const defaultDate = expense.expenseDate
+    ? new Date(expense.expenseDate).toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+
+  const defaultPayer =
+    expense.deductFromCustody && !expense.paidById
+      ? CLIENT_PAYER
+      : expense.paidById ?? CLIENT_PAYER;
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        title={isAr ? "تعديل المصروف وطريقة السداد" : "Edit expense & payer"}
+        aria-label={isAr ? "تعديل المصروف وطريقة السداد" : "Edit expense & payer"}
+        onClick={() => setOpen(true)}
+        className="h-7 w-7 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md" dir={isAr ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle>
+              {isAr ? "تعديل المصروف وطريقة الدفع" : "Edit Expense & Payment Source"}
+            </DialogTitle>
+            <DialogDescription>
+              {isAr
+                ? "يمكنك تعديل بيان المصروف أو تغيير من دفعه وجعله مخصوماً من عهدة العقد أو مدفوعاً من شريك."
+                : "Modify expense details or switch payer to contract custody / partner out-of-pocket."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <form
+              className="space-y-4 pt-1"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                const description = String(fd.get("description") ?? "").trim();
+                const amount = Number(fd.get("amount") ?? 0);
+                const payer = String(fd.get("payer") ?? CLIENT_PAYER);
+                const expenseDate = fd.get("expenseDate")
+                  ? new Date(String(fd.get("expenseDate")))
+                  : new Date();
+
+                if (!description || amount <= 0) return;
+
+                const isClientCovered = payer === CLIENT_PAYER;
+                setError(null);
+                start(async () => {
+                  const res = await updateProjectExpense(expense.id, {
+                    projectId,
+                    description,
+                    amount,
+                    expenseDate,
+                    paidById: isClientCovered ? null : payer,
+                    deductFromCustody: isClientCovered,
+                  });
+                  if (!res.ok) {
+                    setError(res.error);
+                  } else {
+                    setOpen(false);
+                    router.refresh();
+                  }
+                });
+              }}
+            >
+              <div className="grid gap-1.5">
+                <Label>{isAr ? "اسم / وصف المصروف" : "Expense Name / Description"}</Label>
+                <Input
+                  name="description"
+                  defaultValue={expense.description}
+                  required
+                  maxLength={150}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>{isAr ? "المبلغ (ج.م.)" : "Amount (EGP)"}</Label>
+                  <Input
+                    name="amount"
+                    type="number"
+                    min={0.01}
+                    step={0.01}
+                    defaultValue={expense.amount}
+                    required
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>{isAr ? "تاريخ المصروف" : "Expense Date"}</Label>
+                  <Input
+                    name="expenseDate"
+                    type="date"
+                    defaultValue={defaultDate}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label>{isAr ? "طريقة السداد / الدافع" : "Payment Source / Payer"}</Label>
+                <select
+                  name="payer"
+                  defaultValue={defaultPayer}
+                  className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm"
+                >
+                  <option value={CLIENT_PAYER}>
+                    {isAr
+                      ? "خصم من أموال / عهدة العقد (الافتراضي)"
+                      : "From Contract / Project Funds (Default)"}
+                  </option>
+                  {partners.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {isAr ? `شريك دافع من جيبه: ${p.name}` : `Paid Out of Pocket by: ${p.name}`}
+                    </option>
+                  ))}
+                </select>
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-[11px] text-muted-foreground space-y-1">
+                  <p className="font-semibold text-foreground">
+                    {isAr ? "💡 توضيح طريقة السداد:" : "💡 Payment Source Note:"}
+                  </p>
+                  <p>
+                    {isAr
+                      ? "• «خصم من أموال العقد»: يُسدد المصروف مباشرة من ميزانية المشروع ولا يُسجل أي دين للشريك."
+                      : "• Contract Funds: Settles directly from project budget; no partner debt."}
+                  </p>
+                  <p>
+                    {isAr
+                      ? "• «شريك دافع من جيبه»: يُسجل المبلغ كحق مستحق للشريك بانتظار استرداده في التسوية."
+                      : "• Partner Out-of-pocket: Records amount as an out-of-pocket claim to be reimbursed."}
+                  </p>
+                </div>
+              </div>
+
+              {error && <p className="text-xs text-destructive">{error}</p>}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={pending}
+                >
+                  {isAr ? "إلغاء" : "Cancel"}
+                </Button>
+                <Button type="submit" disabled={pending}>
+                  {pending
+                    ? isAr
+                      ? "جاري الحفظ..."
+                      : "Saving..."
+                    : isAr
+                      ? "حفظ التعديلات"
+                      : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+

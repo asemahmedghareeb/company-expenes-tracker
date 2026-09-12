@@ -17,6 +17,7 @@ import { Pagination } from "@/components/ui/pagination";
 import {
   DeleteClientPaymentButton,
   DeleteExpenseButton,
+  EditProjectExpenseDialog,
   ReimburseButton,
 } from "@/components/forms/transaction-forms";
 
@@ -113,10 +114,12 @@ export interface ProjectExpenseRowData {
 export function PaginatedProjectExpensesTable({
   expenses,
   projectId,
+  partners = [],
   lang,
 }: {
   expenses: ProjectExpenseRowData[];
   projectId: string;
+  partners?: { id: string; name: string }[];
   lang: Lang;
 }) {
   const td = dict[lang].projectDetail;
@@ -179,6 +182,19 @@ export function PaginatedProjectExpensesTable({
               </TableCell>
               <TableCell className="text-end">
                 <div className="flex items-center justify-end gap-1">
+                  <EditProjectExpenseDialog
+                    expense={{
+                      id: e.id,
+                      description: e.description,
+                      amount: e.amount,
+                      expenseDate: e.expenseDate,
+                      paidById: e.paidBy?.id ?? null,
+                      deductFromCustody: e.deductFromCustody,
+                    }}
+                    projectId={projectId}
+                    partners={partners}
+                    lang={lang}
+                  />
                   {e.paidBy && !e.deductFromCustody && (
                     <ReimburseButton
                       expenseId={e.id}
