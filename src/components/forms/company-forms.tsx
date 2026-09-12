@@ -780,8 +780,6 @@ export function CompanyPayoutForm({
   const [expenseId, setExpenseId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
-  /** "company" = vault pays, "partner" = one or more partners pay directly */
-  const [payerSource, setPayerSource] = useState<"company" | "partner">("company");
   /** Checked partner IDs (multi-select) */
   const [checkedPayers, setCheckedPayers] = useState<Set<string>>(new Set());
   /** Per-partner amount overrides (empty string = auto from split) */
@@ -808,7 +806,6 @@ export function CompanyPayoutForm({
     setExpenseId("");
     setNotes("");
     setDate(new Date().toISOString().slice(0, 10));
-    setPayerSource("company");
     setCheckedPayers(new Set());
     setPayerAmounts({});
     setIsExpanded(false);
@@ -818,34 +815,30 @@ export function CompanyPayoutForm({
     e.preventDefault();
     setError(null);
 
-    start(async () => {
-      let res: { ok: boolean; error?: string };
+    if (!recipientId) {
+      setError(lang === "ar" ? "يرجى اختيار الشريك المستفيد" : "Please select recipient partner");
+      return;
+    }
+    if (checkedList.length === 0) {
+      setError(lang === "ar" ? "يرجى تحديد شريك دافع واحد على الأقل" : "Please select at least one paying partner");
+      return;
+    }
+    if (!isBalanced) {
+      setError(lang === "ar" ? "مجموع مبالغ الشركاء لا يتطابق مع الإجمالي" : "Assigned amounts do not match total amount");
+      return;
+    }
 
-      if (payerSource === "company") {
-        // Single company-funded payout
-        const r = await recordCompanyPayout({
-          partnerId: recipientId,
-          expenseId,
-          paidByPartnerId: "",
-          amount: totalNum,
-          notes,
-          paidAt: new Date(date),
-        });
-        res = r;
-      } else {
-        // Multi-payer: use bulk action
-        const r = await recordCompanyPayoutBulk({
-          partnerId: recipientId,
-          expenseId: expenseId || undefined,
-          notes: notes || undefined,
-          paidAt: new Date(date),
-          payers: checkedList.map((p) => ({
-            partnerId: p.id,
-            amount: getPayerAmount(p.id),
-          })),
-        });
-        res = r;
-      }
+    start(async () => {
+      const res = await recordCompanyPayoutBulk({
+        partnerId: recipientId,
+        expenseId: expenseId || undefined,
+        notes: notes || undefined,
+        paidAt: new Date(date),
+        payers: checkedList.map((p) => ({
+          partnerId: p.id,
+          amount: getPayerAmount(p.id),
+        })),
+      });
 
       if (!res.ok) {
         setError(res.error ?? "حدث خطأ");
@@ -872,7 +865,7 @@ export function CompanyPayoutForm({
                 {t.payoutTitle}
               </CardTitle>
               <CardDescription className="text-xs truncate">
-                {t.payoutDesc}
+                {lang === "ar" ? "سداد ورد مبالغ بين الشركاء مباشرةً" : t.payoutDesc}
               </CardDescription>
             </div>
           </div>
@@ -912,7 +905,7 @@ export function CompanyPayoutForm({
             {/* Recipient + Bill */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-1">
-                <Label>{t.colPartner}</Label>
+                <Label>{lang === "ar" ? "الشريك المستفيد (يستلم المبلغ)" : t.colPartner}</Label>
                 <select
                   required
                   value={recipientId}
@@ -948,37 +941,6 @@ export function CompanyPayoutForm({
               </div>
             </div>
 
-            {/* Payer source toggle */}
-            <div className="grid gap-1">
-              <Label>{lang === "ar" ? "مصدر الدفع" : "Paid By"}</Label>
-              <div className="flex rounded-md overflow-hidden border border-input text-sm">
-                <button
-                  type="button"
-                  onClick={() => { setPayerSource("company"); setCheckedPayers(new Set()); setPayerAmounts({}); }}
-                  className={cn(
-                    "flex-1 px-3 py-1.5 font-medium transition-colors",
-                    payerSource === "company"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background hover:bg-muted/50 text-muted-foreground",
-                  )}
-                >
-                  {lang === "ar" ? "🏢 الشركة (الخزينة)" : "🏢 Company Vault"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPayerSource("partner")}
-                  className={cn(
-                    "flex-1 px-3 py-1.5 font-medium transition-colors",
-                    payerSource === "partner"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background hover:bg-muted/50 text-muted-foreground",
-                  )}
-                >
-                  {lang === "ar" ? "🤝 شريك (أو أكثر)" : "🤝 Partner(s)"}
-                </button>
-              </div>
-            </div>
-
             {/* Amount + Date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-1">
@@ -1003,74 +965,101 @@ export function CompanyPayoutForm({
               </div>
             </div>
 
-            {/* Multi-payer checkboxes (partner mode) */}
-            {payerSource === "partner" && availablePayers.length > 0 && (
-              <div className="space-y-2 animate-rise">
-                <Label>{lang === "ar" ? "الشركاء الدافعون (اختر واحد أو أكثر)" : "Paying Partners (select one or more)"}</Label>
-                <div className="rounded-lg border border-border divide-y divide-border/60">
-                  {availablePayers.map((p) => {
-                    const checked = checkedPayers.has(p.id);
-                    const autoAmt = checked ? getPayerAmount(p.id) : 0;
-                    return (
-                      <div key={p.id} className="flex items-center gap-3 p-2.5">
-                        <input
-                          type="checkbox"
-                          id={`payer-${p.id}`}
-                          checked={checked}
-                          onChange={(e) => {
-                            setCheckedPayers((prev) => {
-                              const next = new Set(prev);
-                              if (e.target.checked) next.add(p.id);
-                              else {
-                                next.delete(p.id);
-                                setPayerAmounts((pa) => { const n = { ...pa }; delete n[p.id]; return n; });
-                              }
-                              return next;
-                            });
-                          }}
-                          className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
-                        />
-                        <label htmlFor={`payer-${p.id}`} className="flex-1 text-sm font-medium cursor-pointer select-none">
-                          {p.name}
-                        </label>
-                        {checked && (
-                          <div className="flex items-center gap-1.5">
-                            <Input
-                              className="w-24 h-7 text-xs text-right font-mono"
-                              value={payerAmounts[p.id] ?? String(autoAmt)}
-                              onChange={(e) =>
-                                setPayerAmounts((pa) => ({
-                                  ...pa,
-                                  [p.id]: sanitizeNumericInput(e.target.value),
-                                }))
-                              }
-                              placeholder="0"
-                            />
-                            <span className="text-xs text-muted-foreground">ج.م</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Balance indicator */}
-                {checkedList.length > 0 && totalNum > 0 && (
-                  <div className={cn(
-                    "rounded-lg px-3 py-2 text-xs leading-relaxed",
-                    isBalanced
-                      ? "border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200"
-                      : "border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/60 text-red-700 dark:text-red-300",
-                  )}>
-                    {isBalanced
-                      ? `✅ ${checkedList.map((p) => `${p.name}: ${formatEGP(getPayerAmount(p.id), lang)}`).join(" • ")} — ${lang === "ar" ? "المجموع متساوٍ" : "totals match"}`
-                      : `⚠️ ${lang === "ar" ? `المبالغ المحددة ${formatEGP(totalAssigned, lang)} ≠ الإجمالي ${formatEGP(totalNum, lang)}` : `Assigned ${formatEGP(totalAssigned, lang)} ≠ total ${formatEGP(totalNum, lang)}`}`}
+            {/* Multi-payer checkboxes */}
+            {recipientId ? (
+              availablePayers.length > 0 ? (
+                <div className="space-y-2 animate-rise">
+                  <Label>
+                    {lang === "ar"
+                      ? "الشركاء الدافعون (اختر واحد أو أكثر)"
+                      : "Paying Partners (select one or more)"}
+                  </Label>
+                  <div className="rounded-lg border border-border divide-y divide-border/60">
+                    {availablePayers.map((p) => {
+                      const checked = checkedPayers.has(p.id);
+                      const autoAmt = checked ? getPayerAmount(p.id) : 0;
+                      return (
+                        <div key={p.id} className="flex items-center gap-3 p-2.5">
+                          <input
+                            type="checkbox"
+                            id={`payer-${p.id}`}
+                            checked={checked}
+                            onChange={(e) => {
+                              setCheckedPayers((prev) => {
+                                const next = new Set(prev);
+                                if (e.target.checked) next.add(p.id);
+                                else {
+                                  next.delete(p.id);
+                                  setPayerAmounts((pa) => {
+                                    const n = { ...pa };
+                                    delete n[p.id];
+                                    return n;
+                                  });
+                                }
+                                return next;
+                              });
+                            }}
+                            className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                          />
+                          <label
+                            htmlFor={`payer-${p.id}`}
+                            className="flex-1 text-sm font-medium cursor-pointer select-none"
+                          >
+                            {p.name}
+                          </label>
+                          {checked && (
+                            <div className="flex items-center gap-1.5">
+                              <Input
+                                className="w-24 h-7 text-xs text-right font-mono"
+                                value={payerAmounts[p.id] ?? String(autoAmt)}
+                                onChange={(e) =>
+                                  setPayerAmounts((pa) => ({
+                                    ...pa,
+                                    [p.id]: sanitizeNumericInput(e.target.value),
+                                  }))
+                                }
+                                placeholder="0"
+                              />
+                              <span className="text-xs text-muted-foreground">ج.م</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-                {checkedList.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {lang === "ar" ? "☝️ اختر شريكاً دافعاً واحداً على الأقل" : "☝️ Select at least one paying partner"}
-                  </p>
-                )}
+                  {/* Balance indicator */}
+                  {checkedList.length > 0 && totalNum > 0 && (
+                    <div
+                      className={cn(
+                        "rounded-lg px-3 py-2 text-xs leading-relaxed",
+                        isBalanced
+                          ? "border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200"
+                          : "border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/60 text-red-700 dark:text-red-300",
+                      )}
+                    >
+                      {isBalanced
+                        ? `✅ ${checkedList.map((p) => `${p.name}: ${formatEGP(getPayerAmount(p.id), lang)}`).join(" • ")} — ${lang === "ar" ? "المجموع متساوٍ" : "totals match"}`
+                        : `⚠️ ${lang === "ar" ? `المبالغ المحددة ${formatEGP(totalAssigned, lang)} ≠ الإجمالي ${formatEGP(totalNum, lang)}` : `Assigned ${formatEGP(totalAssigned, lang)} ≠ total ${formatEGP(totalNum, lang)}`}`}
+                    </div>
+                  )}
+                  {checkedList.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {lang === "ar"
+                        ? "☝️ اختر شريكاً دافعاً واحداً على الأقل"
+                        : "☝️ Select at least one paying partner"}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {lang === "ar" ? "لا يوجد شركاء آخرون للدفع" : "No other partners available to pay"}
+                </p>
+              )
+            ) : (
+              <div className="rounded-lg border border-dashed border-muted-foreground/30 p-3 text-center text-xs text-muted-foreground">
+                {lang === "ar"
+                  ? "☝️ اختر الشريك المستفيد أولاً لاختيار الشركاء الدافعين"
+                  : "☝️ Select recipient partner first"}
               </div>
             )}
 
@@ -1089,7 +1078,10 @@ export function CompanyPayoutForm({
               type="submit"
               disabled={
                 pending ||
-                (payerSource === "partner" && (checkedList.length === 0 || !isBalanced))
+                !recipientId ||
+                totalNum <= 0 ||
+                checkedList.length === 0 ||
+                !isBalanced
               }
               className="w-full"
             >
