@@ -46,6 +46,12 @@ export interface TreasuryProject {
   expenses?: TreasuryExpense[];
 }
 
+export interface TreasurySettlement {
+  id: string;
+  projectId?: string | null;
+  totalAmount: number;
+}
+
 export interface TreasuryPartner {
   id: string;
   name: string;
@@ -61,7 +67,7 @@ export interface ProjectCustodyLine {
 export interface PartnerCustody {
   partnerId: string;
   partnerName: string;
-  /** Σ payments where receivedByPartnerId === partner minus custody expenses. */
+  /** Σ payments where receivedByPartnerId === partner minus custody expenses and settlements. */
   cashHeld: number;
   /** Σ (payment × frozen snapshot share) across all projects on the split. */
   earnedShare: number;
@@ -97,6 +103,7 @@ function splitPayment(
 export function getTreasurySummary(
   partners: TreasuryPartner[],
   projects: TreasuryProject[],
+  settlements: TreasurySettlement[] = [],
 ): TreasurySummary {
   const rows: PartnerCustody[] = partners.map((p) => ({
     partnerId: p.id,
@@ -150,10 +157,30 @@ export function getTreasurySummary(
       }
     }
 
-    // 3. Net distributable cash for this project = sum of net cash held
+    // 3. Outflows: Deduct project settlements (cash already distributed/withdrawn out of custody)
+    const projectSettlements = settlements.filter((s) => s.projectId === project.id);
+    for (const s of projectSettlements) {
+      let remainingSettled = s.totalAmount;
+      for (const [pid, held] of heldBy.entries()) {
+        if (remainingSettled <= 0) break;
+        if (held > 0) {
+          const deduct = Math.min(held, remainingSettled);
+          heldBy.set(pid, round2(held - deduct));
+          remainingSettled = round2(remainingSettled - deduct);
+        }
+      }
+      if (remainingSettled > 0 && heldBy.size > 0) {
+        const firstPid = heldBy.keys().next().value;
+        if (firstPid) {
+          heldBy.set(firstPid, round2((heldBy.get(firstPid) ?? 0) - remainingSettled));
+        }
+      }
+    }
+
+    // 4. Net remaining un-settled cash for this project = sum of net cash held
     const netProjectCash = round2(Math.max(0, sum([...heldBy.values()])));
 
-    // 4. Split net cash among partners by frozen snapshot shares
+    // 5. Split remaining un-settled cash among partners by frozen snapshot shares
     for (const [pid, part] of splitPayment(netProjectCash, project.splits)) {
       earnedBy.set(pid, round2((earnedBy.get(pid) ?? 0) + part));
     }
@@ -161,9 +188,6 @@ export function getTreasurySummary(
     const involved = new Set([...heldBy.keys(), ...earnedBy.keys()]);
     for (const pid of involved) {
       const row = byId.get(pid);
-      // Receiver/split member outside the current partner list (e.g. a
-      // deactivated partner hidden from the listing) still moves cash, but
-      // has no row to attribute — skip defensively, totals stay exact.
       if (!row) continue;
       const held = Math.max(0, heldBy.get(pid) ?? 0);
       const earned = earnedBy.get(pid) ?? 0;
@@ -176,6 +200,20 @@ export function getTreasurySummary(
           held,
           earned,
         });
+      }
+    }
+  }
+
+  // 6. Deduct general / scope='ALL' executed settlements (if any)
+  const generalSettlements = settlements.filter((s) => !s.projectId);
+  for (const s of generalSettlements) {
+    let remaining = s.totalAmount;
+    for (const row of rows) {
+      if (remaining <= 0) break;
+      if (row.cashHeld > 0) {
+        const deduct = Math.min(row.cashHeld, remaining);
+        row.cashHeld = round2(row.cashHeld - deduct);
+        remaining = round2(remaining - deduct);
       }
     }
   }

@@ -76,6 +76,12 @@ export async function getProjectDetail(id: string) {
           paidBy: { select: { id: true, name: true } },
         },
       },
+      settlements: {
+        select: {
+          id: true,
+          totalAmount: true,
+        },
+      },
     },
   });
   if (!project) return null;
@@ -120,6 +126,9 @@ export async function getProjectDetail(id: string) {
         amount: toNumber(e.amount),
         paidById: e.paidById,
         deductFromCustody: e.deductFromCustody,
+      })),
+      settlements: project.settlements.map((s) => ({
+        totalAmount: toNumber(s.totalAmount),
       })),
     },
     project.projectPartners.map((s) => ({

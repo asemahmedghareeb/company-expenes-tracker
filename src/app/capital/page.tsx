@@ -57,11 +57,14 @@ export default async function CapitalPage() {
   const dialogProjects = projects.map((p) => {
     const inflow = p.clientPayments.reduce((acc, pay) => acc + toNumber(pay.amount), 0);
     const outflow = p.expenses.reduce((acc, exp) => acc + toNumber(exp.amount), 0);
+    const settled = executedSettlements
+      .filter((s) => s.projectId === p.id)
+      .reduce((acc, s) => acc + toNumber(s.totalAmount), 0);
     return {
       id: p.id,
       name: p.name,
       contractValue: toNumber(p.contractValue),
-      netCash: Math.max(0, inflow - outflow),
+      netCash: Math.max(0, inflow - outflow - settled),
       splits: p.projectPartners.map((pp) => ({
         partnerId: pp.partnerId,
         sharePercentage: pp.sharePercentage,
@@ -87,6 +90,11 @@ export default async function CapitalPage() {
         paidById: e.paidById,
         deductFromCustody: e.deductFromCustody,
       })),
+    })),
+    executedSettlements.map((s) => ({
+      id: s.id,
+      projectId: s.projectId,
+      totalAmount: toNumber(s.totalAmount),
     })),
   );
   const settlements = suggestSettlements(rows);

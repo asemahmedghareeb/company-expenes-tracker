@@ -980,6 +980,9 @@ export function getProjectCustodyBreakdown(
       paidByPartnerId?: string | null;
       deductFromCustody?: boolean;
     }[];
+    settlements?: {
+      totalAmount: number;
+    }[];
   },
   partners: { id: string; name: string }[],
 ): ProjectCustodySummary {
@@ -1067,6 +1070,30 @@ export function getProjectCustodyBreakdown(
     }
 
     // Re-sort after allocating unassigned outflow
+    partnerRows.sort((a, b) => b.netCustody - a.netCustody);
+  }
+
+  // Deduct executed settlements for this project (cash already distributed/withdrawn out of custody)
+  const totalSettled = round2(
+    sum((project.settlements ?? []).map((s) => s.totalAmount)),
+  );
+  if (totalSettled > 0) {
+    let remaining = totalSettled;
+    for (const row of partnerRows) {
+      if (remaining <= 0) break;
+      if (row.netCustody > 0) {
+        const toDeduct = Math.min(row.netCustody, remaining);
+        row.outflow = round2(row.outflow + toDeduct);
+        row.netCustody = round2(row.inflow - row.outflow);
+        row.isCashHolder = row.netCustody > 0.005;
+        remaining = round2(remaining - toDeduct);
+      }
+    }
+    if (remaining > 0 && partnerRows.length > 0) {
+      partnerRows[0]!.outflow = round2(partnerRows[0]!.outflow + remaining);
+      partnerRows[0]!.netCustody = round2(partnerRows[0]!.inflow - partnerRows[0]!.outflow);
+      partnerRows[0]!.isCashHolder = partnerRows[0]!.netCustody > 0.005;
+    }
     partnerRows.sort((a, b) => b.netCustody - a.netCustody);
   }
 
