@@ -7,11 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SplitsEditor, type SplitRow } from "./splits-editor";
 import { deleteProject, updateProject, updateProjectSplits } from "@/actions/projects";
 import { recordClientPayment } from "@/actions/payments";
 import {
   createExpense,
+  deleteExpense,
   logProjectExpense,
   markExpenseReimbursed,
 } from "@/actions/expenses";
@@ -158,17 +167,6 @@ export function PaymentForm({
 
 /* ------------------------------ Expense form ------------------------------ */
 
-const STANDARD_EXPENSE_CATEGORIES = [
-  { ar: "حجز دومين / نطاق (Domain)", en: "Domain Name Registration" },
-  { ar: "استضافة وسيرفرات (Hosting & Servers)", en: "Hosting & Server Infrastructure" },
-  { ar: "خدمات سحابية وتخزين (Cloud Services)", en: "Cloud Services (AWS, Vercel, Supabase)" },
-  { ar: "أدوات وتراخيص برمجية (Software Licenses)", en: "Software Licenses & Subscriptions" },
-  { ar: "تصميم وجرافيك وميديا (Design & Media)", en: "Design & Media Assets" },
-  { ar: "فريلانسر واستشارات خارجية (Freelancers)", en: "Freelancers & Contractors" },
-  { ar: "إعلانات وتسويق رقمي (Marketing & Ads)", en: "Digital Marketing & Advertising" },
-  { ar: "مصاريف إدارية وبنكية (Admin & Bank Fees)", en: "Administrative & Bank Fees" },
-];
-
 export function ExpenseForm({
   projectId,
   partners,
@@ -240,8 +238,6 @@ export function ExpenseForm({
   }
 
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [customInput, setCustomInput] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -267,22 +263,11 @@ export function ExpenseForm({
     });
   }
 
-  function toggleCategory(cat: string) {
-    setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((x) => x !== cat) : [...prev, cat],
-    );
-  }
-
   const selectedProjectExpenseTitles = (projectExpenses ?? [])
     .filter((e) => selectedExpenseIds.includes(e.id))
     .map((e) => e.description);
 
-  const allSelectedDescriptions = [
-    ...selectedProjectExpenseTitles,
-    ...selectedCategories,
-  ];
-
-  const displayDescription = allSelectedDescriptions.join(" + ");
+  const displayDescription = selectedProjectExpenseTitles.join(" + ");
 
   return (
     <form
@@ -319,8 +304,6 @@ export function ExpenseForm({
               );
             }
             setSelectedExpenseIds([]);
-            setSelectedCategories([]);
-            setCustomInput("");
             setAmount(0);
             (e.target as HTMLFormElement).reset();
             router.refresh();
@@ -443,13 +426,11 @@ export function ExpenseForm({
       <div className="grid gap-1 relative" ref={dropdownRef}>
         <div className="flex items-center justify-between">
           <Label>{t.description}</Label>
-          {allSelectedDescriptions.length > 0 && (
+          {selectedExpenseIds.length > 0 && (
             <button
               type="button"
               onClick={() => {
                 setSelectedExpenseIds([]);
-                setSelectedCategories([]);
-                setCustomInput("");
                 setAmount(0);
               }}
               className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
@@ -466,14 +447,14 @@ export function ExpenseForm({
           className={cn(
             "flex min-h-10 w-full items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm transition-all text-start",
             isDropdownOpen && "ring-2 ring-primary border-transparent",
-            allSelectedDescriptions.length === 0 && "text-muted-foreground"
+            selectedProjectExpenseTitles.length === 0 && "text-muted-foreground"
           )}
         >
           <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0 me-2">
-            {allSelectedDescriptions.length === 0 ? (
+            {selectedProjectExpenseTitles.length === 0 ? (
               <span>{t.chooseExpensesDropdown}</span>
             ) : (
-              allSelectedDescriptions.map((desc, idx) => (
+              selectedProjectExpenseTitles.map((desc, idx) => (
                 <span
                   key={idx}
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium"
@@ -485,9 +466,9 @@ export function ExpenseForm({
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0 text-muted-foreground">
-            {allSelectedDescriptions.length > 0 && (
+            {selectedProjectExpenseTitles.length > 0 && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 font-mono">
-                {allSelectedDescriptions.length}
+                {selectedProjectExpenseTitles.length}
               </Badge>
             )}
             <ChevronDown
@@ -507,12 +488,11 @@ export function ExpenseForm({
           required
         />
 
-        {/* Dropdown Panel Menu with Checkboxes */}
+        {/* Dropdown Panel Menu with Checkboxes: ONLY Project Expenses */}
         {isDropdownOpen && (
-          <div className="absolute top-full z-50 mt-1 w-full rounded-xl border border-border bg-popover text-popover-foreground shadow-xl p-3 space-y-3 max-h-80 overflow-y-auto">
-            {/* Section 1: Project registered expenses */}
-            {projectExpenses && projectExpenses.length > 0 && (
-              <div className="space-y-1.5">
+          <div className="absolute top-full start-0 z-50 mt-1 w-full rounded-xl border border-border bg-card text-card-foreground shadow-2xl p-2.5 space-y-2 max-h-60 overflow-y-auto">
+            {projectExpenses && projectExpenses.length > 0 ? (
+              <>
                 <div className="text-xs font-semibold text-muted-foreground flex items-center justify-between px-1">
                   <span>{t.projectExpensesSection}</span>
                   <span className="text-[10px] text-muted-foreground">
@@ -526,7 +506,7 @@ export function ExpenseForm({
                       <label
                         key={pe.id}
                         className={cn(
-                          "flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-colors select-none",
+                          "flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-colors select-none",
                           isChecked
                             ? "border-primary bg-primary/10 text-primary font-medium"
                             : "border-border/60 hover:bg-muted/50 text-foreground"
@@ -561,93 +541,34 @@ export function ExpenseForm({
                     );
                   })}
                 </div>
+
+                <div className="pt-2 border-t border-border/50 flex items-center justify-between">
+                  <div className="text-xs font-mono text-muted-foreground">
+                    {selectedExpenseIds.length > 0
+                      ? t.selectedCount(selectedExpenseIds.length, formatEGP(amount, lang))
+                      : ""}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="px-3 py-1 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    {lang === "ar" ? "تأكيد الاختيار" : "Confirm"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="py-4 text-center text-xs text-muted-foreground space-y-1">
+                <p>
+                  {t.noPendingExpenses || (lang === "ar" ? "لا توجد مصاريف مسجلة لهذا المشروع بعد." : "No expenses recorded for this project yet.")}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {lang === "ar"
+                    ? "استخدم زر «إضافة مصروف جديد للمشروع» لإضافة بنود أولاً."
+                    : "Use '+ Add Project Expense' to record project expenses first."}
+                </p>
               </div>
             )}
-
-            {/* Section 2: Standard Expense Categories */}
-            <div className="space-y-1.5 pt-2 border-t border-border/50">
-              <div className="text-xs font-semibold text-muted-foreground px-1">
-                {t.commonCategoriesSection}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                {STANDARD_EXPENSE_CATEGORIES.map((cat, i) => {
-                  const label = lang === "ar" ? cat.ar : cat.en;
-                  const isChecked = selectedCategories.includes(label);
-                  return (
-                    <label
-                      key={i}
-                      className={cn(
-                        "flex items-center gap-2 p-1.5 rounded-md text-xs cursor-pointer transition-colors border select-none",
-                        isChecked
-                          ? "border-primary bg-primary/10 text-primary font-medium"
-                          : "border-border/40 hover:bg-muted/40 text-foreground"
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleCategory(label)}
-                        className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      <span className="truncate">{label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Section 3: Custom item input */}
-            <div className="pt-2 border-t border-border/50 space-y-1.5">
-              <div className="text-xs font-semibold text-muted-foreground px-1">
-                {t.customExpensePrompt}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder={lang === "ar" ? "اكتب اسم بند مخصص..." : "Type custom item name..."}
-                  value={customInput}
-                  onChange={(e) => setCustomInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (customInput.trim()) {
-                        toggleCategory(customInput.trim());
-                        setCustomInput("");
-                      }
-                    }
-                  }}
-                  className="flex h-8 flex-1 rounded-lg border border-input bg-background px-2.5 text-xs shadow-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (customInput.trim()) {
-                      toggleCategory(customInput.trim());
-                      setCustomInput("");
-                    }
-                  }}
-                  className="h-8 px-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
-                >
-                  {lang === "ar" ? "إضافة" : "Add"}
-                </button>
-              </div>
-            </div>
-
-            {/* Bottom confirmation */}
-            <div className="pt-2 border-t border-border/50 flex items-center justify-between">
-              <div className="text-xs font-mono text-muted-foreground">
-                {allSelectedDescriptions.length > 0
-                  ? t.selectedCount(allSelectedDescriptions.length, formatEGP(amount, lang))
-                  : ""}
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsDropdownOpen(false)}
-                className="px-3 py-1 rounded-md bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
-              >
-                {lang === "ar" ? "تم الاختيار" : "Done"}
-              </button>
-            </div>
           </div>
         )}
       </div>
@@ -976,5 +897,232 @@ export function DeleteDrawingButton({
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
+  );
+}
+
+/* ---------------------------- Delete Project Expense ---------------------------- */
+
+export function DeleteExpenseButton({
+  id,
+  projectId,
+  lang,
+}: {
+  id: string;
+  projectId?: string;
+  lang: Lang;
+}) {
+  const tp = dict[lang].partners;
+  const router = useRouter();
+  const [armed, setArmed] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function confirm() {
+    setError(null);
+    start(async () => {
+      const res = await deleteExpense(id, projectId);
+      if (!res.ok) {
+        setError(res.error);
+        setArmed(false);
+      } else {
+        router.refresh();
+      }
+    });
+  }
+
+  if (!armed) {
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        title={lang === "ar" ? "حذف المصروف من المشروع" : "Delete project expense"}
+        aria-label={lang === "ar" ? "حذف المصروف من المشروع" : "Delete project expense"}
+        onClick={() => setArmed(true)}
+        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <Button
+        size="sm"
+        variant="destructive"
+        className="h-7 text-xs px-2"
+        disabled={pending}
+        onClick={confirm}
+      >
+        {pending ? tp.deleting : tp.deleteConfirm}
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 text-xs px-2"
+        disabled={pending}
+        onClick={() => setArmed(false)}
+      >
+        {tp.cancel}
+      </Button>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+/* ---------------------------- Add Project Expense Dialog ---------------------------- */
+
+export function AddProjectExpenseDialog({
+  projectId,
+  projectName,
+  partners,
+  lang,
+}: {
+  projectId: string;
+  projectName: string;
+  partners: { id: string; name: string }[];
+  lang: Lang;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const isAr = lang === "ar";
+
+  return (
+    <>
+      <Button
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="gap-1.5 shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
+      >
+        <Plus className="h-4 w-4" />
+        <span>{isAr ? "إضافة مصروف جديد للمشروع" : "Add Project Expense"}</span>
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isAr ? `إضافة مصروف لمشروع: ${projectName}` : `Add Expense: ${projectName}`}
+            </DialogTitle>
+            <DialogDescription>
+              {isAr
+                ? "سجل بند مصروف جديد (مثل حجز دومين، سيرفر، استضافة) مع قيمته وطريقة سداده."
+                : "Add a new project expense item with its estimated cost."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <form
+              className="space-y-4 pt-1"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                const description = String(fd.get("description") ?? "").trim();
+                const amount = Number(fd.get("amount") ?? 0);
+                const payer = String(fd.get("payer") ?? CLIENT_PAYER);
+                const expenseDate = fd.get("expenseDate")
+                  ? new Date(String(fd.get("expenseDate")))
+                  : new Date();
+
+                if (!description || amount <= 0) return;
+
+                const isClientCovered = payer === CLIENT_PAYER;
+                setError(null);
+                start(async () => {
+                  const res = await createExpense({
+                    projectId,
+                    description,
+                    amount,
+                    expenseDate,
+                    paidById: isClientCovered ? null : payer,
+                    deductFromCustody: isClientCovered,
+                  });
+                  if (!res.ok) {
+                    setError(res.error);
+                  } else {
+                    setOpen(false);
+                    router.refresh();
+                  }
+                });
+              }}
+            >
+              <div className="grid gap-1.5">
+                <Label>{isAr ? "اسم / وصف المصروف" : "Expense Name / Description"}</Label>
+                <Input
+                  name="description"
+                  placeholder={isAr ? "مثال: حجز دومين، استضافة وسيرفرات..." : "e.g. Domain, Cloud servers..."}
+                  required
+                  maxLength={150}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>{isAr ? "المبلغ (ج.م.)" : "Amount (EGP)"}</Label>
+                  <Input
+                    name="amount"
+                    type="number"
+                    min={0.01}
+                    step={0.01}
+                    placeholder="1000"
+                    required
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>{isAr ? "تاريخ المصروف" : "Expense Date"}</Label>
+                  <Input
+                    name="expenseDate"
+                    type="date"
+                    defaultValue={new Date().toISOString().slice(0, 10)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label>{isAr ? "طريقة السداد / الدافع" : "Payment Source / Payer"}</Label>
+                <select
+                  name="payer"
+                  defaultValue={CLIENT_PAYER}
+                  className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm"
+                >
+                  <option value={CLIENT_PAYER}>
+                    {isAr ? "خصم من أموال / عهدة العقد (الافتراضي)" : "From Contract / Project Funds (Default)"}
+                  </option>
+                  {partners.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {isAr ? `شريك دافع من جيبه: ${p.name}` : `Paid Out of Pocket by: ${p.name}`}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  {isAr
+                    ? "«خصم من أموال العقد» تسدد المصروف مباشرة من فلوس المشروع. اختيار شريك يسجل المصروف كمستحق للشريك في رصيده."
+                    : "Contract funds deduct directly from project cash. Selecting a partner records an out-of-pocket claim."}
+                </p>
+              </div>
+
+              {error && <p className="text-xs text-destructive">{error}</p>}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={pending}
+                >
+                  {isAr ? "إلغاء" : "Cancel"}
+                </Button>
+                <Button type="submit" disabled={pending}>
+                  {pending ? (isAr ? "جاري الإضافة..." : "Adding...") : (isAr ? "إضافة المصروف" : "Add Expense")}
+                </Button>
+              </div>
+            </form>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -20,6 +20,8 @@ import { cn, formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getPartners, getProjectDetail } from "@/actions/queries";
 import {
+  AddProjectExpenseDialog,
+  DeleteExpenseButton,
   DeleteProjectButton,
   EditProjectForm,
   ExpenseForm,
@@ -464,13 +466,21 @@ export default async function ProjectDetailPage({
 
       {/* Expenses table */}
       <Card>
-        <CardHeader>
-          <CardTitle>{td.expensesTitle(project.expenses.length)}</CardTitle>
-          {financials.clientCoveredTotal > 0 && (
-            <CardDescription>
-              {td.clientCovered}: {formatEGP(financials.clientCoveredTotal, lang)}
-            </CardDescription>
-          )}
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <CardTitle>{td.expensesTitle(project.expenses.length)}</CardTitle>
+            {financials.clientCoveredTotal > 0 && (
+              <CardDescription>
+                {td.clientCovered}: {formatEGP(financials.clientCoveredTotal, lang)}
+              </CardDescription>
+            )}
+          </div>
+          <AddProjectExpenseDialog
+            projectId={project.id}
+            projectName={project.name}
+            partners={partners.map((p) => ({ id: p.id, name: p.name }))}
+            lang={lang}
+          />
         </CardHeader>
         <CardContent>
           <Table>
@@ -514,11 +524,12 @@ export default async function ProjectDetailPage({
                     )}
                   </TableCell>
                   <TableCell className="text-end">
-                    {!e.paidBy || e.deductFromCustody ? (
-                      "—"
-                    ) : (
-                      <ReimburseButton expenseId={e.id} isReimbursed={e.isReimbursed} lang={lang} />
-                    )}
+                    <div className="flex items-center justify-end gap-1">
+                      {e.paidBy && !e.deductFromCustody && (
+                        <ReimburseButton expenseId={e.id} isReimbursed={e.isReimbursed} lang={lang} />
+                      )}
+                      <DeleteExpenseButton id={e.id} projectId={project.id} lang={lang} />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
