@@ -907,7 +907,7 @@ export const dict: Record<Lang, Dictionary> = {
     },
     ledger: {
       title: "Partner ledger",
-      subtitle: "Balance = Pending reimbursements + Realized profit shares + Company net − Drawings",
+      subtitle: "Balance = Pending reimbursements + Realized profit shares + Company net",
       noPartners: "No partners yet.",
       pendingShort: "Pending reimb.",
       profitShare: "Profit share",
@@ -1375,7 +1375,7 @@ export const dict: Record<Lang, Dictionary> = {
     },
     ledger: {
       title: "حسابات الشركاء",
-      subtitle: "الرصيد = المستحقات المعلقة + حصص الأرباح المحققة + صافي الشركة − المسحوبات",
+      subtitle: "الرصيد = المستحقات المعلقة + حصص الأرباح المحققة + صافي الشركة",
       noPartners: "لا يوجد شركاء بعد.",
       pendingShort: "مستحقات معلقة",
       profitShare: "حصة الربح",

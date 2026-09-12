@@ -18,7 +18,7 @@ import {
 import { formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
-import { DeleteDrawingButton, DrawingForm } from "@/components/forms/transaction-forms";
+import { DeleteDrawingButton } from "@/components/forms/transaction-forms";
 import {
   PaginatedPendingExpensesTable,
   PaginatedDrawingsTable,
@@ -87,12 +87,12 @@ export default async function LedgerPage() {
                 <span className="text-muted-foreground">{t.companyNet}</span>
                 <span>{formatEGP(l.companyNet, lang)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t.drawings}</span>
-                <span>
-                  {l.totalDrawings > 0 ? `−${formatEGP(l.totalDrawings, lang)}` : formatEGP(0, lang)}
-                </span>
-              </div>
+              {l.totalDrawings > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t.drawings}</span>
+                  <span>−{formatEGP(l.totalDrawings, lang)}</span>
+                </div>
+              )}
               {(l.breakdown.length > 0 || l.companyBreakdown.length > 0) && (
                 <div className="pt-2">
                   {l.breakdown.map((b) => (
@@ -125,63 +125,52 @@ export default async function LedgerPage() {
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t.recordTitle}</CardTitle>
-            <CardDescription>{t.recordDesc}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DrawingForm
-              lang={lang}
-              partners={partners.map((p) => ({ id: p.id, name: p.name }))}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t.pendingTitle}</CardTitle>
-            <CardDescription>{t.pendingDesc}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PaginatedPendingExpensesTable
-              lang={lang}
-              expenses={pendingExpenses.map((e) => ({
-                id: e.id,
-                amount: Number(e.amount),
-                project: e.project ? { name: e.project.name } : null,
-                paidBy: e.paidBy ? { name: e.paidBy.name } : null,
-              }))}
-            />
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* Pending reimbursements waiting for settlement */}
       <Card>
         <CardHeader>
-          <CardTitle>{t.recentTitle}</CardTitle>
+          <CardTitle>{t.pendingTitle}</CardTitle>
+          <CardDescription>{t.pendingDesc}</CardDescription>
         </CardHeader>
         <CardContent>
-          <PaginatedDrawingsTable
+          <PaginatedPendingExpensesTable
             lang={lang}
-            drawings={drawings.map((d) => ({
-              id: d.id,
-              amount: Number(d.amount),
-              drawnAt: d.drawnAt instanceof Date ? d.drawnAt.toISOString() : String(d.drawnAt),
-              notes: d.notes,
-              partner: { name: d.partner.name },
+            expenses={pendingExpenses.map((e) => ({
+              id: e.id,
+              amount: Number(e.amount),
+              project: e.project ? { name: e.project.name } : null,
+              paidBy: e.paidBy ? { name: e.paidBy.name } : null,
             }))}
           />
         </CardContent>
       </Card>
 
+      {/* Historical drawings table — only shown if records exist */}
+      {drawings.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t.recentTitle}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PaginatedDrawingsTable
+              lang={lang}
+              drawings={drawings.map((d) => ({
+                id: d.id,
+                amount: Number(d.amount),
+                drawnAt: d.drawnAt instanceof Date ? d.drawnAt.toISOString() : String(d.drawnAt),
+                notes: d.notes,
+                partner: { name: d.partner.name },
+              }))}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <PageGuide
         lang={lang}
-        title={lang === "ar" ? "دليل حسابات دفتر الشركاء والمسحوبات" : "Partner Ledger & Drawings Guide"}
+        title={lang === "ar" ? "دليل حسابات الشركاء وتوزيع الأرباح" : "Partner Accounts & Profit Settlements Guide"}
         subtitle={
           lang === "ar"
-            ? "المرجع المحاسبي المعتمد لتفسير رصيد كل شريك والمعادلات المطبقة بدقة"
+            ? "المرجع المحاسبي لتفسير رصيد كل شريك والمعادلات المطبقة بدقة بعد تسوية المشاريع"
             : "Official accounting reference explaining partner balances and exact equations"
         }
         steps={[
@@ -197,7 +186,7 @@ export default async function LedgerPage() {
             title: lang === "ar" ? "حصص الأرباح المحققة" : "Realized Profit Shares",
             text:
               lang === "ar"
-                ? "نصيب الشريك المتفق عليه من صافي أرباح المشاريع بعد سداد تكاليفها وتحصيل دفعات العميل فعلياً."
+                ? "نصيب الشريك المتفق عليه من صافي أرباح المشاريع بعد سداد تكاليفها وتحصيل دفعات العميل وتسويتها."
                 : "Partner's contractual share of net project profits after deducting project expenses from received client cash.",
             badge: { text: lang === "ar" ? "أرباح مضافة (+)" : "Added Profit (+)", variant: "success" },
           },
@@ -208,35 +197,27 @@ export default async function LedgerPage() {
                 ? "نصيب الشريك في صافي تكاليف الشركة العامة المشتركة (كالإيجار والاشتراكات) بعد خصم ما دفعه."
                 : "Partner's share of company general overhead after accounting for their contributions.",
           },
-          {
-            title: lang === "ar" ? "المسحوبات (تسجيل مسحوبات)" : "Drawings (تسجيل مسحوبات)",
-            text:
-              lang === "ar"
-                ? "أي سحب كاش نقدي يقوم به الشريك من رصيده أو أرباحه المتاحة بالشركة لاستخدامه الخاص. يُسجل عبر نموذج «تسجيل مسحوبات» بالأسفل ويُخصم مباشرة من رصيده."
-                : "Cash drawn by the partner from their available company funds or profits for personal use, deducted from balance.",
-            badge: { text: lang === "ar" ? "يخصم من الرصيد (−)" : "Deducted (−)", variant: "destructive" },
-          },
         ]}
         equations={[
           {
-            label: lang === "ar" ? "المعادلة المحاسبية المعتمدة لرصيد الشريك (Source of Truth)" : "Official Partner Balance Equation",
+            label: lang === "ar" ? "المعادلة المحاسبية المعتمدة لرصيد الشريك" : "Official Partner Balance Equation",
             formula:
               lang === "ar"
-                ? "الرصيد النهائي = المستحقات المعلقة + حصص الأرباح المحققة + صافي الشركة − إجمالي المسحوبات"
-                : "Balance = Pending Reimbursements + Realized Profit Shares + Company Net − Total Drawings",
+                ? "الرصيد النهائي = المستحقات المعلقة + حصص الأرباح المحققة + صافي الشركة"
+                : "Balance = Pending Reimbursements + Realized Profit Shares + Company Net",
             explanation:
               lang === "ar"
-                ? "الرصيد الأخضر (+) يعني أن الشركة مدينة للشريك بهذا المبلغ ويمكنه سحبه، والرصيد الأحمر (−) يعني أن الشريك سحب مبالغ تفوق مستحقاته وعليه سدادها للشركة."
-                : "Positive balance (green) means company owes the partner; negative (red) means partner over-withdrew.",
+                ? "الرصيد يمثل صافي المستحقات الحالية للشريك، وتتم تسوية الأرباح وتوزيعها فور الانتهاء من تسوية كل مشروع."
+                : "Balance represents partner dues; settled and distributed upon each project settlement.",
           },
         ]}
         tips={[
           lang === "ar"
-            ? "نموذج «تسجيل مسحوبات»: يُستخدم حصراً عندما يستلم الشريك كاش حقيقي من الشركة كأرباح أو استرداد رصيد."
-            : "Drawings form: Use exclusively when a partner withdraws actual cash from company reserves.",
+            ? "تسوية أرباح المشاريع: يستلم كل شريك مستحقاته فور إتمام تسوية المشروع واقتسام الأرباح."
+            : "Project settlements: Partners take their profit shares directly upon settlement of each project.",
           lang === "ar"
-            ? "لا يتم تسجيل دفعات العملاء أو مصاريف المشاريع كمسحوبات، بل تسجل في صفحات المشاريع الخاصة بها."
-            : "Client payments and project direct expenses are managed in project pages, not as drawings.",
+            ? "يتم تسجيل دفعات العملاء ومصاريف المشاريع مباشرة في صفحات المشاريع الخاصة بها."
+            : "Client payments and project direct expenses are managed in project pages.",
         ]}
       />
     </div>
