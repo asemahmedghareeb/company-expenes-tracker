@@ -183,6 +183,7 @@ export function PaginatedDrawingsTable({
 export interface PartnerProjectItem {
   projectId: string;
   projectName?: string;
+  status?: string;
   sharePercentage: number;
   pendingReimbursement: number;
   profitShare: number;
@@ -376,21 +377,45 @@ export function PartnerProjectsBreakdownDialog({
                   {breakdown.map((b) => (
                     <TableRow key={b.projectId}>
                       <TableCell className="font-medium">
-                        <Link
-                          href={`/projects/${b.projectId}`}
-                          className="text-primary hover:underline flex items-center gap-1 group"
-                        >
-                          <span className="truncate max-w-[140px] sm:max-w-[180px]">
-                            {b.projectName ?? b.projectId.slice(0, 8)}
-                          </span>
-                          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                        </Link>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Link
+                            href={`/projects/${b.projectId}`}
+                            className="text-primary hover:underline flex items-center gap-1 group"
+                          >
+                            <span className="truncate max-w-[130px] sm:max-w-[170px]">
+                              {b.projectName ?? b.projectId.slice(0, 8)}
+                            </span>
+                            <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                          </Link>
+                          {b.status && (
+                            <Badge
+                              variant={b.status === "COMPLETED" ? "default" : "secondary"}
+                              className="text-[10px] px-1.5 py-0 h-4 font-normal"
+                            >
+                              {b.status === "COMPLETED"
+                                ? isAr
+                                  ? "مكتمل"
+                                  : "Completed"
+                                : isAr
+                                  ? "قيد التنفيذ"
+                                  : "Active"}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center font-mono text-xs">
                         {formatPct(b.sharePercentage)}
                       </TableCell>
                       <TableCell className="text-end font-mono text-emerald-600 dark:text-emerald-400">
-                        {formatEGP(b.profitShare, lang)}
+                        {b.profitShare > 0 ? (
+                          formatEGP(b.profitShare, lang)
+                        ) : b.status && b.status !== "COMPLETED" ? (
+                          <span className="text-[11px] text-muted-foreground font-sans">
+                            {isAr ? "عند الاكتمال" : "Pending completion"}
+                          </span>
+                        ) : (
+                          formatEGP(0, lang)
+                        )}
                       </TableCell>
                       <TableCell className="text-end font-mono text-amber-600 dark:text-amber-400">
                         {b.pendingReimbursement > 0 ? formatEGP(b.pendingReimbursement, lang) : "—"}

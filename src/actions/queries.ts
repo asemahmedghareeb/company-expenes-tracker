@@ -90,6 +90,7 @@ export async function getProjectDetail(id: string) {
     id: project.id,
     name: project.name,
     contractValue: toNumber(project.contractValue),
+    status: project.status,
     projectPartners: project.projectPartners.map((s) => ({
       partnerId: s.partnerId,
       sharePercentage: s.sharePercentage,
@@ -144,6 +145,7 @@ function toLedgerProject(p: {
   id: string;
   name: string;
   contractValue: unknown;
+  status?: string;
   projectPartners: { partnerId: string; sharePercentage: number }[];
   clientPayments: { amount: unknown }[];
   expenses: {
@@ -158,6 +160,7 @@ function toLedgerProject(p: {
     id: p.id,
     name: p.name,
     contractValue: toNumber(p.contractValue),
+    status: p.status,
     projectPartners: p.projectPartners,
     clientPayments: p.clientPayments.map((x) => ({ amount: toNumber(x.amount) })),
     expenses: p.expenses.map((e) => ({
@@ -260,6 +263,7 @@ export async function getDashboardData(range?: {
       id: p.id,
       name: p.name,
       contractValue: p.contractValue,
+      status: p.status,
       projectPartners: p.projectPartners,
       clientPayments: p.clientPayments,
       expenses: p.expenses,

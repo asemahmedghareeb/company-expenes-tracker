@@ -71,6 +71,7 @@ export interface LedgerProject {
   id: string;
   name?: string;
   contractValue?: number;
+  status?: string;
   projectPartners: LedgerSplit[];
   clientPayments: LedgerPayment[];
   expenses: LedgerExpense[];
@@ -254,6 +255,7 @@ export function getProjectSettlementPlan(
 export interface PartnerProjectBreakdown {
   projectId: string;
   projectName?: string;
+  status?: string;
   sharePercentage: number;
   pendingReimbursement: number;
   profitShare: number;
@@ -513,32 +515,39 @@ export function getPartnerLedger(
     );
 
     const financials = getProjectFinancials(project);
+    // Realized profits are only accrued and distributable from COMPLETED (done) projects.
+    const isCompleted =
+      project.status !== undefined ? project.status === "COMPLETED" : true;
+
     // Same slice as getProjectSettlementPlan (largest-remainder, exact sum).
-    const profitParts = splitMoney(
-      financials.netProfit,
-      project.projectPartners.map((s) => s.sharePercentage),
-    );
-    const profitShare = split
-      ? (profitParts[
-          project.projectPartners.findIndex((s) => s.partnerId === partner.id)
-        ] ?? 0)
-      : 0;
+    const profitParts = isCompleted
+      ? splitMoney(
+          financials.netProfit,
+          project.projectPartners.map((s) => s.sharePercentage),
+        )
+      : [];
+    const profitShare =
+      split && isCompleted
+        ? (profitParts[
+            project.projectPartners.findIndex((s) => s.partnerId === partner.id)
+          ] ?? 0)
+        : 0;
 
     pendingReimbursements = round2(pendingReimbursements + pending);
-    // Only accrue profit if the partner is on this project's split.
-    // (Partners with 0% on a project earn nothing from it.)
+    // Only accrue profit if the partner is on this project's split AND the project is completed.
     realizedProfitShare = round2(
-      realizedProfitShare + (split ? profitShare : 0),
+      realizedProfitShare + profitShare,
     );
 
     if (split || pending > 0) {
       breakdown.push({
         projectId: project.id,
         projectName: project.name ?? projectNames?.[project.id],
+        status: project.status,
         sharePercentage,
         pendingReimbursement: pending,
-        profitShare: split ? profitShare : 0,
-        totalOwed: round2(pending + (split ? profitShare : 0)),
+        profitShare,
+        totalOwed: round2(pending + profitShare),
       });
     }
   }
@@ -702,7 +711,22 @@ export function getFirmOverview(
     ),
   );
   const clientCoveredTotal = 0;
-  const netProfit = round2(totalInflow - totalExpenses);
+
+  // Realized net profit is calculated ONLY from COMPLETED (done) projects.
+  const completedProjects = projects.filter((p) => p.status === "COMPLETED");
+  const projectsForProfit = projects.some((p) => p.status !== undefined)
+    ? completedProjects
+    : projects;
+
+  const netProfit = round2(
+    sum(
+      projectsForProfit.map((p) => {
+        const inf = sum(p.clientPayments.map((x) => x.amount));
+        const exp = sum(p.expenses.map((x) => x.amount));
+        return inf - exp;
+      }),
+    ),
+  );
   const totalFixedExpenses = round2(company?.fixedTotal ?? 0);
   const totalVariableExpenses = round2(company?.variableTotal ?? 0);
   const totalCompanyExpenses = round2(totalFixedExpenses + totalVariableExpenses);
