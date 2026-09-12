@@ -27,6 +27,7 @@ import {
   ProjectSplitsEditor,
   ReimburseButton,
 } from "@/components/forms/transaction-forms";
+import { PageGuide } from "@/components/ui/page-guide";
 
 export default async function ProjectDetailPage({
   params,
@@ -412,22 +413,53 @@ export default async function ProjectDetailPage({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{td.howTitle}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              {td.how1} <Badge variant="warning">{td.pending}</Badge>.
-            </p>
-            <p>
-              {td.how2pre}{" "}
-              <span className="font-medium text-foreground">{td.howMark}</span>{" "}
-              {td.how2post}
-            </p>
-            <p>{td.how3}</p>
-          </CardContent>
-        </Card>
+        <PageGuide
+          lang={lang}
+          title={td.howTitle}
+          subtitle={
+            lang === "ar"
+              ? "دليل إدارة عهدة المشروع وسداد المصاريف والمعادلات المطبقة"
+              : "Project custody rules, expense settlements, and equations"
+          }
+          steps={[
+            {
+              number: "1",
+              text: td.how1,
+              badge: { text: td.pending, variant: "warning" },
+            },
+            {
+              number: "2",
+              text: `${td.how2pre} «${td.howMark}» ${td.how2post}`,
+            },
+            {
+              number: "3",
+              text: td.how3,
+            },
+          ]}
+          equations={[
+            {
+              label: lang === "ar" ? "معادلة صافي ربح العقد التقديري" : "Contract Net Profit",
+              formula:
+                lang === "ar"
+                  ? "صافي ربح العقد = قيمة العقد الإجمالية − إجمالي مصروفات المشروع"
+                  : "Contract Net Profit = Total Contract Value − Total Project Expenses",
+            },
+            {
+              label: lang === "ar" ? "معادلة الربح المحقق الفعلي (Source of Truth)" : "Realized Profit Equation",
+              formula:
+                lang === "ar"
+                  ? "الربح المحقق = الحد الأقصى ( 0 ، إجمالي المحصل من العميل − إجمالي المصروفات )"
+                  : "Realized Profit = Math.max(0, Total Collected Inflow − Total Expenses)",
+            },
+            {
+              label: lang === "ar" ? "معادلة العهدة الصافية لكل شريك" : "Partner Net Custody Cash",
+              formula:
+                lang === "ar"
+                  ? "العهدة الصافية = دفعات العميل المستلمة بواسطة الشريك − المصروفات المخصومة من عهدته"
+                  : "Net Custody = Partner Inflow − Custody Expenses Paid",
+            },
+          ]}
+        />
       </div>
 
       {/* Expenses table */}

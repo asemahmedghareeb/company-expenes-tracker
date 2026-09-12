@@ -27,6 +27,7 @@ import { ProjectForm } from "@/components/forms/project-form";
 import { dict } from "@/lib/dict";
 import { formatEGP, type Lang } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PageGuide } from "@/components/ui/page-guide";
 
 export type ProjectRow = {
   id: string;
@@ -111,6 +112,60 @@ export function ProjectsManager({
           {lang === "ar" ? `+ ${tp.newProjectBtn}` : `+ ${tp.newProjectBtn}`}
         </Button>
       </div>
+
+      <PageGuide
+        lang={lang}
+        title={lang === "ar" ? "دليل حسابات المشاريع والعقود" : "Projects & Contracts Financial Guide"}
+        subtitle={
+          lang === "ar"
+            ? "المرجع المحاسبي المعتمد لكيفية حساب أرباح المشاريع، ومصروفات التشغيل، والتحصيل"
+            : "Official accounting reference for project profits, direct operational expenses, and collections"
+        }
+        steps={[
+          {
+            title: lang === "ar" ? "قيمة العقد والتحصيل" : "Contract Value & Collections",
+            text:
+              lang === "ar"
+                ? "العميل يدفع فقط قيمة العقد المتفق عليها. أي دفعة يسلمها العميل لأحد الشركاء تُسجل كـ «عهدة مشروع» تحت يد ذلك الشريك."
+                : "The client pays the contract value. Payments received are tracked as project custody cash.",
+          },
+          {
+            title: lang === "ar" ? "مصروفات المشروع" : "Project Direct Expenses",
+            text:
+              lang === "ar"
+                ? "تُسدد جميع تكاليف المشروع (سيرفرات، نطاقات، تصاميم، اشتراكات) من أموال العقد (كاش العهدة). وإذا دفع شريك من ماله الخاص، يُسجل له كدين مستحق السداد."
+                : "All project costs are paid out of contract funds (custody cash) or reimbursed if paid out of pocket.",
+          },
+          {
+            title: lang === "ar" ? "صافي أرباح المشروع" : "Net Project Profit",
+            text:
+              lang === "ar"
+                ? "المتبقي الصافي من أموال العقد بعد استقطاع كافة مصروفات المشروع، وهو المبلغ الذي يوزع على الشركاء حسب نسب حصصهم المحددة للمشروع."
+                : "The remaining surplus after deducting all project costs, distributed to partners according to their project shares.",
+            badge: { text: lang === "ar" ? "أرباح للشركاء" : "Partner Profits", variant: "success" },
+          },
+        ]}
+        equations={[
+          {
+            label: lang === "ar" ? "معادلة صافي ربح العقد التقديري" : "Contract Net Profit Equation",
+            formula:
+              lang === "ar"
+                ? "صافي ربح العقد = قيمة العقد الإجمالية − إجمالي مصروفات المشروع"
+                : "Contract Net Profit = Total Contract Value − Total Project Expenses",
+          },
+          {
+            label: lang === "ar" ? "معادلة الربح المحقق الفعلي (Source of Truth)" : "Realized Profit Equation",
+            formula:
+              lang === "ar"
+                ? "الربح المحقق = الحد الأقصى ( 0 ، إجمالي المحصل الفعلي من العميل − إجمالي المصروفات )"
+                : "Realized Profit = Math.max(0, Total Collected Inflow − Total Expenses)",
+            explanation:
+              lang === "ar"
+                ? "لا يُوزع ربح محقق إلا بعد أن تغطي دفعات العميل المحصلة كافة مصاريف وتكاليف المشروع أولاً."
+                : "No realized profit is distributed until collected client funds exceed direct project costs.",
+          },
+        ]}
+      />
 
       {/* Filter chips + search */}
       {projects.length > 0 && (

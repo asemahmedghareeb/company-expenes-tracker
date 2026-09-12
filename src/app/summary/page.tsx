@@ -9,6 +9,7 @@ import { getMonthlySummary, toNumber } from "@/lib/ledger";
 import { getSummaryData } from "@/actions/queries";
 import { MonthPicker } from "./month-picker";
 import { SummaryRows } from "./summary-rows";
+import { PageGuide } from "@/components/ui/page-guide";
 
 // Cached by default — mutations revalidate on demand via revalidatePath().
 // Uses searchParams (month), so Next renders dynamically per request.
@@ -71,6 +72,53 @@ export default async function SummaryPage({
         </div>
         <MonthPicker month={month} label={t.chooseMonth} />
       </div>
+
+      <PageGuide
+        lang={lang}
+        title={lang === "ar" ? "دليل الملخص المالي والتسوية الشهرية" : "Monthly Financial Summary Guide"}
+        subtitle={
+          lang === "ar"
+            ? "المرجع المحاسبي المعتمد لتسوية التكاليف وتحديد من يدين لمن في نهاية كل شهر"
+            : "Official monthly settlement guide showing who paid, who owes, and net balances"
+        }
+        steps={[
+          {
+            title: lang === "ar" ? "ما دفعه الشريك (Paid)" : "Paid by Partner",
+            text:
+              lang === "ar"
+                ? "إجمالي المبالغ التي سددها الشريك من حسابه الخاص خلال الشهر المحدد (سواء لمصاريف الشركة العامة كالإيجار أو لمصاريف المشاريع)."
+                : "Total out-of-pocket payments made by the partner during the selected month.",
+            badge: { text: lang === "ar" ? "مدفوعات الشريك" : "Payments", variant: "secondary" },
+          },
+          {
+            title: lang === "ar" ? "نصيب الشريك المفروض (Share)" : "Assigned Share",
+            text:
+              lang === "ar"
+                ? "حصة الشريك المحسوبة من إجمالي تكاليف الشركة والمشاريع التراكمية بناءً على نسبة حصته الافتراضية."
+                : "Partner's contractual share of total shared expenditures based on default percentage.",
+          },
+          {
+            title: lang === "ar" ? "صافي الرصيد والتسوية (Balance)" : "Net Balance",
+            text:
+              lang === "ar"
+                ? "إذا دفع الشريك أكثر من حصته، يكون له رصيد دائن بالأخضر ويستحق استرداده. وإذا دفع أقل، يكون عليه رصيد مدين بالأحمر ويجب عليه سداده."
+                : "Partners who overpaid are owed money (green); partners who underpaid owe the difference (red).",
+          },
+        ]}
+        equations={[
+          {
+            label: lang === "ar" ? "معادلة صافي المركز المالي للشريك" : "Partner Financial Position Equation",
+            formula:
+              lang === "ar"
+                ? "الرصيد الصافي = إجمالي ما دفعه الشريك − حصته المستحقة في تكاليف الشهر"
+                : "Net Balance = Total Paid by Partner − Entitled Cost Share",
+            explanation:
+              lang === "ar"
+                ? "رصيد موجب (+) = الشريك دائن (له مستحقات) | رصيد سالب (−) = الشريك مدين (عليه مستحقات سداد)."
+                : "Positive (+) = Owed to Partner | Negative (−) = Partner Owes.",
+          },
+        ]}
+      />
 
       <Card>
         <CardHeader>

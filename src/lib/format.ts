@@ -6,8 +6,9 @@ export type Lang = "en" | "ar";
  * - ar → "1,000.00 ج.م" (Latin digits via nu-latn, Arabic currency marker)
  */
 export function formatEGP(n: number | string, lang: Lang = "en"): string {
-  const num = typeof n === "string" ? Number(n) : n;
+  let num = typeof n === "string" ? Number(n) : n;
   if (!Number.isFinite(num)) return "—";
+  if (Math.abs(num) < 0.005) num = 0;
   return new Intl.NumberFormat(lang === "ar" ? "ar-EG-u-nu-latn" : "en-US", {
     style: "currency",
     currency: "EGP",
@@ -17,8 +18,9 @@ export function formatEGP(n: number | string, lang: Lang = "en"): string {
 }
 
 export function formatMoney(n: number | string): string {
-  const num = typeof n === "string" ? Number(n) : n;
+  let num = typeof n === "string" ? Number(n) : n;
   if (!Number.isFinite(num)) return "—";
+  if (Math.abs(num) < 0.005) num = 0;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
