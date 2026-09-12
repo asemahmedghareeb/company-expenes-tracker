@@ -116,13 +116,13 @@ export default async function CapitalPage() {
               {rows.map((r) => (
                 <TableRow key={r.partnerId}>
                   <TableCell className="font-medium">{r.partnerName}</TableCell>
-                  <TableCell dir="ltr" className="text-end font-mono tabular-nums">
+                  <TableCell className="text-end font-mono tabular-nums">
                     {formatEGP(r.cashHeld, lang)}
                   </TableCell>
-                  <TableCell dir="ltr" className="text-end font-mono tabular-nums">
+                  <TableCell className="text-end font-mono tabular-nums">
                     {formatEGP(r.earnedShare, lang)}
                   </TableCell>
-                  <TableCell dir="ltr" className="text-end">
+                  <TableCell className="text-end">
                     <Badge
                       variant={
                         r.net > 0.005

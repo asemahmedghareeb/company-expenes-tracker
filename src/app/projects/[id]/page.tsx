@@ -121,7 +121,16 @@ export default async function ProjectDetailPage({
           },
           { label: td.inflow, value: financials.totalInflow },
           { label: td.remainingUncollected, value: custody.remainingUncollected },
-          { label: td.netProfit, value: financials.netProfit },
+          {
+            label: td.netProfit,
+            value: Math.max(0, financials.netProfit),
+            hint:
+              financials.netProfit < 0
+                ? lang === "ar"
+                  ? "معلق لحين استلام دفعات"
+                  : "Pending collection"
+                : undefined,
+          },
         ].map((s) => (
           <Card key={s.label}>
             <CardHeader className="pb-2">
@@ -134,6 +143,11 @@ export default async function ProjectDetailPage({
               >
                 {formatEGP(s.value, lang)}
               </CardTitle>
+              {s.hint && (
+                <div className="mt-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                  {s.hint}
+                </div>
+              )}
             </CardHeader>
           </Card>
         ))}
@@ -191,16 +205,15 @@ export default async function ProjectDetailPage({
                   <TableCell className="font-medium">
                     {row.partnerName}
                   </TableCell>
-                  <TableCell dir="ltr" className="text-end font-mono text-muted-foreground">
+                  <TableCell className="text-end font-mono text-muted-foreground tabular-nums">
                     {formatEGP(row.inflow, lang)}
                   </TableCell>
-                  <TableCell dir="ltr" className="text-end font-mono text-muted-foreground">
+                  <TableCell className="text-end font-mono text-muted-foreground tabular-nums">
                     {formatEGP(row.outflow, lang)}
                   </TableCell>
                   <TableCell
-                    dir="ltr"
                     className={cn(
-                      "text-end font-mono font-semibold",
+                      "text-end font-mono font-semibold tabular-nums",
                       row.netCustody > 0
                         ? "text-emerald-600 dark:text-emerald-400"
                         : "text-muted-foreground",

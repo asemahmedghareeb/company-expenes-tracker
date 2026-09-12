@@ -145,11 +145,9 @@ export function getProjectFinancials(
   const cashAfterReimbursements = round2(
     totalInflow - reimbursedTotal - outstandingReimbursements,
   );
-  // Settle-expenses-first: distributable profit is net profit, but it is only
-  // *payable* to the extent cash remains after reimbursements.
-  // We still report the full earned share (netProfit split); cash coverage is
-  // visible via cashAfterReimbursements.
-  const distributableProfit = netProfit;
+  // Settle-expenses-first: distributable profit is realized net profit, floored at 0
+  // (no negative profit distributed to partners while awaiting client payments).
+  const distributableProfit = Math.max(0, netProfit);
   const collectionRate =
     cv > 0 ? Math.min(1, Math.max(0, totalInflow / cv)) : 1;
 
@@ -215,9 +213,11 @@ export function getProjectSettlementPlan(
     ([partnerId, amount]) => ({ partnerId, amount: round2(amount) }),
   );
 
-  // 2 — profit split by snapshot equity (largest-remainder: parts sum to netProfit)
+  // 2 — profit split by snapshot equity (settle SECOND).
+  // Distributable profit is floored at 0 so partners never receive negative profit while awaiting client payments.
+  const distributable = Math.max(0, financials.netProfit);
   const profitParts = splitMoney(
-    financials.netProfit,
+    distributable,
     project.projectPartners.map((s) => s.sharePercentage),
   );
   const profitShares: ProfitShare[] = project.projectPartners.map((s, i) => ({
