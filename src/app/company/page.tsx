@@ -5,36 +5,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { formatDate, formatEGP, formatMonth, formatPct } from "@/lib/format";
+import { formatDate, formatEGP } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getCompanyExpenseSettlement, toNumber } from "@/lib/ledger";
 import { sharesSumTo100 } from "@/lib/shares";
 import { getCompanyData } from "@/actions/queries";
-import { Vault, CheckCircle2, Calendar } from "lucide-react";
 import {
   CompanyExpenseForm,
-  CompanyPaymentForm,
   CompanyPayoutForm,
-  DeleteCompanyExpenseButton,
-  DeleteCompanyPaymentButton,
   DeleteCompanyPayoutButton,
-  DisburseVaultExpenseButton,
-  EditCompanyExpenseDialog,
-  EditCompanyPaymentButton,
   FixedCostsManager,
-  RevertVaultExpenseButton,
-  SettleBillButton,
-  SettleRowButton,
 } from "@/components/forms/company-forms";
+import { CompanyExpensesList } from "@/components/company-expenses-list";
 import { PageGuide } from "@/components/ui/page-guide";
 
 // Cached by default — mutations revalidate on demand via revalidatePath().
@@ -62,8 +44,8 @@ export default async function CompanyPage() {
     isActive: p.isActive,
   }));
 
-  const settlements = expenses.map((e) =>
-    getCompanyExpenseSettlement(
+  const expenseItems = expenses.map((e) => {
+    const s = getCompanyExpenseSettlement(
       {
         id: e.id,
         title: e.title,
@@ -79,8 +61,31 @@ export default async function CompanyPage() {
         })),
       },
       companyPartners,
-    ),
-  );
+    );
+
+    return {
+      expense: {
+        id: e.id,
+        title: e.title,
+        amount: toNumber(e.amount),
+        notes: e.notes,
+        kind: e.kind,
+        expenseDate: e.expenseDate.toISOString(),
+        billingMonth: e.billingMonth,
+        vaultAmount: toNumber(e.vaultAmount),
+        vaultDisbursed: e.vaultDisbursed,
+        vaultDisbursedAt: e.vaultDisbursedAt ? e.vaultDisbursedAt.toISOString() : null,
+        vaultNotes: e.vaultNotes,
+        payments: e.payments.map((p) => ({
+          id: p.id,
+          partnerId: p.partnerId,
+          amount: toNumber(p.amount),
+          partner: { id: p.partner.id, name: p.partner.name },
+        })),
+      },
+      settlement: s,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -179,304 +184,12 @@ export default async function CompanyPage() {
           </Card>
         </div>
 
-        <div className="space-y-4 lg:col-span-2 min-w-0">
-          {settlements.map((s, i) => {
-            const expense = expenses[i]!;
-            return (
-              <Card key={s.expenseId} className="min-w-0 overflow-hidden">
-                <CardHeader className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-base flex flex-wrap items-center gap-2">
-                      <span>{s.title} · {formatEGP(s.amount, lang)}</span>
-                      <Badge variant="outline">
-                        {expense.kind === "FIXED"
-                          ? dict[lang].summary.kindFixed
-                          : dict[lang].summary.kindVariable}
-                      </Badge>
-                      {expense.billingMonth && (
-                        <Badge variant="secondary" className="gap-1 text-xs font-normal">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          <span>
-                            {lang === "ar" ? "استحقاق شهر:" : "Month:"}{" "}
-                            <strong className="font-semibold">{formatMonth(expense.billingMonth, lang)}</strong>
-                          </span>
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      {formatDate(expense.expenseDate, lang)} · {t.collected}{" "}
-                      {formatEGP(s.totalPaid, lang)} · {t.remaining}{" "}
-                      {formatEGP(s.remaining, lang)}
-                      {s.totalPayout > 0 && (
-                        <>
-                          {" "}· {t.colPayout}: {formatEGP(s.totalPayout, lang)}
-                        </>
-                      )}
-                    </CardDescription>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <EditCompanyExpenseDialog
-                      expense={{
-                        id: expense.id,
-                        title: expense.title,
-                        amount: toNumber(expense.amount),
-                        notes: expense.notes,
-                        expenseDate: expense.expenseDate,
-                        billingMonth: expense.billingMonth,
-                        vaultAmount: toNumber(expense.vaultAmount),
-                        vaultNotes: expense.vaultNotes,
-                        kind: expense.kind,
-                      }}
-                      lang={lang}
-                    />
-                    <SettleBillButton
-                      expenseId={s.expenseId}
-                      hasOutstanding={s.rows.some((r) => Math.abs(r.net) >= 0.005)}
-                      lang={lang}
-                    />
-                    <DeleteCompanyExpenseButton id={s.expenseId} lang={lang} />
-                  </div>
-                </CardHeader>
-                {toNumber(expense.vaultAmount) > 0 && (
-                  <div className="px-6 pb-2 -mt-1">
-                    <div
-                      className={`rounded-xl border p-3 text-xs space-y-2 ${
-                        expense.vaultDisbursed
-                          ? "border-border/80 bg-muted/30 text-muted-foreground"
-                          : "border-indigo-200/80 bg-indigo-50/60 dark:border-indigo-900/50 dark:bg-indigo-950/30 text-indigo-950 dark:text-indigo-200"
-                      }`}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300">
-                            <Vault className="h-3.5 w-3.5" />
-                          </div>
-                          <span className="font-semibold">
-                            {lang === "ar" ? "خزنة الشركة (الاحتياطي):" : "Company Vault:"}
-                          </span>
-                          <span className="font-mono font-bold text-sm text-indigo-700 dark:text-indigo-300">
-                            {formatEGP(toNumber(expense.vaultAmount), lang)}
-                          </span>
-                          {expense.vaultDisbursed ? (
-                            <Badge variant="secondary" className="text-[11px] gap-1">
-                              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                              <span>
-                                {lang === "ar"
-                                  ? `تم الصرف وسداده ${expense.vaultDisbursedAt ? `(${formatDate(expense.vaultDisbursedAt, lang)})` : ""}`
-                                  : "Disbursed & settled from vault"}
-                              </span>
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px]">
-                              {lang === "ar" ? "محجوز بالخزنة حتى موعد السداد" : "Held in Vault until due"}
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 self-end sm:self-auto">
-                          {!expense.vaultDisbursed ? (
-                            <DisburseVaultExpenseButton
-                              expenseId={s.expenseId}
-                              amount={toNumber(expense.vaultAmount)}
-                              lang={lang}
-                            />
-                          ) : (
-                            <RevertVaultExpenseButton expenseId={s.expenseId} lang={lang} />
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground pt-1.5 border-t border-border/40">
-                        <span>
-                          {lang === "ar" ? "المسدد فوراً للجهات:" : "Paid out immediately:"}{" "}
-                          <strong className="text-foreground font-mono">
-                            {formatEGP(
-                              Math.max(0, toNumber(expense.amount) - toNumber(expense.vaultAmount)),
-                              lang,
-                            )}
-                          </strong>
-                        </span>
-                        {expense.vaultNotes && (
-                          <span>
-                            {lang === "ar" ? "ملاحظة الخزنة:" : "Vault note:"}{" "}
-                            <span className="text-foreground font-medium">{expense.vaultNotes}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <CardContent className="space-y-4 min-w-0">
-                  {/* Mobile settlement cards */}
-                  <div className="space-y-2.5 sm:hidden">
-                    {s.rows.map((r) => (
-                      <div
-                        key={r.partnerId}
-                        className="rounded-xl border border-border/70 bg-muted/20 p-3 space-y-2 text-sm"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-                              {r.name.slice(0, 1).toUpperCase()}
-                            </span>
-                            <div>
-                              <span className="font-semibold block">{r.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {formatPct(r.sharePercentage)} ({formatEGP(r.shareAmount, lang)})
-                              </span>
-                            </div>
-                          </div>
-                          <Badge
-                            variant={
-                              r.net > 0
-                                ? "success"
-                                : r.net < 0
-                                  ? "destructive"
-                                  : "secondary"
-                            }
-                          >
-                            {formatEGP(r.net, lang)}{" "}
-                            {r.net > 0 ? t.overpaid : r.net < 0 ? t.owes : t.settled}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/40">
-                          <div>
-                            <span>{t.colPaid}: </span>
-                            <strong className="text-foreground font-mono">{formatEGP(r.paid, lang)}</strong>
-                            {r.payout > 0 && (
-                              <span className="ms-2">({t.colPayout}: {formatEGP(r.payout, lang)})</span>
-                            )}
-                          </div>
-                          <SettleRowButton
-                            expenseId={s.expenseId}
-                            partnerId={r.partnerId}
-                            net={r.net}
-                            lang={lang}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                    {s.rows.length === 0 && (
-                      <p className="text-center text-sm text-muted-foreground py-2">
-                        {t.noExpenses}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Desktop / tablet table */}
-                  <div className="hidden sm:block">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t.colPartner}</TableHead>
-                          <TableHead className="text-end">{t.colShare}</TableHead>
-                          <TableHead className="text-end">{t.colShareAmount}</TableHead>
-                          <TableHead className="text-end">{t.colPaid}</TableHead>
-                          <TableHead className="text-end">{t.colPayout}</TableHead>
-                          <TableHead className="text-end">{t.colNet}</TableHead>
-                          <TableHead className="text-end">{t.colSettle}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {s.rows.map((r) => (
-                          <TableRow key={r.partnerId}>
-                            <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
-                            <TableCell className="text-end whitespace-nowrap">
-                              {formatPct(r.sharePercentage)}
-                            </TableCell>
-                            <TableCell className="text-end whitespace-nowrap">
-                              {formatEGP(r.shareAmount, lang)}
-                            </TableCell>
-                            <TableCell className="text-end whitespace-nowrap">
-                              {formatEGP(r.paid, lang)}
-                            </TableCell>
-                            <TableCell className="text-end whitespace-nowrap">
-                              {r.payout > 0 ? (
-                                formatEGP(r.payout, lang)
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-end whitespace-nowrap">
-                              <Badge
-                                variant={
-                                  r.net > 0
-                                    ? "success"
-                                    : r.net < 0
-                                      ? "destructive"
-                                      : "secondary"
-                                }
-                              >
-                                {formatEGP(r.net, lang)}{" "}
-                                {r.net > 0 ? t.overpaid : r.net < 0 ? t.owes : t.settled}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-end whitespace-nowrap">
-                              <SettleRowButton
-                                expenseId={s.expenseId}
-                                partnerId={r.partnerId}
-                                net={r.net}
-                                lang={lang}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {s.rows.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground">
-                              {t.noExpenses}
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <p className="mb-2 text-sm font-medium">{t.payTitle}</p>
-                      <CompanyPaymentForm
-                        expenseId={s.expenseId}
-                        lang={lang}
-                        partners={partners.map((p) => ({ id: p.id, name: p.name }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      {expense.payments.map((pay) => (
-                        <div
-                          key={pay.id}
-                          className="flex items-center justify-between gap-2 rounded-lg border border-border p-2 text-sm"
-                        >
-                          <span className="min-w-0 flex-1 truncate">
-                            {pay.partner.name} · {formatEGP(Number(pay.amount), lang)}
-                          </span>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <EditCompanyPaymentButton
-                              paymentId={pay.id}
-                              partnerName={pay.partner.name}
-                              currentAmount={Number(pay.amount)}
-                              lang={lang}
-                            />
-                            <DeleteCompanyPaymentButton id={pay.id} lang={lang} />
-                          </div>
-                        </div>
-                      ))}
-                      {expense.payments.length === 0 && (
-                        <p className="text-sm text-muted-foreground">{t.emptyPayments}</p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-          {settlements.length === 0 && (
-            <Card>
-              <CardContent className="pt-6 text-sm text-muted-foreground">
-                {t.noExpenses}
-              </CardContent>
-            </Card>
-          )}
+        <div className="lg:col-span-2 min-w-0">
+          <CompanyExpensesList
+            items={expenseItems}
+            partners={partners.map((p) => ({ id: p.id, name: p.name }))}
+            lang={lang}
+          />
         </div>
       </div>
 
