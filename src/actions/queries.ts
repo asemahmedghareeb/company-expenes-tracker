@@ -586,9 +586,8 @@ export async function getSummaryData() {
 
 /** Partner ledger page data (ledgers + drawings detail). */
 export async function getLedgerData() {
-  // All three reads are independent — fan out concurrently instead of
-  // awaiting the dashboard first and stalling the other two behind it.
-  const [dashboard, drawings, expenses] = await Promise.all([
+  // All reads are independent — fan out concurrently.
+  const [dashboard, drawings, expenses, p2pPayouts] = await Promise.all([
     getDashboardData(),
     db.partnerDrawing.findMany({
       select: {
@@ -616,7 +615,21 @@ export async function getLedgerData() {
       },
       orderBy: { expenseDate: "desc" },
     }),
+    // All P2P payouts (partner funded) for inter-partner debt calculation
+    db.companyPayout.findMany({
+      where: { paidByPartnerId: { not: null } },
+      select: {
+        id: true,
+        partnerId: true,
+        paidByPartnerId: true,
+        amount: true,
+        paidAt: true,
+        partner: { select: { id: true, name: true } },
+        paidBy: { select: { id: true, name: true } },
+      },
+      orderBy: { paidAt: "desc" },
+    }),
   ]);
   const { partners, ledgers, overview } = dashboard;
-  return { partners, ledgers, overview, drawings, pendingExpenses: expenses };
+  return { partners, ledgers, overview, drawings, pendingExpenses: expenses, p2pPayouts };
 }

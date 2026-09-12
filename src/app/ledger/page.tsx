@@ -18,6 +18,7 @@ import {
 import { formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
+import { computeInterPartnerDebts } from "@/lib/ledger";
 import { PaginatedPendingExpensesTable } from "@/components/ledger-tables";
 import { PageGuide } from "@/components/ui/page-guide";
 
@@ -50,7 +51,19 @@ export default async function LedgerPage() {
     );
   }
 
-  const { ledgers, drawings, pendingExpenses } = data;
+  const { ledgers, drawings, pendingExpenses, p2pPayouts } = data;
+
+  // Compute inter-partner debts from P2P payouts
+  const partnerNamesMap: Record<string, string> = {};
+  for (const l of ledgers) partnerNamesMap[l.partnerId] = l.partnerName;
+  const interPartnerDebts = computeInterPartnerDebts(
+    p2pPayouts.map((p) => ({
+      partnerId: p.partnerId,
+      paidByPartnerId: p.paidByPartnerId,
+      amount: Number(p.amount),
+    })),
+    partnerNamesMap,
+  );
 
   return (
     <div className="space-y-6">
@@ -59,6 +72,7 @@ export default async function LedgerPage() {
         <p className="text-sm text-muted-foreground">{t.subtitle}</p>
       </div>
 
+      {/* Partner balance cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {ledgers.map((l) => (
           <Card key={l.partnerId}>
@@ -83,6 +97,29 @@ export default async function LedgerPage() {
                 <span className="text-muted-foreground">{t.companyNet}</span>
                 <span>{formatEGP(l.companyNet, lang)}</span>
               </div>
+              {/* P2P debt indicators on this partner's card */}
+              {interPartnerDebts.filter(
+                (d) => d.debtorId === l.partnerId || d.creditorId === l.partnerId,
+              ).length > 0 && (
+                <div className="pt-1 border-t border-border/50 space-y-1">
+                  {interPartnerDebts
+                    .filter((d) => d.debtorId === l.partnerId)
+                    .map((d) => (
+                      <div key={`${d.debtorId}-${d.creditorId}`} className="flex justify-between text-xs text-red-600 dark:text-red-400">
+                        <span>← {lang === "ar" ? `مدين لـ ${d.creditorName}` : `Owes ${d.creditorName}`}</span>
+                        <span className="font-mono">{formatEGP(d.amount, lang)}</span>
+                      </div>
+                    ))}
+                  {interPartnerDebts
+                    .filter((d) => d.creditorId === l.partnerId)
+                    .map((d) => (
+                      <div key={`${d.debtorId}-${d.creditorId}`} className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400">
+                        <span>→ {lang === "ar" ? `يستحق من ${d.debtorName}` : `Owed by ${d.debtorName}`}</span>
+                        <span className="font-mono">{formatEGP(d.amount, lang)}</span>
+                      </div>
+                    ))}
+                </div>
+              )}
               {(l.breakdown.length > 0 || l.companyBreakdown.length > 0) && (
                 <div className="pt-2">
                   {l.breakdown.map((b) => (
@@ -114,6 +151,71 @@ export default async function LedgerPage() {
           <p className="text-sm text-muted-foreground">{t.noPartners}</p>
         )}
       </div>
+
+      {/* Inter-partner debts from P2P payouts */}
+      {interPartnerDebts.length > 0 && (
+        <Card className="border-amber-200 dark:border-amber-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              🤝 {lang === "ar" ? "مديونيات بين الشركاء" : "Inter-Partner Debts"}
+            </CardTitle>
+            <CardDescription>
+              {lang === "ar"
+                ? "مبالغ يدين بها شريك لآخر ناتجة عن عمليات رد المبلغ المباشر (من شريك لشريك). يُصفَّى الدين عند قيام المدين بسداد الدائن مباشرةً أو عبر تسجيل رد عكسي."
+                : "Amounts owed between partners from direct P2P reimbursements. Settled when the debtor repays the creditor directly."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg overflow-hidden border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">
+                      {lang === "ar" ? "المدين (يجب أن يدفع)" : "Debtor (must pay)"}
+                    </TableHead>
+                    <TableHead className="text-center">→</TableHead>
+                    <TableHead className="text-right">
+                      {lang === "ar" ? "الدائن (يستحق الاستلام)" : "Creditor (to receive)"}
+                    </TableHead>
+                    <TableHead className="text-left font-mono">
+                      {lang === "ar" ? "المبلغ المستحق" : "Amount Owed"}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {interPartnerDebts.map((d) => (
+                    <TableRow key={`${d.debtorId}-${d.creditorId}`}>
+                      <TableCell className="text-right">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                          <span className="font-medium">{d.debtorName}</span>
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center text-muted-foreground text-lg">→</TableCell>
+                      <TableCell className="text-right">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                          <span className="font-medium">{d.creditorName}</span>
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-left">
+                        <Badge variant="destructive" className="font-mono text-sm px-3 py-1">
+                          {formatEGP(d.amount, lang)}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              {lang === "ar"
+                ? "💡 لتسجيل سداد دين بين شريكين: اذهب لصفحة «مصاريف الشركة» واستخدم نموذج «رد مبلغ لشريك» — اختر الشريك الدائن كمستفيد والشريك المدين كمصدر الدفع بالمبلغ نفسه. سيُعيد هذا الحساب إلى الصفر تلقائياً."
+                : "💡 To settle a debt: go to Company Expenses, use 'Partner Payout', choose the creditor as recipient and the debtor as paying partner. The debt will clear automatically."}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pending reimbursements waiting for settlement */}
       <Card>
@@ -160,12 +262,12 @@ export default async function LedgerPage() {
             badge: { text: lang === "ar" ? "مستحق للشريك (+)" : "Owed to Partner (+)", variant: "outline" },
           },
           {
-            title: lang === "ar" ? "حصص الأرباح المحققة" : "Realized Profit Shares",
+            title: lang === "ar" ? "مديونيات بين الشركاء (رد مبلغ من شريك لآخر)" : "Inter-Partner Debts (P2P)",
             text:
               lang === "ar"
-                ? "إجمالي حصص الأرباح التعاقدية للشريك الناتجة عن المشاريع المنجزة، بعد خصم كافة تكاليف المشروع من المبالغ المحصلة من العميل."
-                : "Partner's contractual share of net project profits after deducting project direct costs from received client cash.",
-            badge: { text: lang === "ar" ? "أرباح محققة (+)" : "Realized Profit (+)", variant: "success" },
+                ? "عند قيام شريك بدفع مستحقات شريك آخر مباشرةً من ماله الخاص (مثلاً طارق يسدد لعاصم)، يُسجَّل دين مباشر بين الشريكين. يظهر الدين في جدول «مديونيات بين الشركاء» حتى يتم تصفيته بعملية رد عكسية."
+                : "When partner A directly pays partner B's dues from their own pocket, a direct debt is recorded between them. Shown in the inter-partner debts table until cleared.",
+            badge: { text: lang === "ar" ? "🤝 دين بين شريكين" : "🤝 P2P Debt", variant: "outline" },
           },
           {
             title: lang === "ar" ? "صافي مصاريف الشركة العامة" : "Company Operational Overhead",
@@ -190,11 +292,11 @@ export default async function LedgerPage() {
         ]}
         tips={[
           lang === "ar"
+            ? "تسوية الديون بين الشركاء: سجِّل عملية «رد مبلغ» في صفحة مصاريف الشركة بحيث يكون الشريك المدين هو «مصدر الدفع» والشريك الدائن هو «المستفيد» — سيتم تصفير الدين تلقائياً."
+            : "To settle inter-partner debts: record a payout with the debtor as the paying source and creditor as recipient — the debt clears automatically.",
+          lang === "ar"
             ? "تسوية المشاريع: تتم من خلال صفحة «رأس مال الشركة والخزنة» أو صفحة كل مشروع، حيث تُقتسم الأرباح ويستلمها الشركاء مباشرة."
             : "Project settlements: Executed in the Treasury or project details page, with direct payouts to partners.",
-          lang === "ar"
-            ? "استرداد النفقات: تسجل نفقات الجيب تلقائياً في جدول «المستحقات المعلقة» أعلاه حتى تتم جدولتها وصرفها للشريك."
-            : "Expense reimbursements: Logged automatically in the Pending Reimbursements table until reimbursed.",
           lang === "ar"
             ? "مصاريف الشركة: تابع الفواتير الدورية ونسب مساهمة كل شريك من خلال تبويب «مصاريف الشركة»."
             : "Company overhead: Track recurring bills and partner contributions in the Company Expenses tab.",
@@ -203,3 +305,4 @@ export default async function LedgerPage() {
     </div>
   );
 }
+

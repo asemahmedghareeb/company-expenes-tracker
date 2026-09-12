@@ -591,6 +591,63 @@ export function getAllPartnerLedgers(
     .sort((a, b) => b.balance - a.balance);
 }
 
+/**
+ * Computes net inter-partner debts arising from P2P payouts.
+ * When partner A paid on behalf of partner B (paidByPartnerId = A, partnerId = B),
+ * B effectively owes A that amount. Multiple flows between the same pair are netted.
+ *
+ * Returns a list of { debtorId, creditorId, amount } where amount > 0 means debtorId owes creditorId.
+ */
+export interface InterPartnerDebt {
+  debtorId: string;
+  debtorName: string;
+  creditorId: string;
+  creditorName: string;
+  /** Net amount debtor owes creditor (always > 0 in the output). */
+  amount: number;
+}
+
+export function computeInterPartnerDebts(
+  payouts: Array<{ partnerId: string; paidByPartnerId?: string | null; amount: number }>,
+  partnerNames: Record<string, string>,
+): InterPartnerDebt[] {
+  // Accumulate net flows: key = "creditorId→debtorId", value = net amount creditor is owed by debtor
+  const netMap = new Map<string, number>();
+
+  for (const p of payouts) {
+    if (!p.paidByPartnerId) continue; // company-funded, skip
+    const creditor = p.paidByPartnerId; // the one who paid cash = is owed
+    const debtor = p.partnerId;         // the one who received cash = owes
+    if (creditor === debtor) continue;
+
+    // Use canonical key: always alphabetically sorted pair
+    const [a, b] = [creditor, debtor].sort();
+    const key = `${a}→${b}`;
+    const current = netMap.get(key) ?? 0;
+    // If creditor === a: creditor paid → a is owed by b → positive for a
+    const delta = creditor === a ? p.amount : -p.amount;
+    netMap.set(key, round2(current + delta));
+  }
+
+  const result: InterPartnerDebt[] = [];
+  for (const [key, net] of netMap) {
+    if (Math.abs(net) < 0.01) continue; // fully settled
+    const [a, b] = key.split("→");
+    if (!a || !b) continue;
+    // net > 0 means a is owed by b (b owes a)
+    const creditorId = net > 0 ? a : b;
+    const debtorId   = net > 0 ? b : a;
+    result.push({
+      creditorId,
+      creditorName: partnerNames[creditorId] ?? creditorId,
+      debtorId,
+      debtorName: partnerNames[debtorId] ?? debtorId,
+      amount: Math.abs(net),
+    });
+  }
+  return result.sort((a, b) => b.amount - a.amount);
+}
+
 /* ------------------------------ firm-wide ----------------------------- */
 
 export interface FirmOverview {
