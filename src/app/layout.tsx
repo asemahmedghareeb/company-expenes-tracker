@@ -25,15 +25,15 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "Partner Ledger — Internal Financial Accounting",
+  title: "وفاق — الإدارة المالية وحسابات الشركاء | Wifaq",
   description:
-    "Dynamic multi-partner accounting: snapshot equity, milestone payments, out-of-pocket expenses, drawings & live balances.",
-  applicationName: "Partner Ledger",
+    "منظومة وفاق للإدارة المالية وحسابات الشركاء: توزيع الأرباح، تسوية الحسابات، مصاريف المشاريع، وخزنة الشركة.",
+  applicationName: "وفاق",
   manifest: "/manifest.webmanifest",
   formatDetection: { telephone: false },
   appleWebApp: {
     capable: true,
-    title: "Partner Ledger",
+    title: "وفاق",
     statusBarStyle: "black-translucent",
   },
   icons: {

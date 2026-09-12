@@ -461,8 +461,8 @@ export interface Dictionary {
 
 export const dict: Record<Lang, Dictionary> = {
   en: {
-    brand: "Partner Ledger",
-    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Ledger", company: "Company", summary: "Partner Balances", capital: "Treasury" },
+    brand: "Wifaq",
+    nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Partner Accounts", company: "Company", summary: "Partner Balances", capital: "Treasury" },
     auth: {
       title: "Sign in",
       subtitle: "Restricted area — company financial data is private.",
@@ -928,8 +928,8 @@ export const dict: Record<Lang, Dictionary> = {
     },
   },
   ar: {
-    brand: "دفتر الشركاء",
-    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "دفتر الشركاء", company: "مصاريف الشركة", summary: "الرصيد بين الشركاء", capital: "رأس مال الشركة" },
+    brand: "وفاق",
+    nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "حسابات الشركاء", company: "مصاريف الشركة", summary: "الرصيد بين الشركاء", capital: "رأس مال الشركة والخزنة" },
     auth: {
       title: "تسجيل الدخول",
       subtitle: "منطقة محظورة — البيانات المالية للشركة سرية.",
@@ -1362,7 +1362,7 @@ export const dict: Record<Lang, Dictionary> = {
       settleLine: (from, to, amount) => `${from} يدفع إلى ${to}: ${amount}`,
     },
     ledger: {
-      title: "دفتر الشركاء",
+      title: "حسابات الشركاء",
       subtitle: "الرصيد = المستحقات المعلقة + حصص الأرباح المحققة + صافي الشركة − المسحوبات",
       noPartners: "لا يوجد شركاء بعد.",
       pendingShort: "مستحقات معلقة",

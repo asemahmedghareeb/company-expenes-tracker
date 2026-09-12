@@ -1,7 +1,7 @@
 {
-  "name": "Partner Ledger — Firm Expenses & Treasury",
-  "short_name": "Ledger",
-  "description": "Multi-partner accounting: projects, expenses, drawings and live balances.",
+  "name": "وفاق — الإدارة المالية وحسابات الشركاء (Wifaq)",
+  "short_name": "وفاق",
+  "description": "منظومة وفاق للإدارة المالية وحسابات الشركاء: مصاريف، تسويات، وخزنة الشركة.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
