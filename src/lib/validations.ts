@@ -224,16 +224,30 @@ export const partnerDrawingSchema = z.object({
 
 export type PartnerDrawingInput = z.infer<typeof partnerDrawingSchema>;
 
-/* ------------------------- Company overhead --------------------------- */
+const nonNegativeMoney = z
+  .coerce
+  .number()
+  .min(0, "Amount cannot be negative")
+  .max(1_000_000_000, "Amount is unreasonably large");
 
 export const companyExpenseSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200),
   amount: moneyAmount,
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
   expenseDate: z.coerce.date().default(() => new Date()),
+  vaultAmount: nonNegativeMoney.default(0),
+  vaultNotes: z.string().trim().max(500).optional().or(z.literal("")),
 });
 
 export type CompanyExpenseInput = z.infer<typeof companyExpenseSchema>;
+
+export const disburseCompanyVaultExpenseSchema = z.object({
+  expenseId: cuid,
+});
+
+export type DisburseCompanyVaultExpenseInput = z.infer<
+  typeof disburseCompanyVaultExpenseSchema
+>;
 
 export const companyPaymentSchema = z.object({
   expenseId: cuid,

@@ -19,6 +19,7 @@ import { dict, getLang } from "@/lib/i18n";
 import { getCompanyExpenseSettlement, toNumber } from "@/lib/ledger";
 import { sharesSumTo100 } from "@/lib/shares";
 import { getCompanyData } from "@/actions/queries";
+import { Vault, CheckCircle2 } from "lucide-react";
 import {
   CompanyExpenseForm,
   CompanyPaymentForm,
@@ -26,7 +27,9 @@ import {
   DeleteCompanyExpenseButton,
   DeleteCompanyPaymentButton,
   DeleteCompanyPayoutButton,
+  DisburseVaultExpenseButton,
   FixedCostsManager,
+  RevertVaultExpenseButton,
   SettleBillButton,
   SettleRowButton,
 } from "@/components/forms/company-forms";
@@ -209,6 +212,75 @@ export default async function CompanyPage() {
                     <DeleteCompanyExpenseButton id={s.expenseId} lang={lang} />
                   </div>
                 </CardHeader>
+                {toNumber(expense.vaultAmount) > 0 && (
+                  <div className="px-6 pb-2 -mt-1">
+                    <div
+                      className={`rounded-xl border p-3 text-xs space-y-2 ${
+                        expense.vaultDisbursed
+                          ? "border-border/80 bg-muted/30 text-muted-foreground"
+                          : "border-indigo-200/80 bg-indigo-50/60 dark:border-indigo-900/50 dark:bg-indigo-950/30 text-indigo-950 dark:text-indigo-200"
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300">
+                            <Vault className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="font-semibold">
+                            {lang === "ar" ? "خزنة الشركة (الاحتياطي):" : "Company Vault:"}
+                          </span>
+                          <span className="font-mono font-bold text-sm text-indigo-700 dark:text-indigo-300">
+                            {formatEGP(toNumber(expense.vaultAmount), lang)}
+                          </span>
+                          {expense.vaultDisbursed ? (
+                            <Badge variant="secondary" className="text-[11px] gap-1">
+                              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                              <span>
+                                {lang === "ar"
+                                  ? `تم الصرف وسداده ${expense.vaultDisbursedAt ? `(${formatDate(expense.vaultDisbursedAt, lang)})` : ""}`
+                                  : "Disbursed & settled from vault"}
+                              </span>
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px]">
+                              {lang === "ar" ? "محجوز بالخزنة حتى موعد السداد" : "Held in Vault until due"}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          {!expense.vaultDisbursed ? (
+                            <DisburseVaultExpenseButton
+                              expenseId={s.expenseId}
+                              amount={toNumber(expense.vaultAmount)}
+                              lang={lang}
+                            />
+                          ) : (
+                            <RevertVaultExpenseButton expenseId={s.expenseId} lang={lang} />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground pt-1.5 border-t border-border/40">
+                        <span>
+                          {lang === "ar" ? "المسدد فوراً للجهات:" : "Paid out immediately:"}{" "}
+                          <strong className="text-foreground font-mono">
+                            {formatEGP(
+                              Math.max(0, toNumber(expense.amount) - toNumber(expense.vaultAmount)),
+                              lang,
+                            )}
+                          </strong>
+                        </span>
+                        {expense.vaultNotes && (
+                          <span>
+                            {lang === "ar" ? "ملاحظة الخزنة:" : "Vault note:"}{" "}
+                            <span className="text-foreground font-medium">{expense.vaultNotes}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <CardContent className="space-y-4 min-w-0">
                   {/* Mobile settlement cards */}
                   <div className="space-y-2.5 sm:hidden">

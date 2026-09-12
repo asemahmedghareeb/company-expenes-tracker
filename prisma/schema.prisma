@@ -148,13 +148,17 @@ enum CompanyExpenseKind {
 /// per partner; whoever pays MORE than their share is automatically
 /// credited (overpayment → pending money owed back to them).
 model CompanyExpense {
-  id          String   @id @default(cuid())
-  title       String
-  amount      Decimal  @db.Decimal(14, 2)
-  notes       String?
-  expenseDate DateTime @default(now())
-  kind        CompanyExpenseKind @default(VARIABLE)
-  createdAt   DateTime @default(now())
+  id               String             @id @default(cuid())
+  title            String
+  amount           Decimal            @db.Decimal(14, 2)
+  notes            String?
+  expenseDate      DateTime           @default(now())
+  kind             CompanyExpenseKind @default(VARIABLE)
+  createdAt        DateTime           @default(now())
+  vaultAmount      Decimal            @default(0) @db.Decimal(14, 2)
+  vaultDisbursed   Boolean            @default(false)
+  vaultDisbursedAt DateTime?
+  vaultNotes       String?
 
   payments CompanyExpensePayment[]
   payouts  CompanyPayout[]

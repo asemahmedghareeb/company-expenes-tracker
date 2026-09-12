@@ -32,13 +32,23 @@ import {
 export default async function CapitalPage() {
   const lang = await getLang();
   const t = dict[lang].capital;
-  const { partners, projects, settlements: executedSettlements, totalVaultBalance } =
-    await getTreasuryData().catch(() => ({
-      partners: [],
-      projects: [],
-      settlements: [],
-      totalVaultBalance: 0,
-    }));
+  const {
+    partners,
+    projects,
+    settlements: executedSettlements,
+    vaultCompanyExpenses = [],
+    settlementsVault = 0,
+    activeExpenseVault = 0,
+    totalVaultBalance = 0,
+  } = await getTreasuryData().catch(() => ({
+    partners: [],
+    projects: [],
+    settlements: [],
+    vaultCompanyExpenses: [],
+    settlementsVault: 0,
+    activeExpenseVault: 0,
+    totalVaultBalance: 0,
+  }));
 
   const dialogProjects = projects.map((p) => {
     const inflow = p.clientPayments.reduce((acc, pay) => acc + toNumber(pay.amount), 0);
@@ -134,10 +144,19 @@ export default async function CapitalPage() {
             <CardTitle dir="ltr" className="text-2xl font-mono tabular-nums text-indigo-900 dark:text-indigo-200">
               {formatEGP(totalVaultBalance, lang)}
             </CardTitle>
-            <CardDescription>
-              {lang === "ar"
-                ? `${executedSettlements.length} تسويات نقدية منفذة`
-                : `${executedSettlements.length} executed settlements`}
+            <CardDescription className="space-y-0.5">
+              <span>
+                {lang === "ar"
+                  ? `${executedSettlements.length} تسويات أرباح منفذة (${formatEGP(settlementsVault, lang)})`
+                  : `${executedSettlements.length} profit settlements (${formatEGP(settlementsVault, lang)})`}
+              </span>
+              {activeExpenseVault > 0 && (
+                <span className="block text-[11px] text-indigo-700 dark:text-indigo-300 font-medium">
+                  {lang === "ar"
+                    ? `+ ${formatEGP(activeExpenseVault, lang)} محجوزة لمصاريف مؤجلة (كالإيجار والنت)`
+                    : `+ ${formatEGP(activeExpenseVault, lang)} held for upcoming bills (rent/internet)`}
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -515,6 +534,66 @@ export default async function CapitalPage() {
                   ? "اضغط على زر «تنفيذ تسوية وتوزيع أرباح» في أعلى الصفحة لتسوية الأرباح وتحديد نسبة خزنة الشركة وتوزيع الكاش على الشركاء."
                   : "Click 'Execute Profit Settlement' above to distribute cash and withhold vault reserves."}
               </p>
+            </div>
+          )}
+
+          {/* Company Expenses Vault Reserves */}
+          {vaultCompanyExpenses.length > 0 && (
+            <div className="pt-4 border-t border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Vault className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  <span className="font-semibold text-sm">
+                    {lang === "ar"
+                      ? "احتياطيات مصاريف الشركة المودعة بالخزنة (إيجار، نت...)"
+                      : "Company Expense Vault Reserves"}
+                  </span>
+                </div>
+                <Link
+                  href="/company"
+                  className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  <span>{lang === "ar" ? "إدارة مصاريف الشركة" : "Manage bills"}</span>
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {vaultCompanyExpenses.map((e) => (
+                  <div
+                    key={e.id}
+                    className={`rounded-xl border p-3 text-xs space-y-1.5 transition-colors ${
+                      e.vaultDisbursed
+                        ? "border-border/80 bg-muted/20 text-muted-foreground"
+                        : "border-indigo-200/80 bg-indigo-50/40 dark:border-indigo-900/50 dark:bg-indigo-950/20 text-foreground"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-sm truncate">{e.title}</span>
+                      <span className="font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                        {formatEGP(toNumber(e.vaultAmount), lang)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>{formatDate(e.expenseDate, lang)}</span>
+                      {e.vaultDisbursed ? (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {lang === "ar" ? "تم الصرف وسداده" : "Disbursed"}
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px]">
+                          {lang === "ar" ? "محجوز بالخزنة" : "Held in Vault"}
+                        </Badge>
+                      )}
+                    </div>
+                    {e.vaultNotes && (
+                      <p className="text-[11px] text-muted-foreground italic truncate">
+                        {e.vaultNotes}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

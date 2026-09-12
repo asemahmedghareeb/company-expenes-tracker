@@ -8,6 +8,7 @@ import {
   companyFixedCostSchema,
   companyPaymentSchema,
   companyPayoutSchema,
+  disburseCompanyVaultExpenseSchema,
   settleCompanyBillSchema,
   settleCompanyRowSchema,
   type ActionResult,
@@ -31,6 +32,12 @@ export async function addCompanyExpense(
       fieldErrors: zodFieldErrors(parsed.error),
     };
   }
+  if (parsed.data.vaultAmount > parsed.data.amount) {
+    return {
+      ok: false,
+      error: "المبلغ المودع في الخزنة لا يمكن أن يتجاوز إجمالي المصروف.",
+    };
+  }
   try {
     const expense = await db.companyExpense.create({
       data: {
@@ -38,6 +45,8 @@ export async function addCompanyExpense(
         amount: parsed.data.amount,
         notes: parsed.data.notes || null,
         expenseDate: parsed.data.expenseDate,
+        vaultAmount: parsed.data.vaultAmount,
+        vaultNotes: parsed.data.vaultNotes || null,
       },
     });
     revalidateCompany();
@@ -139,6 +148,12 @@ export async function addCompanyExpenseWithPayments(
       fieldErrors: zodFieldErrors(parsed.error),
     };
   }
+  if (parsed.data.vaultAmount > parsed.data.amount) {
+    return {
+      ok: false,
+      error: "المبلغ المودع في الخزنة لا يمكن أن يتجاوز إجمالي المصروف.",
+    };
+  }
   const payerIds = [...new Set(parsed.data.payments.map((p) => p.partnerId))];
   if (payerIds.length > 0) {
     const payers = await db.partner.findMany({
@@ -157,6 +172,8 @@ export async function addCompanyExpenseWithPayments(
         notes: parsed.data.notes || null,
         expenseDate: parsed.data.expenseDate,
         kind: parsed.data.kind,
+        vaultAmount: parsed.data.vaultAmount,
+        vaultNotes: parsed.data.vaultNotes || null,
         payments: {
           create: parsed.data.payments.map((p) => ({
             partnerId: p.partnerId,
@@ -466,3 +483,54 @@ export async function deleteFixedCost(
     };
   }
 }
+
+/* ------------------------- Company Vault Disbursements ------------------------- */
+
+/** Disburse held funds from the company vault to pay the expense (e.g. when rent becomes due next month). */
+export async function disburseCompanyExpenseFromVault(
+  raw: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = disburseCompanyVaultExpenseSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid request." };
+  }
+  try {
+    const expense = await db.companyExpense.update({
+      where: { id: parsed.data.expenseId },
+      data: {
+        vaultDisbursed: true,
+        vaultDisbursedAt: new Date(),
+      },
+    });
+    revalidateCompany();
+    return { ok: true, data: { id: expense.id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to disburse from vault.",
+    };
+  }
+}
+
+/** Revert a vault disbursement, putting the reserved money back into the company vault. */
+export async function revertCompanyExpenseVaultDisbursement(
+  expenseId: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const expense = await db.companyExpense.update({
+      where: { id: expenseId },
+      data: {
+        vaultDisbursed: false,
+        vaultDisbursedAt: null,
+      },
+    });
+    revalidateCompany();
+    return { ok: true, data: { id: expense.id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to revert vault disbursement.",
+    };
+  }
+}
+

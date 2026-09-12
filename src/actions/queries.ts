@@ -388,6 +388,10 @@ export async function getCompanyData() {
         amount: true,
         kind: true,
         expenseDate: true,
+        vaultAmount: true,
+        vaultDisbursed: true,
+        vaultDisbursedAt: true,
+        vaultNotes: true,
         payments: {
           select: {
             id: true,
@@ -435,7 +439,7 @@ export async function getCompanyData() {
 
 /** Treasury page data: every project with its frozen splits + custodied payments + settlements & vault. */
 export async function getTreasuryData() {
-  const [partners, projects, settlements] = await Promise.all([
+  const [partners, projects, settlements, vaultCompanyExpenses] = await Promise.all([
     db.partner.findMany({
       orderBy: { name: "asc" },
       select: {
@@ -487,14 +491,43 @@ export async function getTreasuryData() {
         },
       },
     }),
+    db.companyExpense.findMany({
+      where: {
+        vaultAmount: { gt: 0 },
+      },
+      orderBy: { expenseDate: "desc" },
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        vaultAmount: true,
+        vaultDisbursed: true,
+        vaultDisbursedAt: true,
+        vaultNotes: true,
+        expenseDate: true,
+      },
+    }),
   ]);
 
-  const totalVaultBalance = settlements.reduce(
+  const settlementsVault = settlements.reduce(
     (acc, s) => acc + toNumber(s.vaultAmount),
     0,
   );
+  const activeExpenseVault = vaultCompanyExpenses
+    .filter((e) => !e.vaultDisbursed)
+    .reduce((acc, e) => acc + toNumber(e.vaultAmount), 0);
 
-  return { partners, projects, settlements, totalVaultBalance };
+  const totalVaultBalance = settlementsVault + activeExpenseVault;
+
+  return {
+    partners,
+    projects,
+    settlements,
+    vaultCompanyExpenses,
+    settlementsVault,
+    activeExpenseVault,
+    totalVaultBalance,
+  };
 }
 
 /** Monthly summary data: everything the engine needs to settle one month. */

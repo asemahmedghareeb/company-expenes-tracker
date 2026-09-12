@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Trash2, Vault, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
@@ -13,8 +13,10 @@ import {
   deleteCompanyPayment,
   deleteCompanyPayout,
   deleteFixedCost,
+  disburseCompanyExpenseFromVault,
   recordCompanyPayment,
   recordCompanyPayout,
+  revertCompanyExpenseVaultDisbursement,
   settleCompanyBill,
   settleCompanyRow,
 } from "@/actions/company";
@@ -47,6 +49,10 @@ export function CompanyExpenseForm({
   const [menuOpen, setMenuOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
+  // Vault allocation state
+  const [vaultAmount, setVaultAmount] = useState("");
+  const [vaultNotes, setVaultNotes] = useState("");
+  const [vaultItemIds, setVaultItemIds] = useState<string[]>([]);
   // Manually touched payer rows: { text }. Untouched rows derive live
   // from the bill amount × default equity (precise, not rounded).
   const [touched, setTouched] = useState<Record<string, string>>({});
@@ -68,6 +74,10 @@ export function CompanyExpenseForm({
   const collected = active.reduce((a, p) => a + valueOf(p.id), 0);
   const remaining = bill - collected;
 
+  const pickedCosts = fixedCosts.filter((x) => fixedIds.includes(x.id));
+  const vaultNum = Math.min(bill, Math.max(0, Number(vaultAmount) || 0));
+  const directPaid = Math.max(0, bill - vaultNum);
+
   function fillShares() {
     setTouched({});
   }
@@ -85,6 +95,25 @@ export function CompanyExpenseForm({
       setAmount(String(picked.reduce((a, x) => a + x.amount, 0)));
       setTouched({});
     }
+    const validVault = vaultItemIds.filter((id) => next.includes(id));
+    setVaultItemIds(validVault);
+    if (validVault.length > 0) {
+      const sum = fixedCosts
+        .filter((x) => validVault.includes(x.id))
+        .reduce((a, x) => a + x.amount, 0);
+      setVaultAmount(sum > 0 ? String(sum) : "");
+    }
+  }
+
+  function toggleVaultItem(id: string) {
+    const next = vaultItemIds.includes(id)
+      ? vaultItemIds.filter((x) => x !== id)
+      : [...vaultItemIds, id];
+    setVaultItemIds(next);
+    const sum = fixedCosts
+      .filter((x) => next.includes(x.id))
+      .reduce((a, x) => a + x.amount, 0);
+    setVaultAmount(sum > 0 ? String(sum) : "");
   }
 
   function toggleFixed(id: string) {
@@ -96,6 +125,8 @@ export function CompanyExpenseForm({
 
   function clearFixed() {
     setFixedIds([]);
+    setVaultItemIds([]);
+    setVaultAmount("");
   }
 
   const pickedTotal = fixedCosts
@@ -118,6 +149,8 @@ export function CompanyExpenseForm({
             expenseDate: fd.get("expenseDate")
               ? new Date(String(fd.get("expenseDate")))
               : new Date(),
+            vaultAmount: vaultNum,
+            vaultNotes: vaultNotes.trim() || undefined,
             payments: active
               .map((p) => ({
                 partnerId: p.id,
@@ -129,6 +162,9 @@ export function CompanyExpenseForm({
           else {
             (e.target as HTMLFormElement).reset();
             setFixedIds([]);
+            setVaultItemIds([]);
+            setVaultAmount("");
+            setVaultNotes("");
             setMenuOpen(false);
             setTitle("");
             setAmount("");
@@ -290,6 +326,125 @@ export function CompanyExpenseForm({
           )}
         </div>
       )}
+
+      {/* Route amount to Company Vault (Reserve) */}
+      <div className="rounded-xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/50 to-indigo-100/20 p-3.5 dark:border-indigo-900/50 dark:from-indigo-950/20 dark:to-indigo-900/10 space-y-2.5">
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5 font-semibold text-indigo-950 dark:text-indigo-200">
+            <Vault className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            <span>
+              {lang === "ar"
+                ? "توجيه جزء أو كامل المبلغ إلى خزنة الشركة (احتياطي)"
+                : "Hold in Company Vault (Reserve)"}
+            </span>
+          </div>
+          {vaultNum > 0 && (
+            <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+              {formatEGP(vaultNum, lang)}
+            </span>
+          )}
+        </div>
+
+        {/* Multi-fixed cost quick selection badges */}
+        {pickedCosts.length > 1 && (
+          <div className="space-y-1">
+            <div className="text-[11px] text-muted-foreground">
+              {lang === "ar"
+                ? "حدد البنود المحجوزة بالخزنة (مثال: الإيجار للشهر القادم والباقي يُسدد فوراً):"
+                : "Select items to hold in vault (e.g. rent for next month):"}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {pickedCosts.map((item) => {
+                const inVault = vaultItemIds.includes(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => toggleVaultItem(item.id)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-all ${
+                      inVault
+                        ? "border-indigo-500 bg-indigo-600 text-white font-medium shadow-xs"
+                        : "border-border bg-background text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <span>{item.title}</span>
+                    <span className="font-mono text-[11px] opacity-90">
+                      ({formatEGP(item.amount, lang)})
+                    </span>
+                    <span className="font-bold">{inVault ? "✓" : "+"}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <div className="grid gap-1">
+            <label className="text-[11px] font-medium text-muted-foreground">
+              {lang === "ar" ? "مبلغ الإيداع في الخزنة (ج.م)" : "Vault Deposit Amount (EGP)"}
+            </label>
+            <Input
+              value={vaultAmount}
+              onChange={(e) => {
+                setVaultAmount(sanitizeNumericInput(e.target.value));
+              }}
+              placeholder={lang === "ar" ? "0 (مسدد فوراً بالكامل)" : "0 (all paid out)"}
+              className="h-8 font-mono text-xs"
+            />
+          </div>
+          <div className="grid gap-1">
+            <label className="text-[11px] font-medium text-muted-foreground">
+              {lang === "ar" ? "ملاحظة الخزنة (اختياري)" : "Vault note (optional)"}
+            </label>
+            <Input
+              value={vaultNotes}
+              onChange={(e) => setVaultNotes(e.target.value)}
+              placeholder={
+                lang === "ar"
+                  ? "مثال: إيجار محجوز حتى الشهر القادم"
+                  : "e.g. held for next month rent"
+              }
+              className="h-8 text-xs"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-indigo-200/50 dark:border-indigo-900/40 text-xs">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setVaultAmount("");
+                setVaultItemIds([]);
+              }}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+            >
+              {lang === "ar" ? "سداد فوري كامل (0 بالخزنة)" : "Paid immediately (0)"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setVaultAmount(String(bill));
+                setVaultItemIds(fixedIds);
+              }}
+              className="text-[11px] text-indigo-700 dark:text-indigo-400 hover:underline underline-offset-2 font-medium"
+            >
+              {lang === "ar" ? "إيداع كامل المبلغ بالخزنة" : "100% to vault"}
+            </button>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] font-mono">
+            <span className="text-muted-foreground">
+              {lang === "ar" ? "مسدد فوراً:" : "Paid out:"}{" "}
+              <strong className="text-foreground">{formatEGP(directPaid, lang)}</strong>
+            </span>
+            <span className="text-indigo-700 dark:text-indigo-300">
+              {lang === "ar" ? "بالخزنة:" : "In vault:"}{" "}
+              <strong>{formatEGP(vaultNum, lang)}</strong>
+            </span>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-1">
         <Label>{t.notes}</Label>
@@ -850,3 +1005,77 @@ export function DeleteFixedCostButton({
     </div>
   );
 }
+
+/* ------------------- Vault Disburse & Revert Buttons ------------------- */
+
+export function DisburseVaultExpenseButton({
+  expenseId,
+  amount,
+  lang,
+}: {
+  expenseId: string;
+  amount: number;
+  lang: Lang;
+}) {
+  const [pending, start] = useTransition();
+  const router = useRouter();
+
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      disabled={pending}
+      onClick={() => {
+        const msg =
+          lang === "ar"
+            ? `هل تريد تأكيد صرف مبلغ ${formatEGP(amount, lang)} المحجوز في الخزنة وسداده للمصروف؟ (سيتم خصمه من رصيد الخزنة)`
+            : `Confirm disbursing ${formatEGP(amount, lang)} from the company vault to settle this expense?`;
+        if (!confirm(msg)) return;
+        start(async () => {
+          const res = await disburseCompanyExpenseFromVault({ expenseId });
+          if (!res.ok) alert(res.error);
+          else router.refresh();
+        });
+      }}
+      className="h-7 text-xs gap-1.5 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+    >
+      <CheckCircle2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+      <span>{lang === "ar" ? "صرف وسداد من الخزنة" : "Disburse from Vault"}</span>
+    </Button>
+  );
+}
+
+export function RevertVaultExpenseButton({
+  expenseId,
+  lang,
+}: {
+  expenseId: string;
+  lang: Lang;
+}) {
+  const [pending, start] = useTransition();
+  const router = useRouter();
+
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={() => {
+        const msg =
+          lang === "ar"
+            ? "هل تريد إلغاء الصرف وإعادة المبلغ إلى خزنة الشركة كاحتياطي محجوز؟"
+            : "Revert disbursement and return funds back to the company vault reserve?";
+        if (!confirm(msg)) return;
+        start(async () => {
+          const res = await revertCompanyExpenseVaultDisbursement(expenseId);
+          if (!res.ok) alert(res.error);
+          else router.refresh();
+        });
+      }}
+      className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+    >
+      {lang === "ar" ? "إلغاء الصرف (إعادة للخزنة)" : "Undo Disburse"}
+    </button>
+  );
+}
+
