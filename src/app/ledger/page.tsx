@@ -30,7 +30,7 @@ import { PageGuide } from "@/components/ui/page-guide";
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLang();
   return {
-    title: lang === "ar" ? "حسابات الشركاء | وفاق" : "Partner Accounts | Wifaq",
+    title: lang === "ar" ? "حسابات الشركاء | TADX Finance" : "Partner Accounts | TADX Finance",
   };
 }
 

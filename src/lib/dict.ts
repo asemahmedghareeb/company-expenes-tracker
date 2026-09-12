@@ -461,7 +461,7 @@ export interface Dictionary {
 
 export const dict: Record<Lang, Dictionary> = {
   en: {
-    brand: "Wifaq",
+    brand: "TADX Finance",
     nav: { dashboard: "Dashboard", projects: "Projects", partners: "Partners", ledger: "Partner Accounts", company: "Company", summary: "Partner Balances", capital: "Treasury" },
     auth: {
       title: "Sign in",
@@ -928,7 +928,7 @@ export const dict: Record<Lang, Dictionary> = {
     },
   },
   ar: {
-    brand: "وفاق",
+    brand: "TADX Finance",
     nav: { dashboard: "لوحة التحكم", projects: "المشاريع", partners: "الشركاء", ledger: "حسابات الشركاء", company: "مصاريف الشركة", summary: "الرصيد بين الشركاء", capital: "رأس مال الشركة والخزنة" },
     auth: {
       title: "تسجيل الدخول",

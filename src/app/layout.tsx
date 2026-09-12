@@ -25,15 +25,15 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "وفاق — الإدارة المالية وحسابات الشركاء | Wifaq",
+  title: "TADX Finance — الإدارة المالية وحسابات الشركاء",
   description:
-    "منظومة وفاق للإدارة المالية وحسابات الشركاء: توزيع الأرباح، تسوية الحسابات، مصاريف المشاريع، وخزنة الشركة.",
-  applicationName: "وفاق",
+    "منظومة TADX Finance للإدارة المالية وحسابات الشركاء: توزيع الأرباح، تسوية الحسابات، مصاريف المشاريع، وخزنة الشركة.",
+  applicationName: "TADX Finance",
   manifest: "/manifest.webmanifest",
   formatDetection: { telephone: false },
   appleWebApp: {
     capable: true,
-    title: "وفاق",
+    title: "TADX Finance",
     statusBarStyle: "black-translucent",
   },
   icons: {
