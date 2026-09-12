@@ -12,8 +12,11 @@ import {
 } from "@/components/ui/table";
 import {
   Dialog,
+  DialogBody,
+  DialogCloseButton,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -237,8 +240,11 @@ export function PartnerProjectsBreakdownDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent dir={isAr ? "rtl" : "ltr"} className="sm:max-w-2xl overflow-y-auto max-h-[90vh] p-4 sm:p-6 space-y-4">
-        <DialogHeader>
+      <DialogContent
+        dir={isAr ? "rtl" : "ltr"}
+        className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl h-full max-h-screen flex flex-col p-0 border-s border-border shadow-2xl"
+      >
+        <DialogHeader className="shrink-0 border-b border-border/60 px-5 py-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
               <FolderGit2 className="h-5 w-5" />
@@ -254,7 +260,10 @@ export function PartnerProjectsBreakdownDialog({
               </DialogDescription>
             </div>
           </div>
+          <DialogCloseButton />
         </DialogHeader>
+
+        <DialogBody className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
         {/* Current Balance Banner */}
         <div
@@ -469,7 +478,23 @@ export function PartnerProjectsBreakdownDialog({
             ? "💡 أرباح المشاريع تُسلَّم للشريك فور تسوية كل مشروع بدون احتجاز كوديعة في الشركة. «رصيد مصاريف الشركة» يوضح ما دفعه الشريك زيادة عن حصته (دائن) أو ما يتبقى عليه سداده لتغطية المصاريف المشتركة (مدين)."
             : "💡 Project profits are handed directly to partners upon project settlement. Company overhead shows if the partner has overpaid (credit) or underpaid (debit) for shared operating expenses."}
         </p>
-      </DialogContent>
-    </Dialog>
-  );
+      </DialogBody>
+
+      <DialogFooter className="shrink-0 border-t border-border/60 px-5 py-3 bg-muted/20 flex justify-between items-center">
+        <span className="text-[11px] text-muted-foreground font-mono">
+          {isAr ? `الشريك: ${partnerName}` : `Partner: ${partnerName}`}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen(false)}
+          className="text-xs font-semibold rounded-lg h-8 px-4"
+        >
+          {isAr ? "إغلاق" : "Close"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
 }
