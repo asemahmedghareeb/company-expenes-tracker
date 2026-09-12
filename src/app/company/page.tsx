@@ -129,19 +129,11 @@ export default async function CompanyPage() {
               />
             </CardContent>
           </Card>
-          <Card className="min-w-0 overflow-hidden">
-            <CardHeader>
-              <CardTitle>{t.payoutTitle}</CardTitle>
-              <CardDescription>{t.payoutDesc}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CompanyPayoutForm
-                lang={lang}
-                partners={partners.map((p) => ({ id: p.id, name: p.name }))}
-                expenses={expenses.map((e) => ({ id: e.id, title: e.title }))}
-              />
-            </CardContent>
-          </Card>
+          <CompanyPayoutForm
+            lang={lang}
+            partners={partners.map((p) => ({ id: p.id, name: p.name }))}
+            expenses={expenses.map((e) => ({ id: e.id, title: e.title }))}
+          />
           <Card className="min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle>{t.payoutHistory}</CardTitle>

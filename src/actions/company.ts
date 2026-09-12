@@ -261,6 +261,57 @@ export async function recordCompanyPayout(
   }
 }
 
+/**
+ * Record a single reimbursement funded by MULTIPLE paying partners.
+ * Creates one CompanyPayout row per paying partner inside a transaction.
+ * Each row: partnerId = recipient, paidByPartnerId = that specific payer, amount = their share.
+ */
+export async function recordCompanyPayoutBulk(raw: {
+  partnerId: string;
+  expenseId?: string;
+  notes?: string;
+  paidAt?: Date;
+  payers: Array<{ partnerId: string; amount: number }>;
+}): Promise<ActionResult<{ ids: string[] }>> {
+  if (!raw.payers || raw.payers.length === 0) {
+    return { ok: false, error: "يجب تحديد شريك دافع واحد على الأقل." };
+  }
+  if (raw.payers.some((p) => p.partnerId === raw.partnerId)) {
+    return { ok: false, error: "الشريك الدافع لا يمكن أن يكون نفس المستفيد." };
+  }
+  if (raw.payers.some((p) => p.amount <= 0)) {
+    return { ok: false, error: "يجب أن تكون جميع المبالغ أكبر من صفر." };
+  }
+
+  const expenseId =
+    raw.expenseId && raw.expenseId !== "" ? raw.expenseId : null;
+  const paidAt = raw.paidAt ?? new Date();
+
+  try {
+    const payouts = await db.$transaction(
+      raw.payers.map((payer) =>
+        db.companyPayout.create({
+          data: {
+            partnerId: raw.partnerId,
+            expenseId,
+            paidByPartnerId: payer.partnerId,
+            amount: payer.amount,
+            notes: raw.notes || null,
+            paidAt,
+          },
+        }),
+      ),
+    );
+    revalidateCompany();
+    return { ok: true, data: { ids: payouts.map((p) => p.id) } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to record payout.",
+    };
+  }
+}
+
 export async function deleteCompanyPayout(
   id: string,
 ): Promise<ActionResult<{ id: string }>> {

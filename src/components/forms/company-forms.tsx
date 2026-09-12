@@ -33,6 +33,7 @@ import {
   disburseCompanyExpenseFromVault,
   recordCompanyPayment,
   recordCompanyPayout,
+  recordCompanyPayoutBulk,
   revertCompanyExpenseVaultDisbursement,
   settleCompanyBill,
   settleCompanyRow,
@@ -773,173 +774,335 @@ export function CompanyPayoutForm({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [amount, setAmount] = useState("");
   const [recipientId, setRecipientId] = useState("");
-  /** "company" = vault pays, "partner" = a partner pays directly */
+  const [expenseId, setExpenseId] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [notes, setNotes] = useState("");
+  /** "company" = vault pays, "partner" = one or more partners pay directly */
   const [payerSource, setPayerSource] = useState<"company" | "partner">("company");
-  const [paidByPartnerId, setPaidByPartnerId] = useState("");
+  /** Checked partner IDs (multi-select) */
+  const [checkedPayers, setCheckedPayers] = useState<Set<string>>(new Set());
+  /** Per-partner amount overrides (empty string = auto from split) */
+  const [payerAmounts, setPayerAmounts] = useState<Record<string, string>>({});
 
-  const recipientName = partners.find((p) => p.id === recipientId)?.name ?? "";
-  const payerName = partners.find((p) => p.id === paidByPartnerId)?.name ?? "";
+  const totalNum = Number(amount) || 0;
+  const availablePayers = partners.filter((p) => p.id !== recipientId);
+  const checkedList = availablePayers.filter((p) => checkedPayers.has(p.id));
+
+  // Auto-split: distribute total equally, let user override per-row
+  const getPayerAmount = (partnerId: string): number => {
+    const override = payerAmounts[partnerId];
+    if (override !== undefined && override !== "") return Number(override) || 0;
+    if (checkedList.length === 0) return 0;
+    return Math.round((totalNum / checkedList.length) * 100) / 100;
+  };
+
+  const totalAssigned = checkedList.reduce((s, p) => s + getPayerAmount(p.id), 0);
+  const isBalanced = checkedList.length === 0 || Math.abs(totalAssigned - totalNum) < 0.02;
+
+  function reset() {
+    setAmount("");
+    setRecipientId("");
+    setExpenseId("");
+    setNotes("");
+    setDate(new Date().toISOString().slice(0, 10));
+    setPayerSource("company");
+    setCheckedPayers(new Set());
+    setPayerAmounts({});
+    setIsExpanded(false);
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+
+    start(async () => {
+      let res: { ok: boolean; error?: string };
+
+      if (payerSource === "company") {
+        // Single company-funded payout
+        const r = await recordCompanyPayout({
+          partnerId: recipientId,
+          expenseId,
+          paidByPartnerId: "",
+          amount: totalNum,
+          notes,
+          paidAt: new Date(date),
+        });
+        res = r;
+      } else {
+        // Multi-payer: use bulk action
+        const r = await recordCompanyPayoutBulk({
+          partnerId: recipientId,
+          expenseId: expenseId || undefined,
+          notes: notes || undefined,
+          paidAt: new Date(date),
+          payers: checkedList.map((p) => ({
+            partnerId: p.id,
+            amount: getPayerAmount(p.id),
+          })),
+        });
+        res = r;
+      }
+
+      if (!res.ok) {
+        setError(res.error ?? "حدث خطأ");
+      } else {
+        reset();
+        router.refresh();
+      }
+    });
+  }
 
   return (
-    <form
-      className="space-y-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        setError(null);
-        start(async () => {
-          const res = await recordCompanyPayout({
-            partnerId: recipientId,
-            expenseId: String(fd.get("expenseId") ?? ""),
-            paidByPartnerId: payerSource === "partner" ? paidByPartnerId : "",
-            amount: Number(amount) || 0,
-            notes: String(fd.get("notes") ?? ""),
-            paidAt: fd.get("paidAt")
-              ? new Date(String(fd.get("paidAt")))
-              : new Date(),
-          });
-          if (!res.ok) setError(res.error);
-          else {
-            (e.target as HTMLFormElement).reset();
-            setAmount("");
-            setRecipientId("");
-            setPaidByPartnerId("");
-            setPayerSource("company");
-            router.refresh();
-          }
-        });
-      }}
-    >
-      {/* Recipient partner */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="grid gap-1">
-          <Label>{t.colPartner}</Label>
-          <select
-            required
-            value={recipientId}
-            onChange={(e) => {
-              setRecipientId(e.target.value);
-              // Reset payer if same as new recipient
-              if (paidByPartnerId === e.target.value) setPaidByPartnerId("");
-            }}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
-          >
-            <option value="">…</option>
-            {partners.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid gap-1">
-          <Label>{t.payoutBill}</Label>
-          <select
-            name="expenseId"
-            defaultValue=""
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
-          >
-            <option value="">{t.payoutGeneral}</option>
-            {expenses.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.title}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Payer source toggle */}
-      <div className="grid gap-1">
-        <Label>{lang === "ar" ? "مصدر الدفع" : "Paid By"}</Label>
-        <div className="flex rounded-md overflow-hidden border border-input text-sm">
-          <button
-            type="button"
-            onClick={() => { setPayerSource("company"); setPaidByPartnerId(""); }}
-            className={cn(
-              "flex-1 px-3 py-1.5 font-medium transition-colors",
-              payerSource === "company"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background hover:bg-muted/50 text-muted-foreground",
-            )}
-          >
-            {lang === "ar" ? "🏢 الشركة (الخزينة)" : "🏢 Company Vault"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setPayerSource("partner")}
-            className={cn(
-              "flex-1 px-3 py-1.5 font-medium transition-colors",
-              payerSource === "partner"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background hover:bg-muted/50 text-muted-foreground",
-            )}
-          >
-            {lang === "ar" ? "🤝 شريك" : "🤝 Partner"}
-          </button>
-        </div>
-      </div>
-
-      {/* Partner payer selector (shown only when source = partner) */}
-      {payerSource === "partner" && (
-        <div className="space-y-2 animate-rise">
-          <div className="grid gap-1">
-            <Label>{lang === "ar" ? "الشريك الدافع" : "Paying Partner"}</Label>
-            <select
-              required
-              value={paidByPartnerId}
-              onChange={(e) => setPaidByPartnerId(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
-            >
-              <option value="">…</option>
-              {partners
-                .filter((p) => p.id !== recipientId)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-          {paidByPartnerId && recipientId && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/60 px-3 py-2 text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
-              {lang === "ar"
-                ? `✅ سيدفع ${payerName} المبلغ مباشرةً لـ ${recipientName || "المستفيد"} — وسيُضاف هذا المبلغ كمستحق لـ ${payerName} في رصيده الخاص.`
-                : `✅ ${payerName} will hand cash directly to ${recipientName || "recipient"} — ${payerName} gains an equivalent credit in their own balance.`}
+    <Card className="min-w-0 overflow-hidden border-border/80 shadow-xs transition-all">
+      <CardHeader
+        className="cursor-pointer select-none p-4 transition-colors hover:bg-muted/40 sm:p-5"
+        onClick={() => setIsExpanded((prev) => !prev)}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              🤝
+            </span>
+            <div className="min-w-0">
+              <CardTitle className="text-base font-bold text-foreground">
+                {t.payoutTitle}
+              </CardTitle>
+              <CardDescription className="text-xs truncate">
+                {t.payoutDesc}
+              </CardDescription>
             </div>
-          )}
+          </div>
+          <Button
+            type="button"
+            variant={isExpanded ? "ghost" : "default"}
+            size="sm"
+            className={cn(
+              "shrink-0 gap-1.5 rounded-xl h-8.5 font-semibold text-xs",
+              !isExpanded &&
+                "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xs hover:from-amber-500 hover:to-orange-500",
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded((prev) => !prev);
+            }}
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="h-4 w-4" />
+                <span>{lang === "ar" ? "طي النموذج" : "Collapse"}</span>
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                <span>{lang === "ar" ? "رد مبلغ" : "Add Payout"}</span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </>
+            )}
+          </Button>
         </div>
-      )}
+      </CardHeader>
 
-      {/* Amount + Date */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="grid gap-1">
-          <Label>{t.amount}</Label>
-          <Input
-            value={amount}
-            onChange={(e) => setAmount(sanitizeNumericInput(e.target.value))}
-            required
-            placeholder="500"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label>{t.date}</Label>
-          <Input name="paidAt" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
-        </div>
-      </div>
-      <div className="grid gap-1">
-        <Label>{t.notes}</Label>
-        <Input name="notes" maxLength={1000} />
-      </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? t.saving : t.payoutAdd}
-      </Button>
-    </form>
+      {isExpanded && (
+        <CardContent className="border-t border-border/60 p-4 sm:p-5 animate-rise">
+          <form className="space-y-3" onSubmit={handleSubmit}>
+            {/* Recipient + Bill */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-1">
+                <Label>{t.colPartner}</Label>
+                <select
+                  required
+                  value={recipientId}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setRecipientId(newId);
+                    setCheckedPayers((prev) => {
+                      const next = new Set(prev);
+                      next.delete(newId);
+                      return next;
+                    });
+                  }}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
+                >
+                  <option value="">…</option>
+                  {partners.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-1">
+                <Label>{t.payoutBill}</Label>
+                <select
+                  value={expenseId}
+                  onChange={(e) => setExpenseId(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
+                >
+                  <option value="">{t.payoutGeneral}</option>
+                  {expenses.map((x) => (
+                    <option key={x.id} value={x.id}>{x.title}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Payer source toggle */}
+            <div className="grid gap-1">
+              <Label>{lang === "ar" ? "مصدر الدفع" : "Paid By"}</Label>
+              <div className="flex rounded-md overflow-hidden border border-input text-sm">
+                <button
+                  type="button"
+                  onClick={() => { setPayerSource("company"); setCheckedPayers(new Set()); setPayerAmounts({}); }}
+                  className={cn(
+                    "flex-1 px-3 py-1.5 font-medium transition-colors",
+                    payerSource === "company"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background hover:bg-muted/50 text-muted-foreground",
+                  )}
+                >
+                  {lang === "ar" ? "🏢 الشركة (الخزينة)" : "🏢 Company Vault"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayerSource("partner")}
+                  className={cn(
+                    "flex-1 px-3 py-1.5 font-medium transition-colors",
+                    payerSource === "partner"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background hover:bg-muted/50 text-muted-foreground",
+                  )}
+                >
+                  {lang === "ar" ? "🤝 شريك (أو أكثر)" : "🤝 Partner(s)"}
+                </button>
+              </div>
+            </div>
+
+            {/* Amount + Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-1">
+                <Label>{t.amount}</Label>
+                <Input
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(sanitizeNumericInput(e.target.value));
+                    setPayerAmounts({}); // reset overrides when total changes
+                  }}
+                  required
+                  placeholder="500"
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label>{t.date}</Label>
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Multi-payer checkboxes (partner mode) */}
+            {payerSource === "partner" && availablePayers.length > 0 && (
+              <div className="space-y-2 animate-rise">
+                <Label>{lang === "ar" ? "الشركاء الدافعون (اختر واحد أو أكثر)" : "Paying Partners (select one or more)"}</Label>
+                <div className="rounded-lg border border-border divide-y divide-border/60">
+                  {availablePayers.map((p) => {
+                    const checked = checkedPayers.has(p.id);
+                    const autoAmt = checked ? getPayerAmount(p.id) : 0;
+                    return (
+                      <div key={p.id} className="flex items-center gap-3 p-2.5">
+                        <input
+                          type="checkbox"
+                          id={`payer-${p.id}`}
+                          checked={checked}
+                          onChange={(e) => {
+                            setCheckedPayers((prev) => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(p.id);
+                              else {
+                                next.delete(p.id);
+                                setPayerAmounts((pa) => { const n = { ...pa }; delete n[p.id]; return n; });
+                              }
+                              return next;
+                            });
+                          }}
+                          className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                        />
+                        <label htmlFor={`payer-${p.id}`} className="flex-1 text-sm font-medium cursor-pointer select-none">
+                          {p.name}
+                        </label>
+                        {checked && (
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              className="w-24 h-7 text-xs text-right font-mono"
+                              value={payerAmounts[p.id] ?? String(autoAmt)}
+                              onChange={(e) =>
+                                setPayerAmounts((pa) => ({
+                                  ...pa,
+                                  [p.id]: sanitizeNumericInput(e.target.value),
+                                }))
+                              }
+                              placeholder="0"
+                            />
+                            <span className="text-xs text-muted-foreground">ج.م</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Balance indicator */}
+                {checkedList.length > 0 && totalNum > 0 && (
+                  <div className={cn(
+                    "rounded-lg px-3 py-2 text-xs leading-relaxed",
+                    isBalanced
+                      ? "border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200"
+                      : "border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/60 text-red-700 dark:text-red-300",
+                  )}>
+                    {isBalanced
+                      ? `✅ ${checkedList.map((p) => `${p.name}: ${formatEGP(getPayerAmount(p.id), lang)}`).join(" • ")} — ${lang === "ar" ? "المجموع متساوٍ" : "totals match"}`
+                      : `⚠️ ${lang === "ar" ? `المبالغ المحددة ${formatEGP(totalAssigned, lang)} ≠ الإجمالي ${formatEGP(totalNum, lang)}` : `Assigned ${formatEGP(totalAssigned, lang)} ≠ total ${formatEGP(totalNum, lang)}`}`}
+                  </div>
+                )}
+                {checkedList.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {lang === "ar" ? "☝️ اختر شريكاً دافعاً واحداً على الأقل" : "☝️ Select at least one paying partner"}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="grid gap-1">
+              <Label>{t.notes}</Label>
+              <Input
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                maxLength={1000}
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <Button
+              type="submit"
+              disabled={
+                pending ||
+                (payerSource === "partner" && (checkedList.length === 0 || !isBalanced))
+              }
+              className="w-full"
+            >
+              {pending ? t.saving : t.payoutAdd}
+            </Button>
+          </form>
+        </CardContent>
+      )}
+    </Card>
   );
 }
+
+
 
 export function DeleteCompanyPayoutButton({
   id,
