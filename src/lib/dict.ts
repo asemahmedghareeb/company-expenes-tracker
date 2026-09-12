@@ -71,6 +71,7 @@ export interface Dictionary {
   noProjects: string;
   createOne: string;
   footer: string;
+  builtBy: string;
   pwa: {
     install: string;
     iosTitle: string;
@@ -532,7 +533,8 @@ export const dict: Record<Lang, Dictionary> = {
     net: "Net",
     noProjects: "No projects yet.",
     createOne: "Create one",
-    footer: "Partner & Project Custody Accounting System © 2026 — Transparent Financial Ledger",
+    footer: "TADX Finance © 2026 — Built by TADX Company | All Rights Reserved",
+    builtBy: "Built by TADX Company",
     dbTitle: "Database not connected",
     dbDesc: "Set DATABASE_URL to a PostgreSQL database to go live.",
     dbRefresh: "Refresh this page.",
@@ -1002,7 +1004,8 @@ export const dict: Record<Lang, Dictionary> = {
     net: "صافي",
     noProjects: "لا توجد مشاريع بعد.",
     createOne: "أنشئ مشروعًا",
-    footer: "نظام إدارة المحاسبة وعهدة المشاريع والشركاء © 2026 — شفافية مالية وحسابات دقيقة",
+    footer: "نظام TADX Finance — تم التطوير بواسطة شركة TADX © 2026 | جميع الحقوق محفوظة",
+    builtBy: "تم التطوير بواسطة شركة TADX",
     dbTitle: "قاعدة البيانات غير متصلة",
     dbDesc: "اضبط DATABASE_URL على قاعدة بيانات PostgreSQL للتشغيل.",
     dbRefresh: "حدِّث الصفحة.",

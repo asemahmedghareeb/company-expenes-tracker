@@ -85,12 +85,12 @@ export default async function RootLayout({
         )}
       >
         <SiteHeader lang={lang} user={user} />
-        <main className="animate-rise mx-auto w-full max-w-6xl flex-1 min-w-0 px-3.5 py-4 sm:px-6 sm:py-8 overflow-x-hidden">
+        <main className="animate-rise mx-auto w-full max-w-6xl flex-1 flex flex-col min-w-0 px-3.5 py-3 sm:px-6 sm:py-6 overflow-x-hidden">
           {children}
         </main>
         <Toaster position="top-center" dir={dir} gap={8} />
         <SwRegister />
-        <footer className="border-t border-border/70 py-6 text-center text-xs text-muted-foreground">
+        <footer className="border-t border-border/70 py-4 text-center text-xs text-muted-foreground shrink-0">
           {dict[lang].footer}
         </footer>
       </body>

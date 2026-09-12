@@ -119,18 +119,23 @@ body::before {
   color: var(--primary-foreground);
 }
 
-/* Slim modern scrollbars */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--input) transparent;
+/* Remove visible scrollbars while maintaining full scroll capability */
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }
-*::-webkit-scrollbar-thumb {
-  background: var(--input);
-  border-radius: 999px;
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Arabic UI — Cairo font, applied when <html lang="ar"> */
