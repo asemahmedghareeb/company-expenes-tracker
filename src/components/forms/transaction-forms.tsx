@@ -1036,7 +1036,7 @@ export function AddProjectExpenseDialog({
                     description,
                     amount,
                     expenseDate,
-                    paidById: isClientCovered ? null : payer,
+                    paidById: isClientCovered ? CLIENT_PAYER : payer,
                     deductFromCustody: isClientCovered,
                   });
                   if (!res.ok) {

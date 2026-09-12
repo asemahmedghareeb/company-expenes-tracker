@@ -39,9 +39,10 @@ export async function createExpense(
 ): Promise<ActionResult<CreateExpenseResult>> {
   const parsed = expenseSchema.safeParse(raw);
   if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0]?.message;
     return {
       ok: false,
-      error: "Invalid expense data.",
+      error: firstIssue || "Invalid expense data.",
       fieldErrors: zodFieldErrors(parsed.error),
     };
   }
@@ -59,8 +60,10 @@ export async function createExpense(
 
   const projectId =
     rawProjectId && rawProjectId.trim().length > 0 ? rawProjectId.trim() : null;
-  const payerId = rawPaidById || rawPaidByPartnerId || "";
-  const clientCovered = payerId === CLIENT_PAYER;
+  const payerId = (rawPaidById || rawPaidByPartnerId || "").trim();
+  const clientCovered =
+    payerId === CLIENT_PAYER ||
+    (Boolean(projectId) && (!payerId || payerId === "null" || payerId === "undefined"));
 
   // Project must exist if provided; Partner payer must exist if not client covered
   const [project, payer] = await Promise.all([

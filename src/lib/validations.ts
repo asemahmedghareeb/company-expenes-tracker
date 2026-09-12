@@ -3,6 +3,7 @@ import {
   EQUITY_TOLERANCE,
   EQUITY_TOTAL,
   sharesSumTo100,
+  CLIENT_PAYER,
 } from "./shares";
 
 /**
@@ -167,36 +168,41 @@ export type ClientPaymentInput = z.infer<typeof clientPaymentSchema>;
 export const expenseSchema = z
   .object({
     projectId: cuid.optional().or(z.literal("")).nullable(),
-    paidById: cuid.optional(),
-    paidByPartnerId: cuid.optional(),
+    paidById: z.string().trim().nullable().optional(),
+    paidByPartnerId: z.string().trim().nullable().optional(),
     amount: moneyAmount,
     description: z.string().trim().min(1, "Description is required").max(500),
     expenseDate: z.coerce.date().default(() => new Date()),
     deductFromCustody: z.boolean().default(false),
     expenseIds: z.array(z.string()).optional(),
   })
-  .refine((data) => Boolean(data.paidById || data.paidByPartnerId), {
-    message: "Paying partner is required",
-    path: ["paidById"],
-  });
+  .refine(
+    (data) => {
+      // If it's a project direct expense, it can be paid from contract funds without a partner payer
+      const isProjectExpense = Boolean(data.projectId && data.projectId.trim().length > 0);
+      if (isProjectExpense) return true;
+      // General firm expenses require a valid partner payer
+      const payer = (data.paidById || data.paidByPartnerId || "").trim();
+      return Boolean(payer && payer !== CLIENT_PAYER);
+    },
+    {
+      message: "Paying partner is required",
+      path: ["paidById"],
+    },
+  );
 
 export type ExpenseInput = z.infer<typeof expenseSchema>;
 
-export const projectExpenseSchema = z
-  .object({
-    projectId: cuid,
-    paidById: cuid.optional(),
-    paidByPartnerId: cuid.optional(),
-    amount: moneyAmount,
-    description: z.string().trim().min(1, "Description is required").max(500),
-    expenseDate: z.coerce.date().default(() => new Date()),
-    deductFromCustody: z.boolean().default(false),
-    expenseIds: z.array(z.string()).optional(),
-  })
-  .refine((data) => Boolean(data.paidById || data.paidByPartnerId), {
-    message: "Paying partner is required",
-    path: ["paidById"],
-  });
+export const projectExpenseSchema = z.object({
+  projectId: cuid,
+  paidById: z.string().trim().nullable().optional(),
+  paidByPartnerId: z.string().trim().nullable().optional(),
+  amount: moneyAmount,
+  description: z.string().trim().min(1, "Description is required").max(500),
+  expenseDate: z.coerce.date().default(() => new Date()),
+  deductFromCustody: z.boolean().default(false),
+  expenseIds: z.array(z.string()).optional(),
+});
 
 export type ProjectExpenseInput = z.infer<typeof projectExpenseSchema>;
 
