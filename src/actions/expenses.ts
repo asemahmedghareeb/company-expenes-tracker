@@ -54,6 +54,7 @@ export async function createExpense(
     description,
     expenseDate,
     deductFromCustody: wantDeductFromCustody,
+    expenseIds,
   } = parsed.data;
 
   const projectId =
@@ -117,6 +118,35 @@ export async function createExpense(
   }
 
   try {
+    if (expenseIds && expenseIds.length > 0) {
+      await db.expense.updateMany({
+        where: {
+          id: { in: expenseIds },
+          ...(projectId ? { projectId } : {}),
+        },
+        data: {
+          paidById: clientCovered ? null : payerId,
+          deductFromCustody,
+          isReimbursed: deductFromCustody,
+          reimbursedAt: deductFromCustody ? new Date() : null,
+          expenseDate,
+        },
+      });
+
+      revalidateFinance(projectId);
+
+      return {
+        ok: true,
+        data: {
+          id: expenseIds[0]!,
+          deductedFromCustody: deductFromCustody,
+          exceededCustody,
+          availableCustody,
+          message: alertMessage,
+        },
+      };
+    }
+
     const expense = await db.expense.create({
       data: {
         projectId,

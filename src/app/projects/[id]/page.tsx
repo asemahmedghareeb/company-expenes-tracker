@@ -400,6 +400,14 @@ export default async function ProjectDetailPage({
               partners={partners.map((p) => ({ id: p.id, name: p.name }))}
               custodyBreakdown={custody.partners}
               projectName={project.name}
+              projectExpenses={project.expenses.map((e) => ({
+                id: e.id,
+                description: e.description,
+                amount: Number(e.amount),
+                isReimbursed: e.isReimbursed,
+                deductFromCustody: e.deductFromCustody,
+                paidById: e.paidById,
+              }))}
             />
           </CardContent>
         </Card>

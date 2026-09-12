@@ -173,6 +173,7 @@ export const expenseSchema = z
     description: z.string().trim().min(1, "Description is required").max(500),
     expenseDate: z.coerce.date().default(() => new Date()),
     deductFromCustody: z.boolean().default(false),
+    expenseIds: z.array(z.string()).optional(),
   })
   .refine((data) => Boolean(data.paidById || data.paidByPartnerId), {
     message: "Paying partner is required",
@@ -190,6 +191,7 @@ export const projectExpenseSchema = z
     description: z.string().trim().min(1, "Description is required").max(500),
     expenseDate: z.coerce.date().default(() => new Date()),
     deductFromCustody: z.boolean().default(false),
+    expenseIds: z.array(z.string()).optional(),
   })
   .refine((data) => Boolean(data.paidById || data.paidByPartnerId), {
     message: "Paying partner is required",

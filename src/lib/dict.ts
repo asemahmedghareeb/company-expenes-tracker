@@ -285,6 +285,12 @@ export interface Dictionary {
     noCustodyAvailable: string;
     exceedsCustodyAlert: (exceedsBy: string) => string;
     paidOutOfPocketIndicator: string;
+    chooseExpensesDropdown: string;
+    projectExpensesSection: string;
+    commonCategoriesSection: string;
+    customExpensePrompt: string;
+    selectedCount: (n: number, total: string) => string;
+    noPendingExpenses: string;
   };
   drawingForm: {
     partner: string;
@@ -744,6 +750,12 @@ export const dict: Record<Lang, Dictionary> = {
       exceedsCustodyAlert: (exceedsBy: string) =>
         `Alert: Exceeds available cash by ${exceedsBy} — will be marked as Paid Out of Pocket`,
       paidOutOfPocketIndicator: "Paid Out of Pocket / شريك دافع من جيبه",
+      chooseExpensesDropdown: "Select expenses to pay…",
+      projectExpensesSection: "Pending Project Expenses",
+      commonCategoriesSection: "Common Expense Categories",
+      customExpensePrompt: "Custom expense item…",
+      selectedCount: (n: number, total: string) => `${n} expenses selected (${total})`,
+      noPendingExpenses: "No pending project expenses",
     },
     drawingForm: {
       partner: "Partner",
@@ -1205,6 +1217,12 @@ export const dict: Record<Lang, Dictionary> = {
       exceedsCustodyAlert: (exceedsBy: string) =>
         `تنبيه: المبلغ يتجاوز العهدة المتاحة بـ ${exceedsBy} — سيُسجل كـ (شريك دافع من جيبه)`,
       paidOutOfPocketIndicator: "شريك دافع من جيبه / Paid Out of Pocket",
+      chooseExpensesDropdown: "اختر المصروفات المطلوب سدادها…",
+      projectExpensesSection: "مصروفات المشروع المعلقة (مطلوب سدادها)",
+      commonCategoriesSection: "بنود مصروفات شائعة",
+      customExpensePrompt: "إضافة بند آخر مخصص…",
+      selectedCount: (n: number, total: string) => `تم تحديد ${n} مصروفات (${total})`,
+      noPendingExpenses: "لا توجد مصروفات معلقة مسجلة مسبقاً",
     },
     drawingForm: {
       partner: "الشريك",
