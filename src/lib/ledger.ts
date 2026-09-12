@@ -788,6 +788,7 @@ export interface MonthlyProjectCost {
   expenseDate: string;
   projectName?: string;
   title?: string;
+  deductFromCustody?: boolean;
 }
 
 export interface MonthlyPaidLine {
@@ -855,9 +856,16 @@ export function getMonthlySummary(
 ): MonthlySummary {
   const bills = args.company.filter((e) => monthKey(e.expenseDate) === month);
   const costs = args.projectCosts.filter(
-    (e) => monthKey(e.expenseDate) === month,
+    (e) =>
+      monthKey(e.expenseDate) === month &&
+      !e.deductFromCustody &&
+      Boolean(e.paidByPartnerId),
   );
-  const clientCosts: MonthlyProjectCost[] = [];
+  const clientCosts: MonthlyProjectCost[] = args.projectCosts.filter(
+    (e) =>
+      monthKey(e.expenseDate) === month &&
+      (e.deductFromCustody || !e.paidByPartnerId),
+  );
 
   const fixedTotal = round2(
     sum(bills.filter((e) => e.kind === "fixed").map((e) => e.amount)),

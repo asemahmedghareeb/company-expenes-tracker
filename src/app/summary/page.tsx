@@ -53,6 +53,7 @@ export default async function SummaryPage({
         e.expenseDate instanceof Date ? e.expenseDate.toISOString() : String(e.expenseDate),
       projectName: e.project?.name ?? "—",
       title: e.description,
+      deductFromCustody: e.deductFromCustody,
     })),
     partners: partners.map((p) => ({
       id: p.id,
