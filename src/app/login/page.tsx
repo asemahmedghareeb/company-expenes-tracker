@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Wallet } from "lucide-react";
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -32,8 +32,15 @@ export default async function LoginPage() {
     <div className="mx-auto flex min-h-[60vh] w-full max-w-md items-center">
       <Card className="w-full">
         <CardHeader className="items-center text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-sky-500 text-white shadow-lg shadow-indigo-500/25">
-            <Wallet className="h-6 w-6" />
+          <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-card border border-border/70 p-2.5 shadow-md">
+            <Image
+              src="/logo.webp"
+              alt="TADX Finance"
+              width={56}
+              height={56}
+              className="h-full w-full object-contain"
+              priority
+            />
           </span>
           <CardTitle className="text-2xl">{t.title}</CardTitle>
           <CardDescription>{t.subtitle}</CardDescription>

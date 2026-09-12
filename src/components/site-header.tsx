@@ -1,9 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Menu, LogOut, Wallet, X } from "lucide-react";
+import { Menu, LogOut, X } from "lucide-react";
 import { LanguageSwitcher } from "./language-switcher";
 import { ThemeToggle } from "./theme-toggle";
 import { InstallButton } from "./install-button";
@@ -53,13 +54,20 @@ export function SiteHeader({
       className="sticky top-0 z-40 border-b border-border/70 backdrop-blur-xl pt-[env(safe-area-inset-top)]"
       style={{ background: "var(--header-bg)" }}
     >
-      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-3.5 sm:gap-3 sm:px-6">
-        {/* Brand / Logo — always prominently visible on all screen sizes */}
-        <Link href="/" className="group flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5 font-semibold">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-sky-500 text-white shadow-lg shadow-indigo-500/25 transition-transform duration-200 group-hover:scale-105">
-            <Wallet className="h-4 w-4" />
+      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-3.5 sm:gap-3 sm:px-6 lg:px-8">
+        {/* Brand / Logo — always prominently visible, never clipped or truncated */}
+        <Link href="/" className="group flex shrink-0 items-center gap-2 sm:gap-2.5 font-semibold">
+          <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card border border-border/70 p-1 shadow-xs transition-transform duration-200 group-hover:scale-105">
+            <Image
+              src="/logo.webp"
+              alt="TADX Finance"
+              width={32}
+              height={32}
+              className="h-full w-full object-contain"
+              priority
+            />
           </span>
-          <span className="truncate text-sm sm:text-base font-bold tracking-tight text-foreground">
+          <span className="shrink-0 whitespace-nowrap text-sm sm:text-base font-bold tracking-tight text-foreground" dir="ltr">
             {t.brand}
           </span>
         </Link>
@@ -68,7 +76,7 @@ export function SiteHeader({
         {user && (
           <nav
             aria-label="Primary"
-            className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 text-xs xl:gap-1.5 xl:text-sm lg:flex"
+            className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 text-xs xl:gap-1.5 xl:text-sm lg:flex overflow-x-auto no-scrollbar"
           >
             {links.map((l) => {
               const active = isActive(l.href);
@@ -79,7 +87,7 @@ export function SiteHeader({
                   prefetch={true}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "rounded-full px-2 py-1 whitespace-nowrap transition-colors hover:bg-accent hover:text-accent-foreground xl:px-3 xl:py-1.5",
+                    "rounded-full px-2 py-1 whitespace-nowrap transition-colors hover:bg-accent hover:text-accent-foreground xl:px-2.5 xl:py-1.5",
                     active
                       ? "bg-accent font-medium text-accent-foreground"
                       : "text-muted-foreground",
@@ -95,7 +103,7 @@ export function SiteHeader({
         {/* Actions & Controls */}
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {user && (
-            <span className="hidden max-w-28 truncate text-sm font-medium text-muted-foreground sm:inline">
+            <span className="hidden max-w-24 truncate text-xs font-medium text-muted-foreground xl:inline">
               {user.username}
             </span>
           )}
