@@ -15,6 +15,9 @@ export interface Dictionary {
     invalid: string;
     unavailable: string;
     logout: string;
+    showPassword: string;
+    hidePassword: string;
+    securityNote: string;
   };
   firmOverview: string;
   overviewSubtitle: (projectCount: number, activePartners: number) => string;
@@ -473,6 +476,9 @@ export const dict: Record<Lang, Dictionary> = {
       invalid: "Invalid username or password.",
       unavailable: "Login is unavailable — try again later.",
       logout: "Log out",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
+      securityNote: "Encrypted & Secure Financial Access",
     },
     firmOverview: "Firm overview",
     overviewSubtitle: (p, a) =>
@@ -940,6 +946,9 @@ export const dict: Record<Lang, Dictionary> = {
       invalid: "اسم المستخدم أو كلمة المرور غير صحيحة.",
       unavailable: "تسجيل الدخول غير متاح — حاول لاحقًا.",
       logout: "تسجيل الخروج",
+      showPassword: "إظهار كلمة المرور",
+      hidePassword: "إخفاء كلمة المرور",
+      securityNote: "وصول مالي آمن ومشفر بالكامل",
     },
     firmOverview: "نظرة عامة على الشركة",
     overviewSubtitle: (p, a) =>

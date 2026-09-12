@@ -59,12 +59,13 @@ export function SiteHeader({
         <Link href="/" className="group flex shrink-0 items-center gap-2 sm:gap-2.5 font-semibold">
           <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card border border-border/70 p-1 shadow-xs transition-transform duration-200 group-hover:scale-105">
             <Image
-              src="/logo.webp"
+              src="/logo.png"
               alt="TADX Finance"
               width={32}
               height={32}
               className="h-full w-full object-contain"
               priority
+              unoptimized
             />
           </span>
           <span className="shrink-0 whitespace-nowrap text-sm sm:text-base font-bold tracking-tight text-foreground" dir="ltr">
