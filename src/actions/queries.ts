@@ -456,10 +456,25 @@ export async function getTreasuryData() {
         },
         clientPayments: {
           orderBy: { paidAt: "desc" },
-          select: { amount: true, receivedByPartnerId: true },
+          select: {
+            id: true,
+            amount: true,
+            receivedByPartnerId: true,
+            paidAt: true,
+            notes: true,
+            milestoneLabel: true,
+            receivedBy: { select: { id: true, name: true } },
+          },
         },
         expenses: {
-          select: { amount: true },
+          select: {
+            id: true,
+            amount: true,
+            paidById: true,
+            deductFromCustody: true,
+            description: true,
+            expenseDate: true,
+          },
         },
       },
     }),

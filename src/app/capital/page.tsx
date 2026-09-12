@@ -17,10 +17,11 @@ import {
 import { formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { toNumber } from "@/lib/ledger";
+import Link from "next/link";
 import { getTreasurySummary, suggestSettlements } from "@/lib/treasury";
 import { getTreasuryData } from "@/actions/queries";
 import { PageGuide } from "@/components/ui/page-guide";
-import { Vault, History, CheckCircle2 } from "lucide-react";
+import { Vault, History, CheckCircle2, FolderKanban, Receipt, ExternalLink } from "lucide-react";
 import {
   SettlementExecutionDialog,
   DeleteSettlementButton,
@@ -71,6 +72,23 @@ export default async function CapitalPage() {
   );
   const settlements = suggestSettlements(rows);
   const holders = rows.filter((r) => r.cashHeld > 0);
+
+  // Flatten all payments received by partners with full project attribution
+  const allCustodyPayments = projects
+    .flatMap((project) =>
+      project.clientPayments.map((pay) => ({
+        paymentId: pay.id,
+        projectId: project.id,
+        projectName: project.name,
+        partnerId: pay.receivedByPartnerId,
+        partnerName: pay.receivedBy?.name ?? "شريك",
+        amount: toNumber(pay.amount),
+        paidAt: pay.paidAt,
+        milestoneLabel: pay.milestoneLabel,
+        notes: pay.notes,
+      })),
+    )
+    .sort((a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime());
 
   return (
     <div className="space-y-6">
@@ -130,10 +148,10 @@ export default async function CapitalPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {holders.map((r) => (
-              <div key={r.partnerId} className="space-y-1">
+              <div key={r.partnerId} className="space-y-1.5 rounded-lg border border-border/40 bg-muted/20 p-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{r.partnerName}</span>
-                  <span dir="ltr" className="font-mono tabular-nums">
+                  <span className="font-semibold text-foreground">{r.partnerName}</span>
+                  <span dir="ltr" className="font-mono font-bold tabular-nums text-foreground">
                     {formatEGP(r.cashHeld, lang)}
                   </span>
                 </div>
@@ -145,6 +163,24 @@ export default async function CapitalPage() {
                     }}
                   />
                 </div>
+                {/* Project attribution chips */}
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {r.perProject
+                    .filter((p) => p.held > 0)
+                    .map((p) => (
+                      <span
+                        key={p.projectId}
+                        className="inline-flex items-center gap-1 rounded bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground border border-border/60"
+                        title={p.projectName}
+                      >
+                        <FolderKanban className="h-2.5 w-2.5 text-primary shrink-0" />
+                        <span className="font-medium text-foreground truncate max-w-[110px]">{p.projectName || "مشروع"}</span>:
+                        <span className="font-mono font-semibold text-primary" dir="ltr">
+                          {formatEGP(p.held, lang)}
+                        </span>
+                      </span>
+                    ))}
+                </div>
               </div>
             ))}
             {holders.length === 0 && (
@@ -154,6 +190,7 @@ export default async function CapitalPage() {
         </Card>
       </div>
 
+      {/* Partner Custody Overview Table with Project Attribution */}
       <Card>
         <CardHeader>
           <CardTitle>{t.tableTitle}</CardTitle>
@@ -172,12 +209,61 @@ export default async function CapitalPage() {
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r.partnerId}>
-                  <TableCell className="font-medium">{r.partnerName}</TableCell>
-                  <TableCell className="text-end font-mono tabular-nums">
-                    {formatEGP(r.cashHeld, lang)}
+                  <TableCell className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs">
+                        {r.partnerName.slice(0, 1)}
+                      </div>
+                      <span>{r.partnerName}</span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-end font-mono tabular-nums">
-                    {formatEGP(r.earnedShare, lang)}
+                    <div className="flex flex-col items-end">
+                      <span className="font-mono font-bold tabular-nums text-sm sm:text-base">
+                        {formatEGP(r.cashHeld, lang)}
+                      </span>
+                      {r.cashHeld > 0 && (
+                        <div className="mt-1 flex flex-col items-end gap-1">
+                          {r.perProject
+                            .filter((p) => p.held > 0)
+                            .map((p) => (
+                              <Link
+                                key={p.projectId}
+                                href={`/projects/${p.projectId}`}
+                                className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50/70 dark:bg-indigo-950/40 px-2 py-0.5 text-[11px] border border-indigo-200/60 dark:border-indigo-900/40 hover:bg-indigo-100/70 transition-colors"
+                              >
+                                <FolderKanban className="h-3 w-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                                <span className="text-foreground font-medium">{p.projectName}</span>
+                                <span className="text-muted-foreground font-mono">·</span>
+                                <span className="font-mono font-semibold text-indigo-700 dark:text-indigo-300" dir="ltr">
+                                  {formatEGP(p.held, lang)}
+                                </span>
+                              </Link>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-end font-mono tabular-nums">
+                    <div className="flex flex-col items-end">
+                      <span className="font-mono font-medium tabular-nums text-sm sm:text-base">
+                        {formatEGP(r.earnedShare, lang)}
+                      </span>
+                      {r.earnedShare > 0 && (
+                        <div className="mt-1 flex flex-col items-end gap-1 text-[11px] text-muted-foreground">
+                          {r.perProject
+                            .filter((p) => p.earned > 0)
+                            .map((p) => (
+                              <div key={p.projectId} className="inline-flex items-center gap-1 text-muted-foreground">
+                                <span>{p.projectName}:</span>
+                                <span className="font-mono font-medium text-foreground" dir="ltr">
+                                  {formatEGP(p.earned, lang)}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-end">
                     <Badge
@@ -204,6 +290,78 @@ export default async function CapitalPage() {
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground">
                     {t.noPartners}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Detailed Project Cash Sources & Custody Breakdown */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <CardTitle className="text-lg">
+              {lang === "ar"
+                ? "كشف مصادر النقدية والعهد الممسوكة (تبع أي مشروع؟)"
+                : "Cash Inflows & Custody Sources by Project"}
+            </CardTitle>
+          </div>
+          <CardDescription>
+            {lang === "ar"
+              ? "بيان تفصيلي يوضح كل دفعة نقدية استلمها أي شريك في يده، تاريخ استلامها، والمشروع التابع لها بالكامل."
+              : "Detailed ledger of every client payment received, showing the recipient partner and associated project."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{lang === "ar" ? "الشريك الحائز للكاش" : "Holding Partner"}</TableHead>
+                <TableHead>{lang === "ar" ? "المشروع التابع له" : "Project"}</TableHead>
+                <TableHead>{lang === "ar" ? "بيان الدفعة / المرحلة" : "Milestone / Description"}</TableHead>
+                <TableHead>{lang === "ar" ? "تاريخ الاستلام" : "Received Date"}</TableHead>
+                <TableHead className="text-end">{lang === "ar" ? "المبلغ المحصل" : "Amount Received"}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {allCustodyPayments.map((pay) => (
+                <TableRow key={pay.paymentId}>
+                  <TableCell className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs">
+                        {pay.partnerName.slice(0, 1)}
+                      </div>
+                      <span>{pay.partnerName}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/projects/${pay.projectId}`}
+                      className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
+                    >
+                      <FolderKanban className="h-3.5 w-3.5" />
+                      <span>{pay.projectName}</span>
+                      <ExternalLink className="h-3 w-3 opacity-60" />
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs sm:text-sm">
+                    {pay.milestoneLabel || pay.notes || (lang === "ar" ? "دفعة من العميل" : "Client Payment")}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {formatDate(pay.paidAt, lang)}
+                  </TableCell>
+                  <TableCell className="text-end font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                    {formatEGP(pay.amount, lang)}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {allCustodyPayments.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                    {lang === "ar" ? "لا توجد دفعات محصلة مسجلة حتى الآن." : "No client payments recorded yet."}
                   </TableCell>
                 </TableRow>
               )}
