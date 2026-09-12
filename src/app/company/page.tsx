@@ -84,73 +84,6 @@ export default async function CompanyPage() {
         <p className="text-sm text-muted-foreground">{t.subtitle}</p>
       </div>
 
-      <PageGuide
-        lang={lang}
-        title={lang === "ar" ? "دليل مصاريف الشركة وتسوية مساهمات الشركاء" : "Company Expenses & Partner Settlements Guide"}
-        subtitle={
-          lang === "ar"
-            ? "المرجع المحاسبي المعتمد لشرح تسجيل المدفوعات، ورد المبالغ للشركاء، والمعادلات المطبقة"
-            : "Official accounting guide explaining partner payments, payouts, and cost distributions"
-        }
-        steps={[
-          {
-            title: lang === "ar" ? "مصاريف الشركة العامة" : "Company General Expenses",
-            text:
-              lang === "ar"
-                ? "تشمل التكاليف التشغيلية الثابتة (كالإيجار وفواتير النت) أو المتغيرة لمقر الشركة. تُقسم قيمة كل مصروف على الشركاء بنسب حصصهم الافتراضية."
-                : "Operational overhead (rent, internet, maintenance) distributed to partners according to default shares.",
-          },
-          {
-            title: lang === "ar" ? "تسجيل دفعة الشريك (تسجيل المدفوعات)" : "Partner Payment (تسجيل دفعة الشريك)",
-            text:
-              lang === "ar"
-                ? "يُستخدم عندما يقوم شريك بسداد نصيبه المستحق من مصروف الشركة المشترك (مثل سداد حصته في إيجار المقر)، مما يقلل رصيده المدين ويقربه من التسوية."
-                : "Used when a partner pays their owed share of a shared company cost, decreasing their outstanding liability.",
-            badge: { text: lang === "ar" ? "سداد حصة" : "Share Payment", variant: "secondary" },
-          },
-          {
-            title: lang === "ar" ? "رد مبلغ لشريك (Company Payout)" : "Partner Payout / Reimbursement (رد مبلغ لشريك)",
-            text:
-              lang === "ar"
-                ? "يُستخدم عندما تدفع الشركة كاش من خزينتها لشريك قام مسبقاً بدفع مصروف كامل للشركة من جيبه الخاص، بهدف رد أمواله وتصفية رصيده الدائن."
-                : "Used when company pays back cash to a partner who originally paid an entire company expense out-of-pocket.",
-            badge: { text: lang === "ar" ? "رد كاش للشريك" : "Cash Reimbursement", variant: "outline" },
-          },
-          {
-            title: lang === "ar" ? "التسوية والإغلاق" : "Settlement",
-            text:
-              lang === "ar"
-                ? "عندما يكتمل سداد حصص جميع الشركاء ورد ما دفع بالزيادة، يصبح البند «مسدد بالكامل» ويُقفل دفترياً."
-                : "Once all shares are collected and reimbursements made, the cost item is fully settled.",
-          },
-        ]}
-        equations={[
-          {
-            label: lang === "ar" ? "معادلة نصيب الشريك في مصروف الشركة" : "Partner Share in Expense",
-            formula:
-              lang === "ar"
-                ? "نصيب الشريك = قيمة المصروف الإجمالية × نسبة حصته الافتراضية %"
-                : "Partner Share = Total Expense Amount × Partner Share %",
-          },
-          {
-            label: lang === "ar" ? "معادلة المبلغ المتبقي على الشريك سداده" : "Partner Remaining Liability",
-            formula:
-              lang === "ar"
-                ? "المتبقي على الشريك = نصيب الشريك − إجمالي ما سدده الشريك لهذا البند"
-                : "Remaining = Partner Share − Total Partner Payments Recorded",
-            explanation:
-              lang === "ar"
-                ? "إذا دفع الشريك أكثر من نصيبه (مثلاً سدد الفاتورة كاملة من جيبه)، يظهر له رصيد دائن يستحق «رد مبلغ لشريك»."
-                : "If a partner paid the full bill, they are owed a refund via the Payout form.",
-          },
-        ]}
-        tips={[
-          lang === "ar"
-            ? "«رد مبلغ لشريك»: لا تستخدم هذا النموذج إلا إذا تم رد كاش حقيقي للشريك مقابل فاتورة دفعها من جيبه."
-            : "Use Partner Payout only when cash was reimbursed to a partner who paid out of pocket.",
-        ]}
-      />
-
       {!defaultsOk && active.length > 0 && (
         <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
           <CardContent className="pt-6 text-sm text-amber-800 dark:text-amber-200">
@@ -441,6 +374,73 @@ export default async function CompanyPage() {
           )}
         </div>
       </div>
+
+      <PageGuide
+        lang={lang}
+        title={lang === "ar" ? "دليل مصاريف الشركة وتسوية مساهمات الشركاء" : "Company Expenses & Partner Settlements Guide"}
+        subtitle={
+          lang === "ar"
+            ? "المرجع المحاسبي المعتمد لشرح تسجيل المدفوعات، ورد المبالغ للشركاء، والمعادلات المطبقة"
+            : "Official accounting guide explaining partner payments, payouts, and cost distributions"
+        }
+        steps={[
+          {
+            title: lang === "ar" ? "مصاريف الشركة العامة" : "Company General Expenses",
+            text:
+              lang === "ar"
+                ? "تشمل التكاليف التشغيلية الثابتة (كالإيجار وفواتير النت) أو المتغيرة لمقر الشركة. تُقسم قيمة كل مصروف على الشركاء بنسب حصصهم الافتراضية."
+                : "Operational overhead (rent, internet, maintenance) distributed to partners according to default shares.",
+          },
+          {
+            title: lang === "ar" ? "تسجيل دفعة الشريك (تسجيل المدفوعات)" : "Partner Payment (تسجيل دفعة الشريك)",
+            text:
+              lang === "ar"
+                ? "يُستخدم عندما يقوم شريك بسداد نصيبه المستحق من مصروف الشركة المشترك (مثل سداد حصته في إيجار المقر)، مما يقلل رصيده المدين ويقربه من التسوية."
+                : "Used when a partner pays their owed share of a shared company cost, decreasing their outstanding liability.",
+            badge: { text: lang === "ar" ? "سداد حصة" : "Share Payment", variant: "secondary" },
+          },
+          {
+            title: lang === "ar" ? "رد مبلغ لشريك (Company Payout)" : "Partner Payout / Reimbursement (رد مبلغ لشريك)",
+            text:
+              lang === "ar"
+                ? "يُستخدم عندما تدفع الشركة كاش من خزينتها لشريك قام مسبقاً بدفع مصروف كامل للشركة من جيبه الخاص، بهدف رد أمواله وتصفية رصيده الدائن."
+                : "Used when company pays back cash to a partner who originally paid an entire company expense out-of-pocket.",
+            badge: { text: lang === "ar" ? "رد كاش للشريك" : "Cash Reimbursement", variant: "outline" },
+          },
+          {
+            title: lang === "ar" ? "التسوية والإغلاق" : "Settlement",
+            text:
+              lang === "ar"
+                ? "عندما يكتمل سداد حصص جميع الشركاء ورد ما دفع بالزيادة، يصبح البند «مسدد بالكامل» ويُقفل دفترياً."
+                : "Once all shares are collected and reimbursements made, the cost item is fully settled.",
+          },
+        ]}
+        equations={[
+          {
+            label: lang === "ar" ? "معادلة نصيب الشريك في مصروف الشركة" : "Partner Share in Expense",
+            formula:
+              lang === "ar"
+                ? "نصيب الشريك = قيمة المصروف الإجمالية × نسبة حصته الافتراضية %"
+                : "Partner Share = Total Expense Amount × Partner Share %",
+          },
+          {
+            label: lang === "ar" ? "معادلة المبلغ المتبقي على الشريك سداده" : "Partner Remaining Liability",
+            formula:
+              lang === "ar"
+                ? "المتبقي على الشريك = نصيب الشريك − إجمالي ما سدده الشريك لهذا البند"
+                : "Remaining = Partner Share − Total Partner Payments Recorded",
+            explanation:
+              lang === "ar"
+                ? "إذا دفع الشريك أكثر من نصيبه (مثلاً سدد الفاتورة كاملة من جيبه)، يظهر له رصيد دائن يستحق «رد مبلغ لشريك»."
+                : "If a partner paid the full bill, they are owed a refund via the Payout form.",
+          },
+        ]}
+        tips={[
+          lang === "ar"
+            ? "«رد مبلغ لشريك»: لا تستخدم هذا النموذج إلا إذا تم رد كاش حقيقي للشريك مقابل فاتورة دفعها من جيبه."
+            : "Use Partner Payout only when cash was reimbursed to a partner who paid out of pocket.",
+        ]}
+      />
     </div>
   );
 }

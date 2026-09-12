@@ -93,53 +93,6 @@ export default async function CapitalPage() {
         />
       </div>
 
-      <PageGuide
-        lang={lang}
-        title={lang === "ar" ? "دليل الخزينة وتوازن كاش الشركاء" : "Treasury & Cash Pool Guide"}
-        subtitle={
-          lang === "ar"
-            ? "المرجع المحاسبي المعتمد لتتبع الكاش الفعلي المحمول في يد الشركاء مقابل الأرباح المستحقة"
-            : "Official reference for tracking cash held in hand vs earned profit distributions"
-        }
-        steps={[
-          {
-            title: lang === "ar" ? "الكاش المحمول في اليد (Cash in Hand)" : "Cash in Hand",
-            text:
-              lang === "ar"
-                ? "إجمالي المبالغ النقدية المحصلة من دفعات العملاء والتي توجد حالياً في حساب أو حوزة شريك معين."
-                : "Total client payments collected and physically held in a partner's personal or business account.",
-            badge: { text: lang === "ar" ? "عهدة نقدية" : "Physical Cash", variant: "outline" },
-          },
-          {
-            title: lang === "ar" ? "الأرباح المستحقة (Share Earned)" : "Earned Share",
-            text:
-              lang === "ar"
-                ? "نصيب الشريك الشرعي والمحاسبي من إجمالي مبالغ العقود المحصلة وفق نسب المشاريع المتفق عليها."
-                : "The amount a partner is legitimately entitled to keep from all collections based on project percentages.",
-          },
-          {
-            title: lang === "ar" ? "صافي المركز والتسوية" : "Net Position & Settlement",
-            text:
-              lang === "ar"
-                ? "إذا كان الكاش المحمول أكبر من أرباح الشريك، يظهر باللون الكهرماني/الأحمر كشريك مطالب بالتحويل. وإذا كان أقل، يظهر كشريك مستحق للاستلام."
-                : "Partners with excess cash transfer to partners with a deficit according to the suggested plan.",
-          },
-        ]}
-        equations={[
-          {
-            label: lang === "ar" ? "معادلة صافي الكاش (الفائض / العجز)" : "Net Cash Position Equation",
-            formula:
-              lang === "ar"
-                ? "صافي الكاش = الكاش المحمول في يد الشريك − نصيب الشريك المستحق من الأرباح"
-                : "Net Position = Cash Held in Hand − Share Earned from Projects",
-            explanation:
-              lang === "ar"
-                ? "صافي موجب (+) يعني أن الشريك يحمل كاش فائض يجب تحويله، وصافي سالب (−) يعني أن الشريك له كاش مستحق التحويل إليه."
-                : "Positive = Excess cash to transfer out; Negative = Deficit cash to receive.",
-          },
-        ]}
-      />
-
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
@@ -408,6 +361,53 @@ export default async function CapitalPage() {
           )}
         </CardContent>
       </Card>
+
+      <PageGuide
+        lang={lang}
+        title={lang === "ar" ? "دليل الخزينة وتوازن كاش الشركاء" : "Treasury & Cash Pool Guide"}
+        subtitle={
+          lang === "ar"
+            ? "المرجع المحاسبي المعتمد لتتبع الكاش الفعلي المحمول في يد الشركاء مقابل الأرباح المستحقة"
+            : "Official reference for tracking cash held in hand vs earned profit distributions"
+        }
+        steps={[
+          {
+            title: lang === "ar" ? "الكاش المحمول في اليد (Cash in Hand)" : "Cash in Hand",
+            text:
+              lang === "ar"
+                ? "إجمالي المبالغ النقدية المحصلة من دفعات العملاء والتي توجد حالياً في حساب أو حوزة شريك معين."
+                : "Total client payments collected and physically held in a partner's personal or business account.",
+            badge: { text: lang === "ar" ? "عهدة نقدية" : "Physical Cash", variant: "outline" },
+          },
+          {
+            title: lang === "ar" ? "الأرباح المستحقة (Share Earned)" : "Earned Share",
+            text:
+              lang === "ar"
+                ? "نصيب الشريك الشرعي والمحاسبي من إجمالي مبالغ العقود المحصلة وفق نسب المشاريع المتفق عليها."
+                : "The amount a partner is legitimately entitled to keep from all collections based on project percentages.",
+          },
+          {
+            title: lang === "ar" ? "صافي المركز والتسوية" : "Net Position & Settlement",
+            text:
+              lang === "ar"
+                ? "إذا كان الكاش المحمول أكبر من أرباح الشريك، يظهر باللون الكهرماني/الأحمر كشريك مطالب بالتحويل. وإذا كان أقل، يظهر كشريك مستحق للاستلام."
+                : "Partners with excess cash transfer to partners with a deficit according to the suggested plan.",
+          },
+        ]}
+        equations={[
+          {
+            label: lang === "ar" ? "معادلة صافي الكاش (الفائض / العجز)" : "Net Cash Position Equation",
+            formula:
+              lang === "ar"
+                ? "صافي الكاش = الكاش المحمول في يد الشريك − نصيب الشريك المستحق من الأرباح"
+                : "Net Position = Cash Held in Hand − Share Earned from Projects",
+            explanation:
+              lang === "ar"
+                ? "صافي موجب (+) يعني أن الشريك يحمل كاش فائض يجب تحويله، وصافي سالب (−) يعني أن الشريك له كاش مستحق التحويل إليه."
+                : "Positive = Excess cash to transfer out; Negative = Deficit cash to receive.",
+          },
+        ]}
+      />
     </div>
   );
 }

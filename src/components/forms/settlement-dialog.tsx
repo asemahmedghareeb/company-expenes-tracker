@@ -20,8 +20,10 @@ import {
 import {
   Dialog,
   DialogBody,
+  DialogCloseButton,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -178,22 +180,25 @@ export function SettlementExecutionDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
-              <Vault className="h-5 w-5" />
-              <DialogTitle className="text-lg">
-                {isAr ? "تنفيذ تسوية الأرباح وتغذية خزنة الشركة" : "Execute Settlement & Fund Company Vault"}
-              </DialogTitle>
+        <DialogContent dir={isAr ? "rtl" : "ltr"} className="sm:max-w-xl h-full max-h-screen flex flex-col p-0">
+          <DialogHeader className="shrink-0 border-b border-border/60 px-5 py-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+                <Vault className="h-5 w-5" />
+                <DialogTitle className="text-lg">
+                  {isAr ? "تنفيذ تسوية الأرباح وتغذية خزنة الشركة" : "Execute Settlement & Fund Company Vault"}
+                </DialogTitle>
+              </div>
+              <DialogDescription>
+                {isAr
+                  ? "توزيع مبالغ الكاش المحصلة على الشركاء بعد اقتطاع النسبة المحددة لخزنة الشركة. يُسجل لكل شريك سحب نقدي معتمد دفترياً."
+                  : "Distribute collected cash to partners after withholding the designated cut for the company vault."}
+              </DialogDescription>
             </div>
-            <DialogDescription>
-              {isAr
-                ? "توزيع مبالغ الكاش المحصلة على الشركاء بعد اقتطاع النسبة المحددة لخزنة الشركة. يُسجل لكل شريك سحب نقدي معتمد دفترياً."
-                : "Distribute collected cash to partners after withholding the designated cut for the company vault."}
-            </DialogDescription>
+            <DialogCloseButton />
           </DialogHeader>
 
-          <DialogBody className="space-y-5 pt-2">
+          <DialogBody className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
             {/* Step 1: Scope */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-foreground">
@@ -416,32 +421,31 @@ export function SettlementExecutionDialog({
                 <span>{error}</span>
               </div>
             )}
-
-            {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={pending}
-              >
-                {isAr ? "إلغاء" : "Cancel"}
-              </Button>
-              <Button
-                type="button"
-                onClick={handleConfirm}
-                disabled={pending || amountToSettle <= 0}
-                className="gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
-              >
-                <Check className="h-4 w-4" />
-                <span>
-                  {pending
-                    ? (isAr ? "جاري تنفيذ التسوية..." : "Executing...")
-                    : (isAr ? "تأكيد تنفيذ التسوية وتوزيع الأموال" : "Confirm & Distribute Funds")}
-                </span>
-              </Button>
-            </div>
           </DialogBody>
+
+          <DialogFooter className="shrink-0 bg-card border-t border-border/60 px-5 py-3.5 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={pending}
+            >
+              {isAr ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirm}
+              disabled={pending || amountToSettle <= 0}
+              className="gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
+            >
+              <Check className="h-4 w-4" />
+              <span>
+                {pending
+                  ? (isAr ? "جاري تنفيذ التسوية..." : "Executing...")
+                  : (isAr ? "تأكيد تنفيذ التسوية وتوزيع الأموال" : "Confirm & Distribute Funds")}
+              </span>
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

@@ -59,70 +59,6 @@ export default async function LedgerPage() {
         <p className="text-sm text-muted-foreground">{t.subtitle}</p>
       </div>
 
-      <PageGuide
-        lang={lang}
-        title={lang === "ar" ? "دليل حسابات دفتر الشركاء والمسحوبات" : "Partner Ledger & Drawings Guide"}
-        subtitle={
-          lang === "ar"
-            ? "المرجع المحاسبي المعتمد لتفسير رصيد كل شريك والمعادلات المطبقة بدقة"
-            : "Official accounting reference explaining partner balances and exact equations"
-        }
-        steps={[
-          {
-            title: lang === "ar" ? "المستحقات المعلقة (دفعات من الجيب)" : "Pending Reimbursements",
-            text:
-              lang === "ar"
-                ? "أي مصروف دفعه الشريك من ماله الخاص لصالح مشروع أو مصاريف الشركة دون أن يتم رده له بعد، فيُحسب كدين على الشركة للشريك."
-                : "Expenses paid by the partner out-of-pocket for projects or company costs not yet reimbursed.",
-            badge: { text: lang === "ar" ? "مستحق للشريك (+)" : "Owed to Partner (+)", variant: "outline" },
-          },
-          {
-            title: lang === "ar" ? "حصص الأرباح المحققة" : "Realized Profit Shares",
-            text:
-              lang === "ar"
-                ? "نصيب الشريك المتفق عليه من صافي أرباح المشاريع بعد سداد تكاليفها وتحصيل دفعات العميل فعلياً."
-                : "Partner's contractual share of net project profits after deducting project expenses from received client cash.",
-            badge: { text: lang === "ar" ? "أرباح مضافة (+)" : "Added Profit (+)", variant: "success" },
-          },
-          {
-            title: lang === "ar" ? "صافي الشركة" : "Company Net",
-            text:
-              lang === "ar"
-                ? "نصيب الشريك في صافي تكاليف الشركة العامة المشتركة (كالإيجار والاشتراكات) بعد خصم ما دفعه."
-                : "Partner's share of company general overhead after accounting for their contributions.",
-          },
-          {
-            title: lang === "ar" ? "المسحوبات (تسجيل مسحوبات)" : "Drawings (تسجيل مسحوبات)",
-            text:
-              lang === "ar"
-                ? "أي سحب كاش نقدي يقوم به الشريك من رصيده أو أرباحه المتاحة بالشركة لاستخدامه الخاص. يُسجل عبر نموذج «تسجيل مسحوبات» بالأسفل ويُخصم مباشرة من رصيده."
-                : "Cash drawn by the partner from their available company funds or profits for personal use, deducted from balance.",
-            badge: { text: lang === "ar" ? "يخصم من الرصيد (−)" : "Deducted (−)", variant: "destructive" },
-          },
-        ]}
-        equations={[
-          {
-            label: lang === "ar" ? "المعادلة المحاسبية المعتمدة لرصيد الشريك (Source of Truth)" : "Official Partner Balance Equation",
-            formula:
-              lang === "ar"
-                ? "الرصيد النهائي = المستحقات المعلقة + حصص الأرباح المحققة + صافي الشركة − إجمالي المسحوبات"
-                : "Balance = Pending Reimbursements + Realized Profit Shares + Company Net − Total Drawings",
-            explanation:
-              lang === "ar"
-                ? "الرصيد الأخضر (+) يعني أن الشركة مدينة للشريك بهذا المبلغ ويمكنه سحبه، والرصيد الأحمر (−) يعني أن الشريك سحب مبالغ تفوق مستحقاته وعليه سدادها للشركة."
-                : "Positive balance (green) means company owes the partner; negative (red) means partner over-withdrew.",
-          },
-        ]}
-        tips={[
-          lang === "ar"
-            ? "نموذج «تسجيل مسحوبات»: يُستخدم حصراً عندما يستلم الشريك كاش حقيقي من الشركة كأرباح أو استرداد رصيد."
-            : "Drawings form: Use exclusively when a partner withdraws actual cash from company reserves.",
-          lang === "ar"
-            ? "لا يتم تسجيل دفعات العملاء أو مصاريف المشاريع كمسحوبات، بل تسجل في صفحات المشاريع الخاصة بها."
-            : "Client payments and project direct expenses are managed in project pages, not as drawings.",
-        ]}
-      />
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {ledgers.map((l) => (
           <Card key={l.partnerId}>
@@ -277,16 +213,69 @@ export default async function LedgerPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.formulaTitle}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2 text-sm">
-          <Badge variant="warning">{t.fPending}</Badge>
-          <Badge variant="secondary">{t.fProfit}</Badge>
-          <Badge variant="outline">{t.fBalance}</Badge>
-        </CardContent>
-      </Card>
+      <PageGuide
+        lang={lang}
+        title={lang === "ar" ? "دليل حسابات دفتر الشركاء والمسحوبات" : "Partner Ledger & Drawings Guide"}
+        subtitle={
+          lang === "ar"
+            ? "المرجع المحاسبي المعتمد لتفسير رصيد كل شريك والمعادلات المطبقة بدقة"
+            : "Official accounting reference explaining partner balances and exact equations"
+        }
+        steps={[
+          {
+            title: lang === "ar" ? "المستحقات المعلقة (دفعات من الجيب)" : "Pending Reimbursements",
+            text:
+              lang === "ar"
+                ? "أي مصروف دفعه الشريك من ماله الخاص لصالح مشروع أو مصاريف الشركة دون أن يتم رده له بعد، فيُحسب كدين على الشركة للشريك."
+                : "Expenses paid by the partner out-of-pocket for projects or company costs not yet reimbursed.",
+            badge: { text: lang === "ar" ? "مستحق للشريك (+)" : "Owed to Partner (+)", variant: "outline" },
+          },
+          {
+            title: lang === "ar" ? "حصص الأرباح المحققة" : "Realized Profit Shares",
+            text:
+              lang === "ar"
+                ? "نصيب الشريك المتفق عليه من صافي أرباح المشاريع بعد سداد تكاليفها وتحصيل دفعات العميل فعلياً."
+                : "Partner's contractual share of net project profits after deducting project expenses from received client cash.",
+            badge: { text: lang === "ar" ? "أرباح مضافة (+)" : "Added Profit (+)", variant: "success" },
+          },
+          {
+            title: lang === "ar" ? "صافي الشركة" : "Company Net",
+            text:
+              lang === "ar"
+                ? "نصيب الشريك في صافي تكاليف الشركة العامة المشتركة (كالإيجار والاشتراكات) بعد خصم ما دفعه."
+                : "Partner's share of company general overhead after accounting for their contributions.",
+          },
+          {
+            title: lang === "ar" ? "المسحوبات (تسجيل مسحوبات)" : "Drawings (تسجيل مسحوبات)",
+            text:
+              lang === "ar"
+                ? "أي سحب كاش نقدي يقوم به الشريك من رصيده أو أرباحه المتاحة بالشركة لاستخدامه الخاص. يُسجل عبر نموذج «تسجيل مسحوبات» بالأسفل ويُخصم مباشرة من رصيده."
+                : "Cash drawn by the partner from their available company funds or profits for personal use, deducted from balance.",
+            badge: { text: lang === "ar" ? "يخصم من الرصيد (−)" : "Deducted (−)", variant: "destructive" },
+          },
+        ]}
+        equations={[
+          {
+            label: lang === "ar" ? "المعادلة المحاسبية المعتمدة لرصيد الشريك (Source of Truth)" : "Official Partner Balance Equation",
+            formula:
+              lang === "ar"
+                ? "الرصيد النهائي = المستحقات المعلقة + حصص الأرباح المحققة + صافي الشركة − إجمالي المسحوبات"
+                : "Balance = Pending Reimbursements + Realized Profit Shares + Company Net − Total Drawings",
+            explanation:
+              lang === "ar"
+                ? "الرصيد الأخضر (+) يعني أن الشركة مدينة للشريك بهذا المبلغ ويمكنه سحبه، والرصيد الأحمر (−) يعني أن الشريك سحب مبالغ تفوق مستحقاته وعليه سدادها للشركة."
+                : "Positive balance (green) means company owes the partner; negative (red) means partner over-withdrew.",
+          },
+        ]}
+        tips={[
+          lang === "ar"
+            ? "نموذج «تسجيل مسحوبات»: يُستخدم حصراً عندما يستلم الشريك كاش حقيقي من الشركة كأرباح أو استرداد رصيد."
+            : "Drawings form: Use exclusively when a partner withdraws actual cash from company reserves.",
+          lang === "ar"
+            ? "لا يتم تسجيل دفعات العملاء أو مصاريف المشاريع كمسحوبات، بل تسجل في صفحات المشاريع الخاصة بها."
+            : "Client payments and project direct expenses are managed in project pages, not as drawings.",
+        ]}
+      />
     </div>
   );
 }

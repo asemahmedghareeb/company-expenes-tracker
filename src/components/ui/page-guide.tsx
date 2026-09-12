@@ -40,51 +40,78 @@ export function PageGuide({
   equations,
   tips,
   lang = "ar",
-  defaultOpen = true,
+  defaultOpen = false,
   className,
 }: PageGuideProps) {
   const [isOpen, setIsOpen] = React.useState(defaultOpen);
   const isAr = lang === "ar";
 
-  return (
-    <Card
-      className={cn(
-        "overflow-hidden border-indigo-200/70 bg-gradient-to-br from-card via-card to-indigo-50/30 shadow-sm transition-all dark:border-indigo-950 dark:to-indigo-950/20",
-        className,
-      )}
-    >
-      <CardHeader
-        className="cursor-pointer select-none py-3.5 px-4 sm:px-6 hover:bg-muted/30 transition-colors"
-        onClick={() => setIsOpen((prev) => !prev)}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
-              <Lightbulb className="h-4 w-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-base font-bold text-foreground">
-                  {title}
-                </CardTitle>
-                <Badge variant="outline" className="border-indigo-300 text-indigo-700 dark:text-indigo-300 text-[11px] py-0 px-2 font-normal">
-                  {isAr ? "دليل الشرح والمعادلات" : "Guide & Source of Truth"}
-                </Badge>
-              </div>
-              {subtitle && (
-                <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
-              )}
-            </div>
+  if (!isOpen) {
+    return (
+      <div className={cn("pt-6 pb-2 border-t border-border/40 mt-8 flex items-center justify-start", className)}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="group inline-flex items-center gap-2.5 rounded-xl border border-indigo-200/90 bg-indigo-50/50 px-4 py-2.5 text-xs font-semibold text-indigo-900 shadow-2xs transition-all hover:border-indigo-400 hover:bg-indigo-100/70 hover:shadow-xs dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200 dark:hover:border-indigo-700"
+        >
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-indigo-200/70 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 group-hover:scale-110 transition-transform">
+            <Lightbulb className="h-3.5 w-3.5" />
           </div>
-          <button
-            type="button"
-            className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            aria-label={isOpen ? "Collapse" : "Expand"}
-          >
-            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
-        </div>
-      </CardHeader>
+          <span className="font-bold">{isAr ? "تفاصيل وإرشادات الصفحة" : "Page Details & Guidelines"}</span>
+          <span className="text-[11px] font-normal text-muted-foreground hidden sm:inline">
+            ({title})
+          </span>
+          <Badge variant="outline" className="border-indigo-300 text-indigo-700 dark:text-indigo-300 text-[10px] py-0 px-1.5 font-normal">
+            {isAr ? "دليل الشرح والمعادلات" : "Guide & Formulas"}
+          </Badge>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground group-hover:text-indigo-700 transition-colors" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("pt-6 pb-2 border-t border-border/40 mt-8", className)}>
+      <Card
+        className="overflow-hidden border-indigo-200/70 bg-gradient-to-br from-card via-card to-indigo-50/30 shadow-sm transition-all dark:border-indigo-950 dark:to-indigo-950/20"
+      >
+        <CardHeader
+          className="cursor-pointer select-none py-3.5 px-4 sm:px-6 hover:bg-muted/30 transition-colors"
+          onClick={() => setIsOpen(false)}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
+                <Lightbulb className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle className="text-base font-bold text-foreground">
+                    {title}
+                  </CardTitle>
+                  <Badge variant="outline" className="border-indigo-300 text-indigo-700 dark:text-indigo-300 text-[11px] py-0 px-2 font-normal">
+                    {isAr ? "دليل الشرح والمعادلات" : "Guide & Source of Truth"}
+                  </Badge>
+                </div>
+                {subtitle && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground rounded-lg px-2 py-1 hover:bg-muted transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+              }}
+              aria-label="Collapse"
+            >
+              <ChevronUp className="h-4 w-4" />
+              <span>{isAr ? "تصغير / إخفاء" : "Minimize"}</span>
+            </button>
+          </div>
+        </CardHeader>
 
       {isOpen && (
         <CardContent className="space-y-4 px-4 pb-4 pt-1 sm:px-6 sm:pb-6 text-sm text-foreground/90 border-t border-border/50">
@@ -163,5 +190,6 @@ export function PageGuide({
         </CardContent>
       )}
     </Card>
-  );
+  </div>
+);
 }

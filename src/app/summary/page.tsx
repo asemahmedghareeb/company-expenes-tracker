@@ -73,6 +73,15 @@ export default async function SummaryPage({
         <MonthPicker month={month} label={t.chooseMonth} />
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.colBalance}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SummaryRows lang={lang} rows={summary.rows} />
+        </CardContent>
+      </Card>
+
       <PageGuide
         lang={lang}
         title={lang === "ar" ? "دليل الملخص المالي والتسوية الشهرية" : "Monthly Financial Summary Guide"}
@@ -119,15 +128,6 @@ export default async function SummaryPage({
           },
         ]}
       />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.colBalance}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SummaryRows lang={lang} rows={summary.rows} />
-        </CardContent>
-      </Card>
     </div>
   );
 }
