@@ -19,7 +19,10 @@ import { formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
 import { computeInterPartnerDebts, round2 } from "@/lib/ledger";
-import { PaginatedPendingExpensesTable } from "@/components/ledger-tables";
+import {
+  PaginatedPendingExpensesTable,
+  PartnerProjectsBreakdownDialog,
+} from "@/components/ledger-tables";
 import { PageGuide } from "@/components/ui/page-guide";
 
 // Cached by default — mutations revalidate on demand via revalidatePath().
@@ -177,30 +180,20 @@ export default async function LedgerPage() {
                     ))}
                 </div>
               )}
-              {(l.breakdown.length > 0 || l.companyBreakdown.length > 0) && (
-                <div className="pt-2">
-                  {l.breakdown.map((b) => (
-                    <div
-                      key={b.projectId}
-                      className="flex justify-between text-xs text-muted-foreground"
-                    >
-                      <span>
-                        {b.projectName ?? b.projectId.slice(0, 8)} ({formatPct(b.sharePercentage)})
-                      </span>
-                      <span>{formatEGP(b.totalOwed, lang)}</span>
-                    </div>
-                  ))}
-                  {l.companyBreakdown.map((c) => (
-                    <div
-                      key={c.expenseId}
-                      className="flex justify-between text-xs text-muted-foreground"
-                    >
-                      <span>{c.title ?? c.expenseId.slice(0, 8)}</span>
-                      <span>{formatEGP(c.net, lang)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* View Projects Breakdown Dialog Button */}
+              <div className="pt-2 border-t border-border/50">
+                <PartnerProjectsBreakdownDialog
+                  partnerName={l.partnerName}
+                  balance={l.balance}
+                  pendingReimbursements={l.pendingReimbursements}
+                  realizedProfitShare={l.realizedProfitShare}
+                  companyNet={l.companyNet}
+                  totalDrawings={l.totalDrawings}
+                  breakdown={l.breakdown}
+                  companyBreakdown={l.companyBreakdown}
+                  lang={lang}
+                />
+              </div>
             </CardContent>
           </Card>
         );
@@ -328,7 +321,7 @@ export default async function LedgerPage() {
             badge: { text: lang === "ar" ? "🤝 دين بين شريكين" : "🤝 P2P Debt", variant: "outline" },
           },
           {
-            title: lang === "ar" ? "صافي مصاريف الشركة العامة" : "Company Operational Overhead",
+            title: lang === "ar" ? "رصيد مصاريف الشركة (المقر والتشغيل)" : "Company Operational Overhead Balance",
             text:
               lang === "ar"
                 ? "توزيع فواتير المقر والاشتراكات الشهرية (إيجار، كهرباء، إنترنت) بنسب التأسيس الافتراضية؛ من دفع أكثر من حصته يُسجل له رصيد دائن (+)، ومن دفع أقل يسجل عليه رصيد مدين (−)."
@@ -340,8 +333,8 @@ export default async function LedgerPage() {
             label: lang === "ar" ? "المعادلة المحاسبية المعتمدة لرصيد الشريك" : "Official Partner Balance Equation",
             formula:
               lang === "ar"
-                ? "الرصيد النهائي = المستحقات المعلقة (مدفوعة من الجيب) + حصص الأرباح المحققة + صافي مصاريف الشركة"
-                : "Balance = Pending Reimbursements + Realized Profit Shares + Company Net",
+                ? "الرصيد النهائي = المستحقات المعلقة (مدفوعة من الجيب) + حصص الأرباح المحققة + رصيد مصاريف الشركة"
+                : "Balance = Pending Reimbursements + Realized Profit Shares + Company Overhead Balance",
             explanation:
               lang === "ar"
                 ? "الرصيد يمثل صافي المركز المالي للشريك: الرصيد الأخضر (+) يعني مستحقات واجبة السداد للشريك، والرصيد الأحمر (−) يعني مبالغ مستحقة عليه لتغطية التكاليف التشغيلية، و0.00 ج.م يعني تسوية وتطابق الحسابات بالكامل."
