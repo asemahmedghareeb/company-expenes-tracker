@@ -18,11 +18,7 @@ import {
 import { formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
-import { DeleteDrawingButton } from "@/components/forms/transaction-forms";
-import {
-  PaginatedPendingExpensesTable,
-  PaginatedDrawingsTable,
-} from "@/components/ledger-tables";
+import { PaginatedPendingExpensesTable } from "@/components/ledger-tables";
 import { PageGuide } from "@/components/ui/page-guide";
 
 // Cached by default — mutations revalidate on demand via revalidatePath().
@@ -87,12 +83,6 @@ export default async function LedgerPage() {
                 <span className="text-muted-foreground">{t.companyNet}</span>
                 <span>{formatEGP(l.companyNet, lang)}</span>
               </div>
-              {l.totalDrawings > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t.drawings}</span>
-                  <span>−{formatEGP(l.totalDrawings, lang)}</span>
-                </div>
-              )}
               {(l.breakdown.length > 0 || l.companyBreakdown.length > 0) && (
                 <div className="pt-2">
                   {l.breakdown.map((b) => (
@@ -144,58 +134,45 @@ export default async function LedgerPage() {
         </CardContent>
       </Card>
 
-      {/* Historical drawings table — only shown if records exist */}
-      {drawings.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t.recentTitle}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PaginatedDrawingsTable
-              lang={lang}
-              drawings={drawings.map((d) => ({
-                id: d.id,
-                amount: Number(d.amount),
-                drawnAt: d.drawnAt instanceof Date ? d.drawnAt.toISOString() : String(d.drawnAt),
-                notes: d.notes,
-                partner: { name: d.partner.name },
-              }))}
-            />
-          </CardContent>
-        </Card>
-      )}
-
       <PageGuide
         lang={lang}
         title={lang === "ar" ? "دليل حسابات الشركاء وتوزيع الأرباح" : "Partner Accounts & Profit Settlements Guide"}
         subtitle={
           lang === "ar"
-            ? "المرجع المحاسبي لتفسير رصيد كل شريك والمعادلات المطبقة بدقة بعد تسوية المشاريع"
-            : "Official accounting reference explaining partner balances and exact equations"
+            ? "المرجع المحاسبي المعتمد لتفسير رصيد كل شريك والمعادلات المطبقة بدقة (دون تخزين أموال بالشركة)"
+            : "Official accounting guide explaining partner balances and direct per-project profit settlements"
         }
         steps={[
           {
-            title: lang === "ar" ? "المستحقات المعلقة (دفعات من الجيب)" : "Pending Reimbursements",
+            title: lang === "ar" ? "تسوية الأرباح فورية لكل مشروع" : "Direct Project Profit Settlements",
             text:
               lang === "ar"
-                ? "أي مصروف دفعه الشريك من ماله الخاص لصالح مشروع أو مصاريف الشركة دون أن يتم رده له بعد، فيُحسب كدين على الشركة للشريك."
-                : "Expenses paid by the partner out-of-pocket for projects or company costs not yet reimbursed.",
+                ? "الشركة لا تحتفظ بأموال أو أرباح الشركاء كودائع؛ بمجرد تسوية أي مشروع بعد استلام دفعات العميل وسداد مصاريفه، يستلم كل شريك نصيبه من الأرباح فوراً."
+                : "The company does not hold partner funds as deposits. Upon settling each project, partners receive their profit shares directly.",
+            badge: { text: lang === "ar" ? "تسوية نقدية فورية" : "Direct Cash Payout", variant: "default" },
+          },
+          {
+            title: lang === "ar" ? "المستحقات المعلقة (دفعات مدفوعة من الجيب)" : "Pending Out-of-Pocket Reimbursements",
+            text:
+              lang === "ar"
+                ? "أي نفقات أو فواتير يدفعها الشريك من ماله الخاص لصالح مشروع معين أو لتغطية مصاريف الشركة. تُسجل كدين مؤكد على الشركة للشريك وتظهر برصيد إيجابي (+) حتى يتم ردها له."
+                : "Expenses paid by a partner out-of-pocket for projects or company bills. Tracked as an owed debt to be reimbursed upon settlement.",
             badge: { text: lang === "ar" ? "مستحق للشريك (+)" : "Owed to Partner (+)", variant: "outline" },
           },
           {
             title: lang === "ar" ? "حصص الأرباح المحققة" : "Realized Profit Shares",
             text:
               lang === "ar"
-                ? "نصيب الشريك المتفق عليه من صافي أرباح المشاريع بعد سداد تكاليفها وتحصيل دفعات العميل وتسويتها."
-                : "Partner's contractual share of net project profits after deducting project expenses from received client cash.",
-            badge: { text: lang === "ar" ? "أرباح مضافة (+)" : "Added Profit (+)", variant: "success" },
+                ? "إجمالي حصص الأرباح التعاقدية للشريك الناتجة عن المشاريع المنجزة، بعد خصم كافة تكاليف المشروع من المبالغ المحصلة من العميل."
+                : "Partner's contractual share of net project profits after deducting project direct costs from received client cash.",
+            badge: { text: lang === "ar" ? "أرباح محققة (+)" : "Realized Profit (+)", variant: "success" },
           },
           {
-            title: lang === "ar" ? "صافي الشركة" : "Company Net",
+            title: lang === "ar" ? "صافي مصاريف الشركة العامة" : "Company Operational Overhead",
             text:
               lang === "ar"
-                ? "نصيب الشريك في صافي تكاليف الشركة العامة المشتركة (كالإيجار والاشتراكات) بعد خصم ما دفعه."
-                : "Partner's share of company general overhead after accounting for their contributions.",
+                ? "توزيع فواتير المقر والاشتراكات الشهرية (إيجار، كهرباء، إنترنت) بنسب التأسيس الافتراضية؛ من دفع أكثر من حصته يُسجل له رصيد دائن (+)، ومن دفع أقل يسجل عليه رصيد مدين (−)."
+                : "Distribution of office overhead (rent, utilities) according to equity shares. Paying more yields a credit (+), paying less yields a debit (−).",
           },
         ]}
         equations={[
@@ -203,21 +180,24 @@ export default async function LedgerPage() {
             label: lang === "ar" ? "المعادلة المحاسبية المعتمدة لرصيد الشريك" : "Official Partner Balance Equation",
             formula:
               lang === "ar"
-                ? "الرصيد النهائي = المستحقات المعلقة + حصص الأرباح المحققة + صافي الشركة"
+                ? "الرصيد النهائي = المستحقات المعلقة (مدفوعة من الجيب) + حصص الأرباح المحققة + صافي مصاريف الشركة"
                 : "Balance = Pending Reimbursements + Realized Profit Shares + Company Net",
             explanation:
               lang === "ar"
-                ? "الرصيد يمثل صافي المستحقات الحالية للشريك، وتتم تسوية الأرباح وتوزيعها فور الانتهاء من تسوية كل مشروع."
-                : "Balance represents partner dues; settled and distributed upon each project settlement.",
+                ? "الرصيد يمثل صافي المركز المالي للشريك: الرصيد الأخضر (+) يعني مستحقات واجبة السداد للشريك، والرصيد الأحمر (−) يعني مبالغ مستحقة عليه لتغطية التكاليف التشغيلية، و0.00 ج.م يعني تسوية وتطابق الحسابات بالكامل."
+                : "Positive balance (green) indicates net dues owed to the partner; negative balance (red) represents operating expenses owed by the partner.",
           },
         ]}
         tips={[
           lang === "ar"
-            ? "تسوية أرباح المشاريع: يستلم كل شريك مستحقاته فور إتمام تسوية المشروع واقتسام الأرباح."
-            : "Project settlements: Partners take their profit shares directly upon settlement of each project.",
+            ? "تسوية المشاريع: تتم من خلال صفحة «رأس مال الشركة والخزنة» أو صفحة كل مشروع، حيث تُقتسم الأرباح ويستلمها الشركاء مباشرة."
+            : "Project settlements: Executed in the Treasury or project details page, with direct payouts to partners.",
           lang === "ar"
-            ? "يتم تسجيل دفعات العملاء ومصاريف المشاريع مباشرة في صفحات المشاريع الخاصة بها."
-            : "Client payments and project direct expenses are managed in project pages.",
+            ? "استرداد النفقات: تسجل نفقات الجيب تلقائياً في جدول «المستحقات المعلقة» أعلاه حتى تتم جدولتها وصرفها للشريك."
+            : "Expense reimbursements: Logged automatically in the Pending Reimbursements table until reimbursed.",
+          lang === "ar"
+            ? "مصاريف الشركة: تابع الفواتير الدورية ونسب مساهمة كل شريك من خلال تبويب «مصاريف الشركة»."
+            : "Company overhead: Track recurring bills and partner contributions in the Company Expenses tab.",
         ]}
       />
     </div>
