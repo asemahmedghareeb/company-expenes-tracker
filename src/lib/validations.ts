@@ -290,7 +290,18 @@ export const companyFixedCostSchema = z.object({
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
 });
 
-export type CompanyFixedCostInput = z.infer<typeof companyFixedCostSchema>;
+/* ------------------------- Settlements & Vault ------------------------- */
+
+export const executeSettlementSchema = z.object({
+  scope: z.enum(["ALL", "PROJECT"]),
+  projectId: z.string().optional().nullable(),
+  totalAmount: moneyAmount,
+  vaultPercentage: z.number().min(0).max(100).default(0),
+  settledAt: z.coerce.date().default(() => new Date()),
+  notes: z.string().trim().max(1000).optional().or(z.literal("")),
+});
+
+export type ExecuteSettlementInput = z.infer<typeof executeSettlementSchema>;
 
 /* ------------------------- Generic action result ---------------------- */
 

@@ -433,18 +433,24 @@ export async function getCompanyData() {
   return { expenses, partners, fixedCosts, payouts };
 }
 
-/** Treasury page data: every project with its frozen splits + custodied payments. */
+/** Treasury page data: every project with its frozen splits + custodied payments + settlements & vault. */
 export async function getTreasuryData() {
-  const [partners, projects] = await Promise.all([
+  const [partners, projects, settlements] = await Promise.all([
     db.partner.findMany({
       orderBy: { name: "asc" },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        defaultSharePercentage: true,
+        isActive: true,
+      },
     }),
     db.project.findMany({
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
         name: true,
+        contractValue: true,
         projectPartners: {
           select: { partnerId: true, sharePercentage: true },
         },
@@ -452,10 +458,28 @@ export async function getTreasuryData() {
           orderBy: { paidAt: "desc" },
           select: { amount: true, receivedByPartnerId: true },
         },
+        expenses: {
+          select: { amount: true },
+        },
+      },
+    }),
+    db.companySettlement.findMany({
+      orderBy: { settledAt: "desc" },
+      include: {
+        project: { select: { id: true, name: true } },
+        distributions: {
+          include: { partner: { select: { id: true, name: true } } },
+        },
       },
     }),
   ]);
-  return { partners, projects };
+
+  const totalVaultBalance = settlements.reduce(
+    (acc, s) => acc + toNumber(s.vaultAmount),
+    0,
+  );
+
+  return { partners, projects, settlements, totalVaultBalance };
 }
 
 /** Monthly summary data: everything the engine needs to settle one month. */

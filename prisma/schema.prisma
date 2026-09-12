@@ -33,6 +33,7 @@ model Partner {
   companyPayouts         CompanyPayout[]
   /// Client payments physically received into this partner's custody.
   custodyPayments        ClientPayment[]  @relation("PaymentsReceivedInCustody")
+  settlementDistributions PartnerSettlementDistribution[]
 
   @@index([isActive])
   @@map("partners")
@@ -51,6 +52,7 @@ model Project {
   projectPartners        ProjectPartner[]
   clientPayments         ClientPayment[]
   expenses               Expense[]
+  settlements            CompanySettlement[]
 
   @@index([status])
   @@map("projects")
@@ -210,6 +212,42 @@ model CompanyFixedCost {
   createdAt DateTime @default(now())
 
   @@map("company_fixed_costs")
+}
+
+model CompanySettlement {
+  id                String   @id @default(cuid())
+  title             String?
+  projectId         String?
+  totalAmount       Decimal  @db.Decimal(14, 2)
+  vaultPercentage   Float    @default(0)
+  vaultAmount       Decimal  @db.Decimal(14, 2)
+  distributedAmount Decimal  @db.Decimal(14, 2)
+  settledAt         DateTime @default(now())
+  createdAt         DateTime @default(now())
+  notes             String?
+
+  project           Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  distributions     PartnerSettlementDistribution[]
+
+  @@index([projectId])
+  @@index([settledAt])
+  @@map("company_settlements")
+}
+
+model PartnerSettlementDistribution {
+  id           String   @id @default(cuid())
+  settlementId String
+  partnerId    String
+  percentage   Float
+  amount       Decimal  @db.Decimal(14, 2)
+  drawingId    String?
+
+  settlement   CompanySettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  partner      Partner           @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+
+  @@index([settlementId])
+  @@index([partnerId])
+  @@map("partner_settlement_distributions")
 }
 
 /// Login account for the auth layer (see src/lib/auth.ts).
