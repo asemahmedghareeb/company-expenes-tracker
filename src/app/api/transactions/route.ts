@@ -36,6 +36,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Invalid expense." }, { status: 400 });
       const payer = parsed.data.paidById || parsed.data.paidByPartnerId;
       const clientCovered = payer === CLIENT_PAYER;
+      const isCustody = parsed.data.deductFromCustody || clientCovered;
       const e = await db.expense.create({
         data: {
           projectId: parsed.data.projectId,
@@ -43,9 +44,9 @@ export async function POST(req: Request) {
           amount: parsed.data.amount,
           description: parsed.data.description,
           expenseDate: parsed.data.expenseDate,
-          deductFromCustody: parsed.data.deductFromCustody,
-          isReimbursed: parsed.data.deductFromCustody,
-          reimbursedAt: parsed.data.deductFromCustody ? new Date() : null,
+          deductFromCustody: isCustody,
+          isReimbursed: isCustody,
+          reimbursedAt: isCustody ? new Date() : null,
         },
       });
       return NextResponse.json(e, { status: 201 });

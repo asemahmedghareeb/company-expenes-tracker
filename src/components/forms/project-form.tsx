@@ -69,22 +69,20 @@ export function ProjectForm({
   }, [items.length]);
 
   // ---- Real-time computations (react to every keystroke) ----
-  // Client-covered rows never touch firm books: excluded from totals/profit.
+  // All project expenses are paid from contract money / project custody.
+  // Every expense is subtracted from contract value to compute estimated net profit.
   const contractValue = Number(contractStr) || 0;
   const totalExpenses = items.reduce(
-    (a, it) => a + (it.paidBy === CLIENT_PAYER ? 0 : Number(it.amount) || 0),
+    (a, it) => a + (Number(it.amount) || 0),
     0,
   );
-  const clientExpenses = items.reduce(
-    (a, it) => a + (it.paidBy === CLIENT_PAYER ? Number(it.amount) || 0 : 0),
-    0,
-  );
+  const clientExpenses = 0;
 
   function addItem(focusNext = false) {
     const key = newKey();
     setItems((xs) => [
       ...xs,
-      { key, title: "", amount: "", paidBy: partners[0]?.id ?? "" },
+      { key, title: "", amount: "", paidBy: CLIENT_PAYER },
     ]);
     if (focusNext) pendingFocusKey.current = key;
   }
@@ -257,14 +255,14 @@ export function ProjectForm({
                 value={it.paidBy}
                 onChange={(e) => updateItem(it.key, { paidBy: e.target.value })}
                 aria-label={tf.paidBy}
-                className="h-10 min-w-0 flex-1 sm:w-32 sm:flex-initial shrink-0 rounded-xl border border-input bg-card px-2 text-base shadow-sm sm:text-sm"
+                className="h-10 min-w-0 flex-1 sm:w-44 sm:flex-initial shrink-0 rounded-xl border border-input bg-card px-2 text-base shadow-sm sm:text-sm"
               >
+                <option value={CLIENT_PAYER}>{tf.clientPaid}</option>
                 {partners.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
                 ))}
-                <option value={CLIENT_PAYER}>{tf.clientPaid}</option>
               </select>
               <div className="flex w-28 sm:w-32 shrink-0 items-center gap-1">
                 <Input

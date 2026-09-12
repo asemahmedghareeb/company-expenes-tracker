@@ -44,12 +44,20 @@ export async function POST(req: Request) {
         })),
       },
       expenses: {
-        create: initialExpenses.map((e) => ({
-          paidById:
-            e.paidByPartnerId === CLIENT_PAYER ? null : e.paidByPartnerId,
-          amount: e.amount,
-          description: e.title,
-        })),
+        create: initialExpenses.map((e) => {
+          const isCustody =
+            e.paidByPartnerId === CLIENT_PAYER ||
+            e.paidByPartnerId === "PROJECT_CUSTODY" ||
+            !e.paidByPartnerId;
+          return {
+            paidById: isCustody ? null : e.paidByPartnerId,
+            amount: e.amount,
+            description: e.title,
+            deductFromCustody: isCustody,
+            isReimbursed: isCustody,
+            reimbursedAt: isCustody ? new Date() : null,
+          };
+        }),
       },
     },
     include: { projectPartners: true },

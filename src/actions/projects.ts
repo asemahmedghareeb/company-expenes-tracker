@@ -73,15 +73,23 @@ export async function createProject(
             sharePercentage: shares[i] ?? s.sharePercentage,
           })),
         },
-        // Up-front out-of-pocket costs → pending-reimbursement expense rows.
-        // CLIENT-covered rows store NULL payer (info only, excluded from books).
+        // Up-front project costs. Expenses marked from contract/custody cash are settled immediately;
+        // partner out-of-pocket expenses are tracked for reimbursement.
         expenses: {
-          create: initialExpenses.map((e) => ({
-            paidById:
-              e.paidByPartnerId === CLIENT_PAYER ? null : e.paidByPartnerId,
-            amount: e.amount,
-            description: e.title,
-          })),
+          create: initialExpenses.map((e) => {
+            const isCustody =
+              e.paidByPartnerId === CLIENT_PAYER ||
+              e.paidByPartnerId === "PROJECT_CUSTODY" ||
+              !e.paidByPartnerId;
+            return {
+              paidById: isCustody ? null : e.paidByPartnerId,
+              amount: e.amount,
+              description: e.title,
+              deductFromCustody: isCustody,
+              isReimbursed: isCustody,
+              reimbursedAt: isCustody ? new Date() : null,
+            };
+          }),
         },
       },
     });

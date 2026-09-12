@@ -90,6 +90,7 @@ const financials = getProjectFinancials(ledgerProject, 100000);
 assert(financials.totalInflow === 50000, "Financials total inflow = 50,000");
 assert(financials.totalExpenses === 18000, "Total operational expenses = 18,000");
 assert(financials.netProfit === 32000, "Net profit = 32,000 (50,000 - 18,000)");
+assert(financials.contractNetProfit === 82000, "Contract Net Profit = 82,000 (100,000 - 18,000)");
 assert(financials.outstandingReimbursements === 5000, "Outstanding reimbursements = 5,000 (only out-of-pocket)");
 
 const settlement = getProjectSettlementPlan(ledgerProject, 100000);

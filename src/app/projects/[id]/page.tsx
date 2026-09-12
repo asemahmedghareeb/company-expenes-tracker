@@ -110,18 +110,30 @@ export default async function ProjectDetailPage({
       </div>
 
       {/* Financial summary metrics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {[
           { label: td.contractValue, value: Number(project.contractValue) },
+          { label: td.expenses, value: financials.totalExpenses },
+          {
+            label: td.contractProfit,
+            value: financials.contractNetProfit,
+            highlight: true,
+          },
           { label: td.inflow, value: financials.totalInflow },
           { label: td.remainingUncollected, value: custody.remainingUncollected },
-          { label: td.expenses, value: financials.totalExpenses },
           { label: td.netProfit, value: financials.netProfit },
         ].map((s) => (
           <Card key={s.label}>
             <CardHeader className="pb-2">
               <CardDescription>{s.label}</CardDescription>
-              <CardTitle className="text-xl">{formatEGP(s.value, lang)}</CardTitle>
+              <CardTitle
+                className={cn(
+                  "text-xl",
+                  s.highlight && "text-emerald-600 dark:text-emerald-400 font-bold",
+                )}
+              >
+                {formatEGP(s.value, lang)}
+              </CardTitle>
             </CardHeader>
           </Card>
         ))}

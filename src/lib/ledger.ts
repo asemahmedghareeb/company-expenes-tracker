@@ -112,6 +112,8 @@ export interface ProjectFinancials {
   clientCoveredTotal: number;
   /** Total Inflow − Total Operational Expenses */
   netProfit: number;
+  /** Contract Value − Total Operational Expenses */
+  contractNetProfit: number;
   /** Cash left in firm after reimbursing everyone owed (inflow − reimbursed − outstanding). */
   cashAfterReimbursements: number;
   /** What's actually available to distribute as profit (floored info, can be negative). */
@@ -127,20 +129,19 @@ export function getProjectFinancials(
   contractValue?: number,
 ): ProjectFinancials {
   const totalInflow = round2(sum(project.clientPayments.map((p) => p.amount)));
-  // Firm books only: partner-paid expenses. Client-covered costs never
-  // touched the firm — no reimbursement owed, profit untouched.
-  const firmExpenses = project.expenses.filter((e) => e.paidByPartnerId);
-  const totalExpenses = round2(sum(firmExpenses.map((e) => e.amount)));
+  // All project expenses reduce project profit.
+  // The client only pays the contract value, and out of this money expenses are paid.
+  const totalExpenses = round2(sum(project.expenses.map((e) => e.amount)));
   const reimbursedTotal = round2(
-    sum(firmExpenses.filter((e) => e.isReimbursed || e.deductFromCustody).map((e) => e.amount)),
+    sum(project.expenses.filter((e) => e.isReimbursed || e.deductFromCustody).map((e) => e.amount)),
   );
   const outstandingReimbursements = round2(
-    sum(firmExpenses.filter((e) => !e.isReimbursed && !e.deductFromCustody).map((e) => e.amount)),
+    sum(project.expenses.filter((e) => !e.isReimbursed && !e.deductFromCustody && e.paidByPartnerId).map((e) => e.amount)),
   );
-  const clientCoveredTotal = round2(
-    sum(project.expenses.filter((e) => !e.paidByPartnerId).map((e) => e.amount)),
-  );
+  const clientCoveredTotal = 0;
   const netProfit = round2(totalInflow - totalExpenses);
+  const cv = contractValue ?? project.contractValue ?? 0;
+  const contractNetProfit = round2(cv - totalExpenses);
   const cashAfterReimbursements = round2(
     totalInflow - reimbursedTotal - outstandingReimbursements,
   );
@@ -149,7 +150,6 @@ export function getProjectFinancials(
   // We still report the full earned share (netProfit split); cash coverage is
   // visible via cashAfterReimbursements.
   const distributableProfit = netProfit;
-  const cv = contractValue ?? project.contractValue ?? 0;
   const collectionRate =
     cv > 0 ? Math.min(1, Math.max(0, totalInflow / cv)) : 1;
 
@@ -161,6 +161,7 @@ export function getProjectFinancials(
     outstandingReimbursements,
     clientCoveredTotal,
     netProfit,
+    contractNetProfit,
     cashAfterReimbursements,
     distributableProfit,
     collectionRate: round2(collectionRate),
@@ -603,7 +604,7 @@ export function getFirmOverview(
   const totalExpenses = round2(
     sum(
       projects.flatMap((p) =>
-        p.expenses.filter((x) => x.paidByPartnerId).map((x) => x.amount),
+        p.expenses.map((x) => x.amount),
       ),
     ),
   );
@@ -611,18 +612,12 @@ export function getFirmOverview(
     sum(
       projects.flatMap((p) =>
         p.expenses
-          .filter((e) => !e.isReimbursed && e.paidByPartnerId)
+          .filter((e) => !e.isReimbursed && !e.deductFromCustody && e.paidByPartnerId)
           .map((e) => e.amount),
       ),
     ),
   );
-  const clientCoveredTotal = round2(
-    sum(
-      projects.flatMap((p) =>
-        p.expenses.filter((x) => !x.paidByPartnerId).map((x) => x.amount),
-      ),
-    ),
-  );
+  const clientCoveredTotal = 0;
   const netProfit = round2(totalInflow - totalExpenses);
   const totalFixedExpenses = round2(company?.fixedTotal ?? 0);
   const totalVariableExpenses = round2(company?.variableTotal ?? 0);
@@ -752,13 +747,9 @@ export function getMonthlySummary(
 ): MonthlySummary {
   const bills = args.company.filter((e) => monthKey(e.expenseDate) === month);
   const costs = args.projectCosts.filter(
-    (e) => monthKey(e.expenseDate) === month && e.paidByPartnerId,
+    (e) => monthKey(e.expenseDate) === month,
   );
-  // Client-covered rows: no partner paid them, so they NEVER enter firm
-  // totals, shares or balances. Surfaced separately as informational lines.
-  const clientCosts = args.projectCosts.filter(
-    (e) => monthKey(e.expenseDate) === month && !e.paidByPartnerId,
-  );
+  const clientCosts: MonthlyProjectCost[] = [];
 
   const fixedTotal = round2(
     sum(bills.filter((e) => e.kind === "fixed").map((e) => e.amount)),

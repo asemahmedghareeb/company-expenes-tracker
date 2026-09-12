@@ -236,7 +236,7 @@ export function ExpenseForm({
               ? new Date(String(fd.get("expenseDate")))
               : new Date(),
             deductFromCustody: Boolean(
-              deductFromCustody && selectedPartnerId !== CLIENT_PAYER,
+              deductFromCustody || selectedPartnerId === CLIENT_PAYER,
             ),
           });
           if (!res.ok) {

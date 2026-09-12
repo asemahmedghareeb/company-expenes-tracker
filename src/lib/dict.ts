@@ -192,6 +192,7 @@ export interface Dictionary {
     inflow: string;
     expenses: string;
     netProfit: string;
+    contractProfit: string;
     outstanding: string;
     cashAfter: string;
     settlement: string;
@@ -647,6 +648,7 @@ export const dict: Record<Lang, Dictionary> = {
       inflow: "Total inflow",
       expenses: "Total expenses",
       netProfit: "Realized net profit",
+      contractProfit: "Estimated contract profit (Contract − Expenses)",
       outstanding: "Outstanding reimbursements (settle first)",
       cashAfter: "Cash after reimbursements",
       settlement: "Settlement plan",
@@ -697,8 +699,8 @@ export const dict: Record<Lang, Dictionary> = {
       colAction: "Action",
       reimbursed: "Reimbursed",
       pending: "Pending",
-      clientPaid: "Client paid",
-      clientCovered: "Client-covered (info only)",
+      clientPaid: "From Contract / Project Funds",
+      clientCovered: "From Contract Funds",
       mark: "Mark reimbursed",
       unmark: "Unmark",
       noExpenses: "No expenses logged yet.",
@@ -728,7 +730,7 @@ export const dict: Record<Lang, Dictionary> = {
     expenseForm: {
       paidBy: "Paid by",
       selectPartner: "Select partner…",
-      clientPaid: "Client paid",
+      clientPaid: "From Contract / Project Funds",
       amount: "Amount",
       description: "Description",
       descPh: "Server costs, travel…",
@@ -1107,6 +1109,7 @@ export const dict: Record<Lang, Dictionary> = {
       inflow: "إجمالي الوارد",
       expenses: "إجمالي المصروفات",
       netProfit: "صافي الربح المحقق",
+      contractProfit: "صافي ربح العقد التقديري (العقد − المصروفات)",
       outstanding: "المستحقات المعلقة (تُسوَّى أولًا)",
       cashAfter: "النقدية بعد التسويات",
       settlement: "خطة التسوية",
@@ -1157,8 +1160,8 @@ export const dict: Record<Lang, Dictionary> = {
       colAction: "إجراء",
       reimbursed: "مُسدَّد",
       pending: "معلَّق",
-      clientPaid: "مدفوعة من العميل",
-      clientCovered: "يغطيها العميل (للعلم فقط)",
+      clientPaid: "خصم من أموال / عهدة العقد",
+      clientCovered: "مصروف من أموال العقد",
       mark: "تعليم كمُسدَّد",
       unmark: "إلغاء التعليم",
       noExpenses: "لا توجد مصروفات مسجلة بعد.",
@@ -1188,7 +1191,7 @@ export const dict: Record<Lang, Dictionary> = {
     expenseForm: {
       paidBy: "دُفع بواسطة",
       selectPartner: "اختر الشريك…",
-      clientPaid: "مدفوعة من العميل",
+      clientPaid: "خصم من أموال / عهدة العقد",
       amount: "المبلغ",
       description: "الوصف",
       descPh: "تكاليف الخوادم، السفر…",

@@ -78,7 +78,7 @@ export async function createExpense(
   if (!clientCovered && !payer)
     return { ok: false, error: "Paying partner not found." };
 
-  let deductFromCustody = false;
+  let deductFromCustody = clientCovered;
   let exceededCustody = false;
   let availableCustody = 0;
   let alertMessage: string | undefined;
