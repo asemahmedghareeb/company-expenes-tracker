@@ -50,7 +50,7 @@ export default async function SummaryPage({
       paidByPartnerId: e.paidByPartnerId,
       expenseDate:
         e.expenseDate instanceof Date ? e.expenseDate.toISOString() : String(e.expenseDate),
-      projectName: e.project.name,
+      projectName: e.project?.name ?? "—",
       title: e.description,
     })),
     partners: partners.map((p) => ({

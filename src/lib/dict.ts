@@ -201,6 +201,20 @@ export interface Dictionary {
     colReimb: string;
     colProfit: string;
     colOwed: string;
+    remainingUncollected: string;
+    totalCustodyHeld: string;
+    cashHoldersTitle: string;
+    cashHoldersDesc: string;
+    colInflow: string;
+    colOutflow: string;
+    colNetCustody: string;
+    netCustodyBreakdownTitle: (name: string) => string;
+    holdingCash: string;
+    noCustody: string;
+    outOfPocketAlert: string;
+    outOfPocketDesc: string;
+    deductedFromCustodyBadge: string;
+    outOfPocketBadge: string;
     snapshotTitle: string;
     snapshotDesc: string;
     saveSplits: string;
@@ -264,6 +278,12 @@ export interface Dictionary {
     expenseDate: string;
     logging: string;
     log: string;
+    deductFromCustody: string;
+    deductFromCustodyHint: string;
+    availableCustody: (amount: string) => string;
+    noCustodyAvailable: string;
+    exceedsCustodyAlert: (exceedsBy: string) => string;
+    paidOutOfPocketIndicator: string;
   };
   drawingForm: {
     partner: string;
@@ -636,6 +656,20 @@ export const dict: Record<Lang, Dictionary> = {
       colReimb: "Reimbursement due",
       colProfit: "Profit share",
       colOwed: "Total owed",
+      remainingUncollected: "Remaining uncollected from client",
+      totalCustodyHeld: "Current cash in custody",
+      cashHoldersTitle: "Current Cash Holders",
+      cashHoldersDesc: "Partners currently holding net custody cash for this project.",
+      colInflow: "Inflow received",
+      colOutflow: "Custody outflow",
+      colNetCustody: "Net custody held",
+      netCustodyBreakdownTitle: (name: string) => `Current Net Custody for ${name}`,
+      holdingCash: "Holding cash",
+      noCustody: "No custody cash",
+      outOfPocketAlert: "Paid Out of Pocket / شريك دافع من جيبه",
+      outOfPocketDesc: "This expense was fronted by the partner because it exceeded available project custody cash.",
+      deductedFromCustodyBadge: "Project custody",
+      outOfPocketBadge: "Out of pocket",
       snapshotTitle: "Project equity snapshot",
       snapshotDesc: "Historic & immutable — editing affects only this project.",
       saveSplits: "Save project splits",
@@ -648,8 +682,8 @@ export const dict: Record<Lang, Dictionary> = {
       colReceivedBy: "Received by",
       colAmount: "Amount",
       noPayments: "No payments recorded yet.",
-      logExpense: "Log out-of-pocket expense",
-      logExpenseDesc: "Paid from a partner's personal money.",
+      logExpense: "Log project expense",
+      logExpenseDesc: "Log a project cost paid from custody cash or out of pocket.",
       howTitle: "How reimbursement works",
       how1: "1. Partners front project costs (hosting, domain…) from personal money → each expense logged as",
       how2pre: "2. Client pays the contract (never line items) → click",
@@ -701,6 +735,13 @@ export const dict: Record<Lang, Dictionary> = {
       expenseDate: "Expense date",
       logging: "Logging…",
       log: "Log expense",
+      deductFromCustody: "Deduct from project cash (خصم من عهدة مشروع)",
+      deductFromCustodyHint: "Deducts directly from partner's project custody balance.",
+      availableCustody: (amount: string) => `Available project cash: ${amount}`,
+      noCustodyAvailable: "No available custody cash for this partner",
+      exceedsCustodyAlert: (exceedsBy: string) =>
+        `Alert: Exceeds available cash by ${exceedsBy} — will be marked as Paid Out of Pocket`,
+      paidOutOfPocketIndicator: "Paid Out of Pocket / شريك دافع من جيبه",
     },
     drawingForm: {
       partner: "Partner",
@@ -1075,6 +1116,20 @@ export const dict: Record<Lang, Dictionary> = {
       colReimb: "مستحقات السداد",
       colProfit: "حصة الربح",
       colOwed: "الإجمالي المستحق",
+      remainingUncollected: "المتبقي غير المحصل من العميل",
+      totalCustodyHeld: "السيولة النقدية في العهدة حاليًا",
+      cashHoldersTitle: "أمناء العهدة الحاليين للمشروع",
+      cashHoldersDesc: "الشركاء الذين في حوزتهم كاش عهدة متبقي لهذا المشروع.",
+      colInflow: "وارد العهدة المستلم",
+      colOutflow: "المصروف من العهدة",
+      colNetCustody: "العهدة الصافية الحالية",
+      netCustodyBreakdownTitle: (name: string) => `العهدة الصافية الحالية لمشروع ${name}`,
+      holdingCash: "يمسك عهدة كاش",
+      noCustody: "لا توجد عهدة",
+      outOfPocketAlert: "Paid Out of Pocket / شريك دافع من جيبه",
+      outOfPocketDesc: "دُفع هذا المصروف من جيب الشريك الخاص لأنه تجاوز العهدة المتاحة للمشروع.",
+      deductedFromCustodyBadge: "عهدة مشروع",
+      outOfPocketBadge: "من الجيب",
       snapshotTitle: "لقطة حصص المشروع",
       snapshotDesc: "سجل تاريخي ثابت — التعديل يؤثر على هذا المشروع فقط.",
       saveSplits: "حفظ حصص المشروع",
@@ -1087,13 +1142,13 @@ export const dict: Record<Lang, Dictionary> = {
       colReceivedBy: "استلمها",
       colAmount: "المبلغ",
       noPayments: "لا توجد دفعات مسجلة بعد.",
-      logExpense: "تسجيل مصروف مدفوع مقدمًا",
-      logExpenseDesc: "مدفوع من مال الشريك الخاص.",
-      howTitle: "كيف يعمل السداد",
-      how1: "1. الشركاء يدفعون تكاليف المشروع (استضافة، دومين…) مقدمًا من مالهم الخاص ← يُسجَّل كل مصروف كـ",
-      how2pre: "2. العميل يدفع العقد فقط (مش بنود المصاريف) ← اضغط",
-      howMark: "تعليم كمُسدَّد",
-      how2post: "لتسوية مستحقات ذلك الشريك أولًا من الفلوس المتحصلة.",
+      logExpense: "تسجيل مصروف مشروع",
+      logExpenseDesc: "سداد من عهدة كاش المشروع أو دفع من الجيب.",
+      howTitle: "كيف يعمل السداد والعهدة",
+      how1: "1. الشركاء الذين يستلمون دفعات العميل يحملون كاش العهدة ← أي مصروف يُسجل بـ «خصم من عهدة مشروع» يُخصم مباشرة من عهدتهم.",
+      how2pre: "2. المصروفات التي تتجاوز العهدة أو يدفعها الشريك من ماله الخاص تُسجل كـ",
+      howMark: "شريك دافع من جيبه",
+      how2post: "وتُرد له عند وصول دفعات جديدة من العميل.",
       how3: "3. المتبقي من فلوس العقد بعد كل تكاليف المشروع (الوارد − المصروفات) يتوزع حسب النسبة اللقطة أعلاه.",
       expensesTitle: (n) => `المصروفات التشغيلية (${n})`,
       colDesc: "الوصف",
@@ -1140,6 +1195,13 @@ export const dict: Record<Lang, Dictionary> = {
       expenseDate: "تاريخ المصروف",
       logging: "جارٍ التسجيل…",
       log: "تسجيل المصروف",
+      deductFromCustody: "خصم من عهدة مشروع",
+      deductFromCustodyHint: "يخصم مباشرة من رصيد عهدة الشريك الممسوكة للمشروع.",
+      availableCustody: (amount: string) => `العهدة المتاحة للشريك: ${amount}`,
+      noCustodyAvailable: "لا توجد عهدة كاش متاحة لهذا الشريك",
+      exceedsCustodyAlert: (exceedsBy: string) =>
+        `تنبيه: المبلغ يتجاوز العهدة المتاحة بـ ${exceedsBy} — سيُسجل كـ (شريك دافع من جيبه)`,
+      paidOutOfPocketIndicator: "شريك دافع من جيبه / Paid Out of Pocket",
     },
     drawingForm: {
       partner: "الشريك",

@@ -49,7 +49,7 @@ async function counts(db: PrismaClient) {
       db.project.count(),
       db.projectPartner.count(),
       db.clientPayment.count(),
-      db.projectExpense.count(),
+      db.expense.count(),
       db.partnerDrawing.count(),
       db.companyExpense.count(),
       db.companyExpensePayment.count(),

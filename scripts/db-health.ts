@@ -20,7 +20,7 @@ async function main() {
       db.partner.count(),
       db.project.count(),
       db.clientPayment.count(),
-      db.projectExpense.count(),
+      db.expense.count(),
       db.partnerDrawing.count(),
     ]);
   console.log("✓ Table counts:", {

@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       },
       expenses: {
         create: initialExpenses.map((e) => ({
-          paidByPartnerId:
+          paidById:
             e.paidByPartnerId === CLIENT_PAYER ? null : e.paidByPartnerId,
           amount: e.amount,
           description: e.title,

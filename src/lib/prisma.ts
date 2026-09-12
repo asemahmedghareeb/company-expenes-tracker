@@ -22,6 +22,16 @@ export const prisma =
       process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 
+// Backwards-compatibility alias for legacy code referring to projectExpense
+if (!(prisma as unknown as { projectExpense?: unknown }).projectExpense) {
+  Object.defineProperty(prisma, "projectExpense", {
+    get() {
+      return (prisma as unknown as { expense: unknown }).expense;
+    },
+    configurable: true,
+  });
+}
+
 // Always cache — including production. Gating this behind
 // `NODE_ENV !== "production"` is the classic serverless connection leak.
 globalForPrisma.prisma = prisma;

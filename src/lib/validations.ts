@@ -162,15 +162,39 @@ export const clientPaymentSchema = z.object({
 
 export type ClientPaymentInput = z.infer<typeof clientPaymentSchema>;
 
-/* ---------------------------- Project expense ------------------------- */
+/* ---------------------------- Expense schemas ------------------------- */
 
-export const projectExpenseSchema = z.object({
-  projectId: cuid,
-  paidByPartnerId: cuid,
-  amount: moneyAmount,
-  description: z.string().trim().min(1, "Description is required").max(500),
-  expenseDate: z.coerce.date().default(() => new Date()),
-});
+export const expenseSchema = z
+  .object({
+    projectId: cuid.optional().or(z.literal("")).nullable(),
+    paidById: cuid.optional(),
+    paidByPartnerId: cuid.optional(),
+    amount: moneyAmount,
+    description: z.string().trim().min(1, "Description is required").max(500),
+    expenseDate: z.coerce.date().default(() => new Date()),
+    deductFromCustody: z.boolean().default(false),
+  })
+  .refine((data) => Boolean(data.paidById || data.paidByPartnerId), {
+    message: "Paying partner is required",
+    path: ["paidById"],
+  });
+
+export type ExpenseInput = z.infer<typeof expenseSchema>;
+
+export const projectExpenseSchema = z
+  .object({
+    projectId: cuid,
+    paidById: cuid.optional(),
+    paidByPartnerId: cuid.optional(),
+    amount: moneyAmount,
+    description: z.string().trim().min(1, "Description is required").max(500),
+    expenseDate: z.coerce.date().default(() => new Date()),
+    deductFromCustody: z.boolean().default(false),
+  })
+  .refine((data) => Boolean(data.paidById || data.paidByPartnerId), {
+    message: "Paying partner is required",
+    path: ["paidById"],
+  });
 
 export type ProjectExpenseInput = z.infer<typeof projectExpenseSchema>;
 

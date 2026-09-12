@@ -77,7 +77,7 @@ export async function createProject(
         // CLIENT-covered rows store NULL payer (info only, excluded from books).
         expenses: {
           create: initialExpenses.map((e) => ({
-            paidByPartnerId:
+            paidById:
               e.paidByPartnerId === CLIENT_PAYER ? null : e.paidByPartnerId,
             amount: e.amount,
             description: e.title,

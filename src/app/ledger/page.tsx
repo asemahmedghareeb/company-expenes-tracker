@@ -149,7 +149,7 @@ export default async function LedgerPage() {
               <TableBody>
                 {pendingExpenses.slice(0, 10).map((e) => (
                   <TableRow key={e.id}>
-                    <TableCell>{e.project.name}</TableCell>
+                    <TableCell>{e.project?.name ?? "—"}</TableCell>
                     <TableCell>{e.paidBy?.name ?? "—"}</TableCell>
                     <TableCell className="text-end">
                       {formatEGP(Number(e.amount), lang)}

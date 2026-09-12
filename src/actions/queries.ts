@@ -4,11 +4,13 @@ import { prisma as db } from "@/lib/prisma";
 import {
   getAllPartnerLedgers,
   getFirmOverview,
+  getProjectCustodyBreakdown,
   getProjectFinancials,
   getProjectSettlementPlan,
   toNumber,
   type LedgerDrawing,
   type LedgerProject,
+  type ProjectCustodySummary,
 } from "@/lib/ledger";
 
 /** Lightweight list for selects / tables. */
@@ -57,6 +59,7 @@ export async function getProjectDetail(id: string) {
           amount: true,
           milestoneLabel: true,
           paidAt: true,
+          receivedByPartnerId: true,
           receivedBy: { select: { id: true, name: true } },
         },
       },
@@ -67,8 +70,9 @@ export async function getProjectDetail(id: string) {
           amount: true,
           description: true,
           expenseDate: true,
-          paidByPartnerId: true,
+          paidById: true,
           isReimbursed: true,
+          deductFromCustody: true,
           paidBy: { select: { id: true, name: true } },
         },
       },
@@ -89,8 +93,9 @@ export async function getProjectDetail(id: string) {
     })),
     expenses: project.expenses.map((e) => ({
       amount: toNumber(e.amount),
-      paidByPartnerId: e.paidByPartnerId,
+      paidByPartnerId: e.paidById,
       isReimbursed: e.isReimbursed,
+      deductFromCustody: e.deductFromCustody,
     })),
   };
 
@@ -103,7 +108,27 @@ export async function getProjectDetail(id: string) {
     toNumber(project.contractValue),
   );
 
-  return { project, financials, settlement };
+  const custody: ProjectCustodySummary = getProjectCustodyBreakdown(
+    {
+      id: project.id,
+      contractValue: toNumber(project.contractValue),
+      clientPayments: project.clientPayments.map((p) => ({
+        amount: toNumber(p.amount),
+        receivedByPartnerId: p.receivedByPartnerId,
+      })),
+      expenses: project.expenses.map((e) => ({
+        amount: toNumber(e.amount),
+        paidById: e.paidById,
+        deductFromCustody: e.deductFromCustody,
+      })),
+    },
+    project.projectPartners.map((s) => ({
+      id: s.partnerId,
+      name: s.partner.name,
+    })),
+  );
+
+  return { project, financials, settlement, custody };
 }
 
 function toLedgerProject(p: {
@@ -114,8 +139,10 @@ function toLedgerProject(p: {
   clientPayments: { amount: unknown }[];
   expenses: {
     amount: unknown;
-    paidByPartnerId: string | null;
+    paidById?: string | null;
+    paidByPartnerId?: string | null;
     isReimbursed: boolean;
+    deductFromCustody?: boolean;
   }[];
 }): LedgerProject {
   return {
@@ -126,8 +153,9 @@ function toLedgerProject(p: {
     clientPayments: p.clientPayments.map((x) => ({ amount: toNumber(x.amount) })),
     expenses: p.expenses.map((e) => ({
       amount: toNumber(e.amount),
-      paidByPartnerId: e.paidByPartnerId,
+      paidByPartnerId: e.paidById || e.paidByPartnerId || null,
       isReimbursed: e.isReimbursed,
+      deductFromCustody: e.deductFromCustody,
     })),
   };
 }
@@ -174,8 +202,9 @@ export async function getDashboardData(range?: {
                 id: true,
                 description: true,
                 amount: true,
-                paidByPartnerId: true,
+                paidById: true,
                 isReimbursed: true,
+                deductFromCustody: true,
                 expenseDate: true,
               },
             }
@@ -184,8 +213,9 @@ export async function getDashboardData(range?: {
                 id: true,
                 description: true,
                 amount: true,
-                paidByPartnerId: true,
+                paidById: true,
                 isReimbursed: true,
+                deductFromCustody: true,
                 expenseDate: true,
               },
             },
@@ -314,14 +344,14 @@ export async function getDashboardData(range?: {
   const projectExpenses = projectsRaw
     .flatMap((p) =>
       (p.expenses ?? [])
-        .filter((e) => e.paidByPartnerId)
+        .filter((e) => e.paidById)
         .map((e) => ({
           id: e.id,
           title: e.description,
           amount: toNumber(e.amount),
           projectName: p.name,
           projectId: p.id,
-          paidByName: (e.paidByPartnerId && partnerNameById[e.paidByPartnerId]) || "",
+          paidByName: (e.paidById && partnerNameById[e.paidById]) || "",
           isReimbursed: e.isReimbursed,
           expenseDate:
             e.expenseDate instanceof Date ? e.expenseDate.toISOString() : String(e.expenseDate),
@@ -442,12 +472,12 @@ export async function getSummaryData() {
       },
       orderBy: { expenseDate: "desc" },
     }),
-    db.projectExpense.findMany({
+    db.expense.findMany({
       select: {
         amount: true,
         description: true,
         expenseDate: true,
-        paidByPartnerId: true,
+        paidById: true,
         project: { select: { id: true, name: true } },
       },
       orderBy: { expenseDate: "desc" },
@@ -457,7 +487,17 @@ export async function getSummaryData() {
       select: { id: true, name: true, defaultSharePercentage: true, isActive: true },
     }),
   ]);
-  return { company, projectCosts, partners };
+  return {
+    company,
+    projectCosts: projectCosts.map((c) => ({
+      amount: c.amount,
+      description: c.description,
+      expenseDate: c.expenseDate,
+      paidByPartnerId: c.paidById,
+      project: c.project,
+    })),
+    partners,
+  };
 }
 
 /** Partner ledger page data (ledgers + drawings detail). */
@@ -477,9 +517,13 @@ export async function getLedgerData() {
       orderBy: { drawnAt: "desc" },
       take: 100,
     }),
-    db.projectExpense.findMany({
-      // Client-covered rows owe nobody — never appear as pending.
-      where: { isReimbursed: false, paidByPartnerId: { not: null } },
+    db.expense.findMany({
+      // Client-covered and custody-deducted rows owe nobody — never appear as pending.
+      where: {
+        isReimbursed: false,
+        deductFromCustody: false,
+        paidById: { not: null },
+      },
       select: {
         id: true,
         amount: true,

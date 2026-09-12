@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { AlertCircle, Wallet } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -15,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDate, formatEGP, formatPct } from "@/lib/format";
+import { cn, formatDate, formatEGP, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getPartners, getProjectDetail } from "@/actions/queries";
 import {
@@ -42,12 +43,16 @@ export default async function ProjectDetailPage({
     getPartners().catch(() => []),
   ]);
   if (!detail) notFound();
-  const { project, financials, settlement } = detail;
+  const { project, financials, settlement, custody } = detail;
 
   const partnerName = (pid: string) =>
     partners.find((p) => p.id === pid)?.name ??
     project.projectPartners.find((s) => s.partnerId === pid)?.partner.name ??
     pid.slice(0, 8);
+
+  const outOfPocketCount = project.expenses.filter(
+    (e) => !e.deductFromCustody && e.paidBy && !e.isReimbursed,
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -104,11 +109,12 @@ export default async function ProjectDetailPage({
         </Card>
       </div>
 
-      {/* Financial summary */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Financial summary metrics */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {[
           { label: td.contractValue, value: Number(project.contractValue) },
           { label: td.inflow, value: financials.totalInflow },
+          { label: td.remainingUncollected, value: custody.remainingUncollected },
           { label: td.expenses, value: financials.totalExpenses },
           { label: td.netProfit, value: financials.netProfit },
         ].map((s) => (
@@ -120,6 +126,7 @@ export default async function ProjectDetailPage({
           </Card>
         ))}
       </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
@@ -131,13 +138,102 @@ export default async function ProjectDetailPage({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>{td.cashAfter}</CardDescription>
-            <CardTitle className="text-xl">
-              {formatEGP(financials.cashAfterReimbursements, lang)}
+            <CardDescription>{td.totalCustodyHeld}</CardDescription>
+            <CardTitle className="text-xl text-emerald-600 dark:text-emerald-400">
+              {formatEGP(custody.totalCustodyHeld, lang)}
             </CardTitle>
           </CardHeader>
         </Card>
       </div>
+
+      {/* Current Cash Holders Table (أمناء العهدة الحاليين للمشروع) */}
+      <Card className="border-primary/20 shadow-sm">
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-primary" />
+                {td.cashHoldersTitle}
+              </CardTitle>
+              <CardDescription>{td.cashHoldersDesc}</CardDescription>
+            </div>
+            <Badge variant="outline" className="font-mono text-sm px-3 py-1">
+              {td.totalCustodyHeld}: {formatEGP(custody.totalCustodyHeld, lang)}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{td.colPartner}</TableHead>
+                <TableHead className="text-end">{td.colInflow}</TableHead>
+                <TableHead className="text-end">{td.colOutflow}</TableHead>
+                <TableHead className="text-end">{td.colNetCustody}</TableHead>
+                <TableHead className="text-center">{td.colStatus}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {custody.partners.map((row) => (
+                <TableRow key={row.partnerId}>
+                  <TableCell className="font-medium">
+                    {row.partnerName}
+                  </TableCell>
+                  <TableCell dir="ltr" className="text-end font-mono text-muted-foreground">
+                    {formatEGP(row.inflow, lang)}
+                  </TableCell>
+                  <TableCell dir="ltr" className="text-end font-mono text-muted-foreground">
+                    {formatEGP(row.outflow, lang)}
+                  </TableCell>
+                  <TableCell
+                    dir="ltr"
+                    className={cn(
+                      "text-end font-mono font-semibold",
+                      row.netCustody > 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {formatEGP(row.netCustody, lang)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {row.isCashHolder ? (
+                      <Badge variant="success" className="gap-1">
+                        <Wallet className="h-3 w-3" />
+                        {td.holdingCash}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">{td.noCustody}</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {custody.partners.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    {td.noCustody}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Out-of-pocket Alert Indicator */}
+      {outOfPocketCount > 0 && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-200 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="space-y-1">
+            <div className="font-semibold text-sm">
+              {td.outOfPocketAlert} ({outOfPocketCount})
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {td.outOfPocketDesc}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Settlement plan */}
       <Card>
@@ -277,6 +373,8 @@ export default async function ProjectDetailPage({
               projectId={project.id}
               lang={lang}
               partners={partners.map((p) => ({ id: p.id, name: p.name }))}
+              custodyBreakdown={custody.partners}
+              projectName={project.name}
             />
           </CardContent>
         </Card>
@@ -333,14 +431,25 @@ export default async function ProjectDetailPage({
                   <TableCell>
                     {!e.paidBy ? (
                       <Badge variant="secondary">{td.clientPaid}</Badge>
-                    ) : (
-                      <Badge variant={e.isReimbursed ? "success" : "warning"}>
-                        {e.isReimbursed ? td.reimbursed : td.pending}
+                    ) : e.deductFromCustody ? (
+                      <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
+                        <Wallet className="h-3 w-3" />
+                        {td.deductedFromCustodyBadge}
                       </Badge>
+                    ) : (
+                      <div className="flex flex-col gap-1 items-start">
+                        <Badge variant={e.isReimbursed ? "success" : "warning"}>
+                          {e.isReimbursed ? td.reimbursed : td.pending}
+                        </Badge>
+                        <Badge variant="outline" className="border-amber-500/50 text-amber-700 dark:text-amber-300 text-[10px] gap-1">
+                          <AlertCircle className="h-2.5 w-2.5" />
+                          {td.outOfPocketBadge}
+                        </Badge>
+                      </div>
                     )}
                   </TableCell>
                   <TableCell className="text-end">
-                    {!e.paidBy ? (
+                    {!e.paidBy || e.deductFromCustody ? (
                       "—"
                     ) : (
                       <ReimburseButton expenseId={e.id} isReimbursed={e.isReimbursed} lang={lang} />

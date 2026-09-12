@@ -105,7 +105,7 @@ export async function deletePartner(
   try {
     const [splits, expenses, drawings] = await Promise.all([
       db.projectPartner.count({ where: { partnerId: id } }),
-      db.projectExpense.count({ where: { paidByPartnerId: id } }),
+      db.expense.count({ where: { paidById: id } }),
       db.partnerDrawing.count({ where: { partnerId: id } }),
     ]);
     if (splits + expenses + drawings > 0) {

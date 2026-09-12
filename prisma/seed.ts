@@ -11,7 +11,7 @@ async function main() {
   await db.companyExpense.deleteMany();
   await db.companyFixedCost.deleteMany();
   await db.partnerDrawing.deleteMany();
-  await db.projectExpense.deleteMany();
+  await db.expense.deleteMany();
   await db.clientPayment.deleteMany();
   await db.projectPartner.deleteMany();
   await db.project.deleteMany();

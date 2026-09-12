@@ -34,16 +34,18 @@ export async function POST(req: Request) {
       const parsed = projectExpenseSchema.safeParse(body);
       if (!parsed.success)
         return NextResponse.json({ error: "Invalid expense." }, { status: 400 });
-      const e = await db.projectExpense.create({
+      const payer = parsed.data.paidById || parsed.data.paidByPartnerId;
+      const clientCovered = payer === CLIENT_PAYER;
+      const e = await db.expense.create({
         data: {
           projectId: parsed.data.projectId,
-          paidByPartnerId:
-            parsed.data.paidByPartnerId === CLIENT_PAYER
-              ? null
-              : parsed.data.paidByPartnerId,
+          paidById: clientCovered ? null : payer,
           amount: parsed.data.amount,
           description: parsed.data.description,
           expenseDate: parsed.data.expenseDate,
+          deductFromCustody: parsed.data.deductFromCustody,
+          isReimbursed: parsed.data.deductFromCustody,
+          reimbursedAt: parsed.data.deductFromCustody ? new Date() : null,
         },
       });
       return NextResponse.json(e, { status: 201 });
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
       const parsed = markReimbursedSchema.safeParse(body);
       if (!parsed.success)
         return NextResponse.json({ error: "Invalid payload." }, { status: 400 });
-      const e = await db.projectExpense.update({
+      const e = await db.expense.update({
         where: { id: parsed.data.expenseId },
         data: {
           isReimbursed: parsed.data.isReimbursed,

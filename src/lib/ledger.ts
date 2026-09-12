@@ -40,6 +40,26 @@ export interface LedgerExpense {
   /** Null = covered directly by the client (firm never owed it). */
   paidByPartnerId: string | null;
   isReimbursed: boolean;
+  deductFromCustody?: boolean;
+}
+
+export interface PartnerProjectCustody {
+  partnerId: string;
+  partnerName: string;
+  inflow: number;
+  outflow: number;
+  netCustody: number;
+  isCashHolder: boolean;
+}
+
+export interface ProjectCustodySummary {
+  projectId: string;
+  contractValue: number;
+  totalPaidSoFar: number;
+  remainingUncollected: number;
+  totalCustodyHeld: number;
+  cashHolders: PartnerProjectCustody[];
+  partners: PartnerProjectCustody[];
 }
 
 export interface LedgerDrawing {
@@ -112,10 +132,10 @@ export function getProjectFinancials(
   const firmExpenses = project.expenses.filter((e) => e.paidByPartnerId);
   const totalExpenses = round2(sum(firmExpenses.map((e) => e.amount)));
   const reimbursedTotal = round2(
-    sum(firmExpenses.filter((e) => e.isReimbursed).map((e) => e.amount)),
+    sum(firmExpenses.filter((e) => e.isReimbursed || e.deductFromCustody).map((e) => e.amount)),
   );
   const outstandingReimbursements = round2(
-    sum(firmExpenses.filter((e) => !e.isReimbursed).map((e) => e.amount)),
+    sum(firmExpenses.filter((e) => !e.isReimbursed && !e.deductFromCustody).map((e) => e.amount)),
   );
   const clientCoveredTotal = round2(
     sum(project.expenses.filter((e) => !e.paidByPartnerId).map((e) => e.amount)),
@@ -180,10 +200,10 @@ export function getProjectSettlementPlan(
 ): ProjectSettlementPlan {
   const financials = getProjectFinancials(project, contractValue);
 
-  // 1 — reimbursements due, grouped by payer (client-covered rows owe nobody)
+  // 1 — reimbursements due, grouped by payer (client-covered rows owe nobody; custody deductions already settled)
   const owed = new Map<string, number>();
   for (const e of project.expenses) {
-    if (!e.isReimbursed && e.paidByPartnerId) {
+    if (!e.isReimbursed && !e.deductFromCustody && e.paidByPartnerId) {
       owed.set(
         e.paidByPartnerId,
         round2((owed.get(e.paidByPartnerId) ?? 0) + e.amount),
@@ -454,7 +474,12 @@ export function getPartnerLedger(
     const pending = round2(
       sum(
         project.expenses
-          .filter((e) => e.paidByPartnerId === partner.id && !e.isReimbursed)
+          .filter(
+            (e) =>
+              e.paidByPartnerId === partner.id &&
+              !e.isReimbursed &&
+              !e.deductFromCustody,
+          )
           .map((e) => e.amount),
       ),
     );
@@ -858,5 +883,91 @@ export function getMonthlySummary(
     details,
     clientCoveredTotal,
     clientCoveredLines,
+  };
+}
+
+/* -------------------- Project-Scoped Custody Engine -------------------- */
+
+/**
+ * Calculate Project-Scoped Partner Custody breakdown:
+ * - Partner Project Inflow = Sum of ClientPayments received by Partner X for this project.
+ * - Partner Project Outflow = Sum of Project Expenses paid by Partner X for this project (from custody).
+ * - Partner Net Project Custody = (Partner Project Inflow) - (Partner Project Outflow).
+ */
+export function getProjectCustodyBreakdown(
+  project: {
+    id: string;
+    contractValue?: number;
+    clientPayments: { amount: number; receivedByPartnerId: string }[];
+    expenses: {
+      amount: number;
+      paidById?: string | null;
+      paidByPartnerId?: string | null;
+      deductFromCustody?: boolean;
+    }[];
+  },
+  partners: { id: string; name: string }[],
+): ProjectCustodySummary {
+  const contractVal = round2(project.contractValue ?? 0);
+  const totalPaidSoFar = round2(sum(project.clientPayments.map((p) => p.amount)));
+  const remainingUncollected = round2(Math.max(0, contractVal - totalPaidSoFar));
+
+  const partnerMap = new Map(partners.map((p) => [p.id, p.name]));
+  const allPartnerIds = new Set<string>([
+    ...partners.map((p) => p.id),
+    ...project.clientPayments.map((p) => p.receivedByPartnerId),
+    ...project.expenses
+      .map((e) => e.paidById || e.paidByPartnerId)
+      .filter(Boolean) as string[],
+  ]);
+
+  const partnerRows: PartnerProjectCustody[] = [];
+  for (const pid of allPartnerIds) {
+    const partnerName = partnerMap.get(pid) ?? pid.slice(0, 8);
+    const inflow = round2(
+      sum(
+        project.clientPayments
+          .filter((p) => p.receivedByPartnerId === pid)
+          .map((p) => p.amount),
+      ),
+    );
+    const outflow = round2(
+      sum(
+        project.expenses
+          .filter(
+            (e) =>
+              (e.paidById === pid || e.paidByPartnerId === pid) &&
+              Boolean(e.deductFromCustody),
+          )
+          .map((e) => e.amount),
+      ),
+    );
+    const netCustody = round2(inflow - outflow);
+    if (inflow > 0 || outflow > 0 || partners.some((p) => p.id === pid)) {
+      partnerRows.push({
+        partnerId: pid,
+        partnerName,
+        inflow,
+        outflow,
+        netCustody,
+        isCashHolder: netCustody > 0.005,
+      });
+    }
+  }
+
+  // Primary cash holders sorted by netCustody desc
+  partnerRows.sort((a, b) => b.netCustody - a.netCustody);
+
+  const cashHolders = partnerRows.filter((r) => r.isCashHolder);
+  const totalCustodyHeld = round2(sum(cashHolders.map((r) => r.netCustody)));
+
+  return {
+    projectId: project.id,
+    contractValue: contractVal,
+    totalPaidSoFar,
+    remainingUncollected,
+    totalCustodyHeld,
+    cashHolders,
+    partners: partnerRows,
   };
 }
