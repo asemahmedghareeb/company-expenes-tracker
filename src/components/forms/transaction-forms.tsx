@@ -1092,14 +1092,30 @@ export function AddProjectExpenseDialog({
                 const fd = new FormData(e.currentTarget);
                 const description = String(fd.get("description") ?? "").trim();
                 const amount = Number(fd.get("amount") ?? 0);
-                const payer = String(fd.get("payer") ?? CLIENT_PAYER);
+                const rawPayer = String(fd.get("payer") ?? CLIENT_PAYER);
                 const expenseDate = fd.get("expenseDate")
                   ? new Date(String(fd.get("expenseDate")))
                   : new Date();
 
                 if (!description || amount <= 0) return;
 
-                const isClientCovered = payer === CLIENT_PAYER;
+                let payerId: string | null = null;
+                let deductFromCustody = true;
+
+                if (rawPayer.startsWith("CUSTODY_")) {
+                  payerId = rawPayer.replace("CUSTODY_", "");
+                  deductFromCustody = true;
+                } else if (rawPayer.startsWith("OUTOFPOCKET_")) {
+                  payerId = rawPayer.replace("OUTOFPOCKET_", "");
+                  deductFromCustody = false;
+                } else if (rawPayer === CLIENT_PAYER) {
+                  payerId = CLIENT_PAYER;
+                  deductFromCustody = true;
+                } else {
+                  payerId = rawPayer;
+                  deductFromCustody = false;
+                }
+
                 setError(null);
                 start(async () => {
                   const res = await createExpense({
@@ -1107,8 +1123,8 @@ export function AddProjectExpenseDialog({
                     description,
                     amount,
                     expenseDate,
-                    paidById: isClientCovered ? CLIENT_PAYER : payer,
-                    deductFromCustody: isClientCovered,
+                    paidById: payerId,
+                    deductFromCustody,
                   });
                   if (!res.ok) {
                     setError(res.error);
@@ -1159,19 +1175,32 @@ export function AddProjectExpenseDialog({
                   defaultValue={CLIENT_PAYER}
                   className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm"
                 >
-                  <option value={CLIENT_PAYER}>
-                    {isAr ? "خصم من أموال / عهدة العقد (الافتراضي)" : "From Contract / Project Funds (Default)"}
-                  </option>
-                  {partners.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {isAr ? `شريك دافع من جيبه: ${p.name}` : `Paid Out of Pocket by: ${p.name}`}
+                  <optgroup label={isAr ? "خصم من عهدة العقد / أموال المشروع" : "Deduct from Contract Custody"}>
+                    <option value={CLIENT_PAYER}>
+                      {isAr
+                        ? "خصم عام من عهدة العقد (تُخصم تلقائياً من أمين العهدة)"
+                        : "General Contract Custody (Auto-deducted from cash holder)"}
                     </option>
-                  ))}
+                    {partners.map((p) => (
+                      <option key={`custody-${p.id}`} value={`CUSTODY_${p.id}`}>
+                        {isAr
+                          ? `خصم من عهدة العقد (الموجودة مع: ${p.name})`
+                          : `Deduct from Custody (Held by: ${p.name})`}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label={isAr ? "دفع من الجيب (مستحق للشريك بانتظار استرداده)" : "Paid Out of Pocket"}>
+                    {partners.map((p) => (
+                      <option key={`oop-${p.id}`} value={`OUTOFPOCKET_${p.id}`}>
+                        {isAr ? `شريك دافع من جيبه: ${p.name}` : `Paid Out of Pocket by: ${p.name}`}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
                 <p className="text-[11px] text-muted-foreground">
                   {isAr
-                    ? "«خصم من أموال العقد» تسدد المصروف مباشرة من فلوس المشروع. اختيار شريك يسجل المصروف كمستحق للشريك في رصيده."
-                    : "Contract funds deduct directly from project cash. Selecting a partner records an out-of-pocket claim."}
+                    ? "«خصم من عهدة العقد» تخصم المصروف مباشرة من رصيد الكاش المحصل وتخفض عهدة الشريك المستلم. «دافع من جيبه» تسجل المبلغ كمستحق للشريك."
+                    : "Contract custody deductions reduce the cash holder's balance. Out of pocket records an unpaid claim."}
                 </p>
               </div>
 
@@ -1228,10 +1257,18 @@ export function EditProjectExpenseDialog({
     ? new Date(expense.expenseDate).toISOString().slice(0, 10)
     : new Date().toISOString().slice(0, 10);
 
-  const defaultPayer =
-    expense.deductFromCustody && !expense.paidById
-      ? CLIENT_PAYER
-      : expense.paidById ?? CLIENT_PAYER;
+  let defaultPayer = CLIENT_PAYER;
+  if (expense.deductFromCustody) {
+    if (expense.paidById) {
+      defaultPayer = `CUSTODY_${expense.paidById}`;
+    } else {
+      defaultPayer = CLIENT_PAYER;
+    }
+  } else {
+    if (expense.paidById) {
+      defaultPayer = `OUTOFPOCKET_${expense.paidById}`;
+    }
+  }
 
   return (
     <>
@@ -1266,14 +1303,30 @@ export function EditProjectExpenseDialog({
                 const fd = new FormData(e.currentTarget);
                 const description = String(fd.get("description") ?? "").trim();
                 const amount = Number(fd.get("amount") ?? 0);
-                const payer = String(fd.get("payer") ?? CLIENT_PAYER);
+                const rawPayer = String(fd.get("payer") ?? CLIENT_PAYER);
                 const expenseDate = fd.get("expenseDate")
                   ? new Date(String(fd.get("expenseDate")))
                   : new Date();
 
                 if (!description || amount <= 0) return;
 
-                const isClientCovered = payer === CLIENT_PAYER;
+                let payerId: string | null = null;
+                let deductFromCustody = true;
+
+                if (rawPayer.startsWith("CUSTODY_")) {
+                  payerId = rawPayer.replace("CUSTODY_", "");
+                  deductFromCustody = true;
+                } else if (rawPayer.startsWith("OUTOFPOCKET_")) {
+                  payerId = rawPayer.replace("OUTOFPOCKET_", "");
+                  deductFromCustody = false;
+                } else if (rawPayer === CLIENT_PAYER) {
+                  payerId = null;
+                  deductFromCustody = true;
+                } else {
+                  payerId = rawPayer;
+                  deductFromCustody = false;
+                }
+
                 setError(null);
                 start(async () => {
                   const res = await updateProjectExpense(expense.id, {
@@ -1281,8 +1334,8 @@ export function EditProjectExpenseDialog({
                     description,
                     amount,
                     expenseDate,
-                    paidById: isClientCovered ? null : payer,
-                    deductFromCustody: isClientCovered,
+                    paidById: payerId,
+                    deductFromCustody,
                   });
                   if (!res.ok) {
                     setError(res.error);
@@ -1333,16 +1386,27 @@ export function EditProjectExpenseDialog({
                   defaultValue={defaultPayer}
                   className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm"
                 >
-                  <option value={CLIENT_PAYER}>
-                    {isAr
-                      ? "خصم من أموال / عهدة العقد (الافتراضي)"
-                      : "From Contract / Project Funds (Default)"}
-                  </option>
-                  {partners.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {isAr ? `شريك دافع من جيبه: ${p.name}` : `Paid Out of Pocket by: ${p.name}`}
+                  <optgroup label={isAr ? "خصم من عهدة العقد / أموال المشروع" : "Deduct from Contract Custody"}>
+                    <option value={CLIENT_PAYER}>
+                      {isAr
+                        ? "خصم عام من عهدة العقد (تُخصم تلقائياً من أمين العهدة)"
+                        : "General Contract Custody (Auto-deducted from cash holder)"}
                     </option>
-                  ))}
+                    {partners.map((p) => (
+                      <option key={`custody-${p.id}`} value={`CUSTODY_${p.id}`}>
+                        {isAr
+                          ? `خصم من عهدة العقد (الموجودة مع: ${p.name})`
+                          : `Deduct from Custody (Held by: ${p.name})`}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label={isAr ? "دفع من الجيب (مستحق للشريك بانتظار استرداده)" : "Paid Out of Pocket"}>
+                    {partners.map((p) => (
+                      <option key={`oop-${p.id}`} value={`OUTOFPOCKET_${p.id}`}>
+                        {isAr ? `شريك دافع من جيبه: ${p.name}` : `Paid Out of Pocket by: ${p.name}`}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-[11px] text-muted-foreground space-y-1">
                   <p className="font-semibold text-foreground">

@@ -1033,6 +1033,43 @@ export function getProjectCustodyBreakdown(
   // Primary cash holders sorted by netCustody desc
   partnerRows.sort((a, b) => b.netCustody - a.netCustody);
 
+  // Allocate unassigned custody outflow (expenses paid directly from contract funds / client without a specific partner ID)
+  const unassignedCustodyOutflow = round2(
+    sum(
+      project.expenses
+        .filter(
+          (e) =>
+            Boolean(e.deductFromCustody) &&
+            !e.paidById &&
+            !e.paidByPartnerId,
+        )
+        .map((e) => e.amount),
+    ),
+  );
+
+  if (unassignedCustodyOutflow > 0) {
+    let remaining = unassignedCustodyOutflow;
+    for (const row of partnerRows) {
+      if (remaining <= 0) break;
+      if (row.netCustody > 0) {
+        const toDeduct = Math.min(row.netCustody, remaining);
+        row.outflow = round2(row.outflow + toDeduct);
+        row.netCustody = round2(row.inflow - row.outflow);
+        row.isCashHolder = row.netCustody > 0.005;
+        remaining = round2(remaining - toDeduct);
+      }
+    }
+
+    if (remaining > 0 && partnerRows.length > 0) {
+      partnerRows[0]!.outflow = round2(partnerRows[0]!.outflow + remaining);
+      partnerRows[0]!.netCustody = round2(partnerRows[0]!.inflow - partnerRows[0]!.outflow);
+      partnerRows[0]!.isCashHolder = partnerRows[0]!.netCustody > 0.005;
+    }
+
+    // Re-sort after allocating unassigned outflow
+    partnerRows.sort((a, b) => b.netCustody - a.netCustody);
+  }
+
   const cashHolders = partnerRows.filter((r) => r.isCashHolder);
   const totalCustodyHeld = round2(sum(cashHolders.map((r) => r.netCustody)));
 
