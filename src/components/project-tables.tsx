@@ -15,6 +15,7 @@ import { formatDate, formatEGP, type Lang } from "@/lib/format";
 import { dict } from "@/lib/dict";
 import { Pagination } from "@/components/ui/pagination";
 import {
+  DeleteClientPaymentButton,
   DeleteExpenseButton,
   ReimburseButton,
 } from "@/components/forms/transaction-forms";
@@ -31,9 +32,11 @@ export interface ClientPaymentRowData {
 
 export function PaginatedClientPaymentsTable({
   payments,
+  projectId,
   lang,
 }: {
   payments: ClientPaymentRowData[];
+  projectId: string;
   lang: Lang;
 }) {
   const td = dict[lang].projectDetail;
@@ -55,6 +58,7 @@ export function PaginatedClientPaymentsTable({
             <TableHead>{td.colMilestone}</TableHead>
             <TableHead>{td.colReceivedBy}</TableHead>
             <TableHead className="text-end">{td.colAmount}</TableHead>
+            <TableHead className="text-end">{td.colAction}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -66,11 +70,14 @@ export function PaginatedClientPaymentsTable({
               <TableCell className="text-end font-medium font-mono">
                 {formatEGP(p.amount, lang)}
               </TableCell>
+              <TableCell className="text-end">
+                <DeleteClientPaymentButton id={p.id} projectId={projectId} lang={lang} />
+              </TableCell>
             </TableRow>
           ))}
           {payments.length === 0 && (
             <TableRow>
-              <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+              <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
                 {td.noPayments}
               </TableCell>
             </TableRow>

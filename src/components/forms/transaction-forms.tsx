@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { SplitsEditor, type SplitRow } from "./splits-editor";
 import { deleteProject, updateProject, updateProjectSplits } from "@/actions/projects";
-import { recordClientPayment } from "@/actions/payments";
+import { recordClientPayment, deleteClientPayment } from "@/actions/payments";
 import {
   createExpense,
   deleteExpense,
@@ -937,6 +937,76 @@ export function DeleteExpenseButton({
         variant="ghost"
         title={lang === "ar" ? "حذف المصروف من المشروع" : "Delete project expense"}
         aria-label={lang === "ar" ? "حذف المصروف من المشروع" : "Delete project expense"}
+        onClick={() => setArmed(true)}
+        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <Button
+        size="sm"
+        variant="destructive"
+        className="h-7 text-xs px-2"
+        disabled={pending}
+        onClick={confirm}
+      >
+        {pending ? tp.deleting : tp.deleteConfirm}
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 text-xs px-2"
+        disabled={pending}
+        onClick={() => setArmed(false)}
+      >
+        {tp.cancel}
+      </Button>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+/* ---------------------------- Delete Client Payment ---------------------------- */
+
+export function DeleteClientPaymentButton({
+  id,
+  projectId,
+  lang,
+}: {
+  id: string;
+  projectId: string;
+  lang: Lang;
+}) {
+  const tp = dict[lang].partners;
+  const router = useRouter();
+  const [armed, setArmed] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function confirm() {
+    setError(null);
+    start(async () => {
+      const res = await deleteClientPayment(id, projectId);
+      if (!res.ok) {
+        setError(res.error);
+        setArmed(false);
+      } else {
+        router.refresh();
+      }
+    });
+  }
+
+  if (!armed) {
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        title={lang === "ar" ? "حذف/إلغاء الدفعة" : "Cancel/Delete payment"}
+        aria-label={lang === "ar" ? "حذف/إلغاء الدفعة" : "Cancel/Delete payment"}
         onClick={() => setArmed(true)}
         className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
       >

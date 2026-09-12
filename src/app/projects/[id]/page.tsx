@@ -363,6 +363,7 @@ export default async function ProjectDetailPage({
         </CardHeader>
         <CardContent>
           <PaginatedClientPaymentsTable
+            projectId={project.id}
             lang={lang}
             payments={project.clientPayments.map((p) => ({
               id: p.id,
