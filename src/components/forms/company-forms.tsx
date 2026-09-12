@@ -2,10 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Vault, CheckCircle2 } from "lucide-react";
+import { Trash2, Vault, CheckCircle2, Pencil, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   addCompanyExpenseWithPayments,
   addFixedCost,
@@ -19,10 +28,12 @@ import {
   revertCompanyExpenseVaultDisbursement,
   settleCompanyBill,
   settleCompanyRow,
+  updateCompanyExpense,
+  updateCompanyPayment,
 } from "@/actions/company";
 import { dict } from "@/lib/dict";
 import type { Lang } from "@/lib/format";
-import { formatEGP } from "@/lib/format";
+import { formatEGP, formatMonth } from "@/lib/format";
 import { formatShareInput, sanitizeNumericInput, splitMoney } from "@/lib/shares";
 
 /* --------------------------- New expense form --------------------------- */
@@ -49,6 +60,9 @@ export function CompanyExpenseForm({
   const [menuOpen, setMenuOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
+  const [billingMonth, setBillingMonth] = useState(
+    new Date().toISOString().slice(0, 7),
+  );
   // Vault allocation state
   const [vaultAmount, setVaultAmount] = useState("");
   const [vaultNotes, setVaultNotes] = useState("");
@@ -149,6 +163,7 @@ export function CompanyExpenseForm({
             expenseDate: fd.get("expenseDate")
               ? new Date(String(fd.get("expenseDate")))
               : new Date(),
+            billingMonth: billingMonth.trim() || undefined,
             vaultAmount: vaultNum,
             vaultNotes: vaultNotes.trim() || undefined,
             payments: active
@@ -165,6 +180,7 @@ export function CompanyExpenseForm({
             setVaultItemIds([]);
             setVaultAmount("");
             setVaultNotes("");
+            setBillingMonth(new Date().toISOString().slice(0, 7));
             setMenuOpen(false);
             setTitle("");
             setAmount("");
@@ -261,6 +277,49 @@ export function CompanyExpenseForm({
           <Label>{t.date}</Label>
           <Input name="expenseDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
         </div>
+      </div>
+
+      <div className="grid gap-1">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">
+            {lang === "ar" ? "شهر الاستحقاق / الدفعة تابعة لشهر" : "Billing Month"}
+          </Label>
+          <div className="flex items-center gap-1.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setBillingMonth(new Date().toISOString().slice(0, 7))}
+              className="text-[11px] text-primary hover:underline"
+            >
+              {lang === "ar" ? "الشهر الحالي" : "Current"}
+            </button>
+            <span className="text-muted-foreground">·</span>
+            <button
+              type="button"
+              onClick={() => {
+                const d = new Date();
+                d.setMonth(d.getMonth() + 1);
+                setBillingMonth(d.toISOString().slice(0, 7));
+              }}
+              className="text-[11px] text-primary hover:underline"
+            >
+              {lang === "ar" ? "الشهر القادم" : "Next"}
+            </button>
+          </div>
+        </div>
+        <Input
+          type="month"
+          value={billingMonth}
+          onChange={(e) => setBillingMonth(e.target.value)}
+          className="h-9 font-mono text-xs"
+        />
+        {billingMonth && (
+          <span className="text-[11px] text-muted-foreground">
+            {lang === "ar" ? "الدفعة مسجلة لشهر:" : "Linked to:"}{" "}
+            <strong className="text-foreground font-semibold">
+              {formatMonth(billingMonth, lang)}
+            </strong>
+          </span>
+        )}
       </div>
 
       {/* Who paid how much — prefilled live with each share, editable */}
@@ -1078,4 +1137,376 @@ export function RevertVaultExpenseButton({
     </button>
   );
 }
+
+/* ------------------- Edit Company Expense Dialog ------------------- */
+
+export function EditCompanyExpenseDialog({
+  expense,
+  lang,
+}: {
+  expense: {
+    id: string;
+    title: string;
+    amount: number;
+    notes?: string | null;
+    expenseDate: string | Date;
+    billingMonth?: string | null;
+    vaultAmount?: number;
+    vaultNotes?: string | null;
+    kind: string;
+  };
+  lang: Lang;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const [title, setTitle] = useState(expense.title);
+  const [amount, setAmount] = useState(String(expense.amount));
+  const [expenseDate, setExpenseDate] = useState(
+    new Date(expense.expenseDate).toISOString().slice(0, 10),
+  );
+  const [billingMonth, setBillingMonth] = useState(expense.billingMonth || "");
+  const [vaultAmount, setVaultAmount] = useState(
+    expense.vaultAmount ? String(expense.vaultAmount) : "",
+  );
+  const [vaultNotes, setVaultNotes] = useState(expense.vaultNotes || "");
+  const [notes, setNotes] = useState(expense.notes || "");
+  const [kind, setKind] = useState<"FIXED" | "VARIABLE">(
+    expense.kind === "FIXED" ? "FIXED" : "VARIABLE",
+  );
+
+  const bill = Number(amount) || 0;
+  const vaultNum = Math.min(bill, Math.max(0, Number(vaultAmount) || 0));
+  const directPaid = Math.max(0, bill - vaultNum);
+
+  function resetToOriginal() {
+    setTitle(expense.title);
+    setAmount(String(expense.amount));
+    setExpenseDate(new Date(expense.expenseDate).toISOString().slice(0, 10));
+    setBillingMonth(expense.billingMonth || "");
+    setVaultAmount(expense.vaultAmount ? String(expense.vaultAmount) : "");
+    setVaultNotes(expense.vaultNotes || "");
+    setNotes(expense.notes || "");
+    setKind(expense.kind === "FIXED" ? "FIXED" : "VARIABLE");
+    setError(null);
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          resetToOriginal();
+          setOpen(true);
+        }}
+        className="h-8 gap-1.5 text-xs"
+      >
+        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+        <span>{lang === "ar" ? "تعديل الدفعة" : "Edit Bill"}</span>
+      </Button>
+
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          if (!v) resetToOriginal();
+          setOpen(v);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-4 w-4 text-primary" />
+              <span>{lang === "ar" ? "تعديل تفاصيل الدفعة" : "Edit Bill Details"}</span>
+            </DialogTitle>
+            <DialogDescription>
+              {lang === "ar"
+                ? "تعديل اسم المصروف، إجمالي المبلغ، شهر الاستحقاق، وتخصيص الخزنة."
+                : "Update bill title, amount, billing month, and vault allocation."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setError(null);
+              start(async () => {
+                const res = await updateCompanyExpense({
+                  id: expense.id,
+                  title: title.trim(),
+                  amount: bill,
+                  expenseDate: new Date(expenseDate),
+                  billingMonth: billingMonth.trim() || null,
+                  vaultAmount: vaultNum,
+                  vaultNotes: vaultNotes.trim() || null,
+                  notes: notes.trim() || null,
+                  kind,
+                });
+                if (!res.ok) {
+                  setError(res.error);
+                } else {
+                  setOpen(false);
+                  router.refresh();
+                }
+              });
+            }}
+            className="space-y-3.5"
+          >
+            <DialogBody className="space-y-3">
+              <div className="grid gap-1">
+                <Label>{lang === "ar" ? "اسم / بيان الدفعة" : "Bill Title"}</Label>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  maxLength={200}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid gap-1">
+                  <Label>{lang === "ar" ? "إجمالي المبلغ (ج.م)" : "Amount (EGP)"}</Label>
+                  <Input
+                    value={amount}
+                    onChange={(e) => setAmount(sanitizeNumericInput(e.target.value))}
+                    required
+                    className="font-mono"
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label>{lang === "ar" ? "نوع المصروف" : "Kind"}</Label>
+                  <select
+                    value={kind}
+                    onChange={(e) => setKind(e.target.value as "FIXED" | "VARIABLE")}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
+                  >
+                    <option value="FIXED">{lang === "ar" ? "ثابت (شهري)" : "Fixed"}</option>
+                    <option value="VARIABLE">{lang === "ar" ? "متغير" : "Variable"}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid gap-1">
+                  <Label>{lang === "ar" ? "تاريخ السداد الفعلي" : "Payment Date"}</Label>
+                  <Input
+                    type="date"
+                    value={expenseDate}
+                    onChange={(e) => setExpenseDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <div className="flex items-center justify-between">
+                    <Label>{lang === "ar" ? "شهر الاستحقاق" : "Billing Month"}</Label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const d = new Date();
+                        d.setMonth(d.getMonth() + 1);
+                        setBillingMonth(d.toISOString().slice(0, 7));
+                      }}
+                      className="text-[10px] text-primary hover:underline"
+                    >
+                      {lang === "ar" ? "+شهر" : "+1m"}
+                    </button>
+                  </div>
+                  <Input
+                    type="month"
+                    value={billingMonth}
+                    onChange={(e) => setBillingMonth(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              {billingMonth && (
+                <div className="text-[11px] text-muted-foreground bg-muted/40 rounded px-2 py-1">
+                  {lang === "ar" ? "الدفعة مرتبطة بشهر:" : "Linked to month:"}{" "}
+                  <strong className="text-foreground">{formatMonth(billingMonth, lang)}</strong>
+                </div>
+              )}
+
+              {/* Vault allocation in edit modal */}
+              <div className="rounded-lg border border-indigo-200/80 bg-indigo-50/40 p-2.5 dark:border-indigo-900/50 dark:bg-indigo-950/20 space-y-2 text-xs">
+                <div className="flex items-center justify-between font-medium text-indigo-950 dark:text-indigo-200">
+                  <span className="flex items-center gap-1.5">
+                    <Vault className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>{lang === "ar" ? "خزنة الشركة (الاحتياطي)" : "Company Vault"}</span>
+                  </span>
+                  {vaultNum > 0 && (
+                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                      {formatEGP(vaultNum, lang)}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="grid gap-1">
+                    <label className="text-[11px] text-muted-foreground">
+                      {lang === "ar" ? "المبلغ بالخزنة (ج.م)" : "Vault Amount"}
+                    </label>
+                    <Input
+                      value={vaultAmount}
+                      onChange={(e) => setVaultAmount(sanitizeNumericInput(e.target.value))}
+                      placeholder="0"
+                      className="h-8 font-mono text-xs"
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <label className="text-[11px] text-muted-foreground">
+                      {lang === "ar" ? "ملاحظة الخزنة" : "Vault Note"}
+                    </label>
+                    <Input
+                      value={vaultNotes}
+                      onChange={(e) => setVaultNotes(e.target.value)}
+                      placeholder={lang === "ar" ? "مثال: إيجار للشهر القادم" : "e.g. rent"}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-[11px] pt-1 border-t border-indigo-200/40 dark:border-indigo-900/30 text-muted-foreground font-mono">
+                  <span>{lang === "ar" ? "مسدد فوراً:" : "Paid:"} {formatEGP(directPaid, lang)}</span>
+                  <span>{lang === "ar" ? "بالخزنة:" : "Vault:"} {formatEGP(vaultNum, lang)}</span>
+                </div>
+              </div>
+
+              <div className="grid gap-1">
+                <Label>{lang === "ar" ? "ملاحظات عامة" : "Notes"}</Label>
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                />
+              </div>
+
+              {error && <p className="text-xs text-red-600">{error}</p>}
+            </DialogBody>
+
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => setOpen(false)}
+              >
+                {lang === "ar" ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button type="submit" disabled={pending}>
+                {pending
+                  ? (lang === "ar" ? "جاري الحفظ..." : "Saving...")
+                  : (lang === "ar" ? "حفظ التعديلات" : "Save Changes")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/* ------------------- Edit Company Payment Button ------------------- */
+
+export function EditCompanyPaymentButton({
+  paymentId,
+  partnerName,
+  currentAmount,
+  lang,
+}: {
+  paymentId: string;
+  partnerName: string;
+  currentAmount: number;
+  lang: Lang;
+}) {
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState(String(currentAmount));
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => {
+          setAmount(String(currentAmount));
+          setError(null);
+          setOpen(true);
+        }}
+        title={lang === "ar" ? "تعديل دفعة الشريك" : "Edit payment"}
+        className="h-7 w-7 p-0 hover:text-primary"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="text-sm">
+              {lang === "ar" ? `تعديل دفعة: ${partnerName}` : `Edit payment: ${partnerName}`}
+            </DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const num = Number(amount) || 0;
+              if (num <= 0) {
+                setError(
+                  lang === "ar"
+                    ? "المبلغ يجب أن يكون أكبر من صفر"
+                    : "Amount must be > 0",
+                );
+                return;
+              }
+              start(async () => {
+                const res = await updateCompanyPayment({
+                  paymentId,
+                  amount: num,
+                });
+                if (!res.ok) setError(res.error);
+                else {
+                  setOpen(false);
+                  router.refresh();
+                }
+              });
+            }}
+            className="space-y-3"
+          >
+            <DialogBody className="space-y-2">
+              <div className="grid gap-1">
+                <Label>{lang === "ar" ? "المبلغ المدفوع (ج.م)" : "Amount (EGP)"}</Label>
+                <Input
+                  value={amount}
+                  onChange={(e) => setAmount(sanitizeNumericInput(e.target.value))}
+                  required
+                  className="font-mono text-sm"
+                  autoFocus
+                />
+              </div>
+              {error && <p className="text-xs text-red-600">{error}</p>}
+            </DialogBody>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setOpen(false)}
+              >
+                {lang === "ar" ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button type="submit" size="sm" disabled={pending}>
+                {pending
+                  ? (lang === "ar" ? "حفظ..." : "Saving...")
+                  : (lang === "ar" ? "حفظ" : "Save")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 

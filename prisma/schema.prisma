@@ -153,6 +153,7 @@ model CompanyExpense {
   amount           Decimal            @db.Decimal(14, 2)
   notes            String?
   expenseDate      DateTime           @default(now())
+  billingMonth     String?
   kind             CompanyExpenseKind @default(VARIABLE)
   createdAt        DateTime           @default(now())
   vaultAmount      Decimal            @default(0) @db.Decimal(14, 2)

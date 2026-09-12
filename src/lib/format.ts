@@ -41,6 +41,18 @@ export function formatDate(d: Date | string, lang: Lang = "en"): string {
   }).format(date);
 }
 
+export function formatMonth(monthStr?: string | null, lang: Lang = "en"): string {
+  if (!monthStr || !monthStr.includes("-")) return monthStr || "";
+  const [y, m] = monthStr.split("-").map(Number);
+  if (!y || !m) return monthStr;
+  const date = new Date(Date.UTC(y, m - 1, 1));
+  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG-u-nu-latn" : "en-US", {
+    year: "numeric",
+    month: "long",
+  }).format(date);
+}
+
 export function cn(...classes: (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
 }
+

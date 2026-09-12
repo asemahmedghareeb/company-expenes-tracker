@@ -235,11 +235,38 @@ export const companyExpenseSchema = z.object({
   amount: moneyAmount,
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
   expenseDate: z.coerce.date().default(() => new Date()),
+  billingMonth: z.string().trim().max(20).optional().or(z.literal("")).nullable(),
   vaultAmount: nonNegativeMoney.default(0),
   vaultNotes: z.string().trim().max(500).optional().or(z.literal("")),
 });
 
 export type CompanyExpenseInput = z.infer<typeof companyExpenseSchema>;
+
+export const updateCompanyExpenseSchema = z.object({
+  id: cuid,
+  title: z.string().trim().min(1, "Title is required").max(200),
+  amount: moneyAmount,
+  notes: z.string().trim().max(1000).optional().or(z.literal("")).nullable(),
+  expenseDate: z.coerce.date().default(() => new Date()),
+  billingMonth: z.string().trim().max(20).optional().or(z.literal("")).nullable(),
+  vaultAmount: nonNegativeMoney.default(0),
+  vaultNotes: z.string().trim().max(500).optional().or(z.literal("")).nullable(),
+  kind: z.enum(["FIXED", "VARIABLE"]).default("VARIABLE"),
+});
+
+export type UpdateCompanyExpenseInput = z.infer<
+  typeof updateCompanyExpenseSchema
+>;
+
+export const updateCompanyPaymentSchema = z.object({
+  paymentId: cuid,
+  amount: moneyAmount,
+  paidAt: z.coerce.date().optional(),
+});
+
+export type UpdateCompanyPaymentInput = z.infer<
+  typeof updateCompanyPaymentSchema
+>;
 
 export const disburseCompanyVaultExpenseSchema = z.object({
   expenseId: cuid,

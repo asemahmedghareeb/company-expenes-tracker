@@ -14,12 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDate, formatEGP, formatPct } from "@/lib/format";
+import { formatDate, formatEGP, formatMonth, formatPct } from "@/lib/format";
 import { dict, getLang } from "@/lib/i18n";
 import { getCompanyExpenseSettlement, toNumber } from "@/lib/ledger";
 import { sharesSumTo100 } from "@/lib/shares";
 import { getCompanyData } from "@/actions/queries";
-import { Vault, CheckCircle2 } from "lucide-react";
+import { Vault, CheckCircle2, Calendar } from "lucide-react";
 import {
   CompanyExpenseForm,
   CompanyPaymentForm,
@@ -28,6 +28,8 @@ import {
   DeleteCompanyPaymentButton,
   DeleteCompanyPayoutButton,
   DisburseVaultExpenseButton,
+  EditCompanyExpenseDialog,
+  EditCompanyPaymentButton,
   FixedCostsManager,
   RevertVaultExpenseButton,
   SettleBillButton,
@@ -191,6 +193,15 @@ export default async function CompanyPage() {
                           ? dict[lang].summary.kindFixed
                           : dict[lang].summary.kindVariable}
                       </Badge>
+                      {expense.billingMonth && (
+                        <Badge variant="secondary" className="gap-1 text-xs font-normal">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <span>
+                            {lang === "ar" ? "استحقاق شهر:" : "Month:"}{" "}
+                            <strong className="font-semibold">{formatMonth(expense.billingMonth, lang)}</strong>
+                          </span>
+                        </Badge>
+                      )}
                     </CardTitle>
                     <CardDescription className="mt-1">
                       {formatDate(expense.expenseDate, lang)} · {t.collected}{" "}
@@ -204,6 +215,20 @@ export default async function CompanyPage() {
                     </CardDescription>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
+                    <EditCompanyExpenseDialog
+                      expense={{
+                        id: expense.id,
+                        title: expense.title,
+                        amount: toNumber(expense.amount),
+                        notes: expense.notes,
+                        expenseDate: expense.expenseDate,
+                        billingMonth: expense.billingMonth,
+                        vaultAmount: toNumber(expense.vaultAmount),
+                        vaultNotes: expense.vaultNotes,
+                        kind: expense.kind,
+                      }}
+                      lang={lang}
+                    />
                     <SettleBillButton
                       expenseId={s.expenseId}
                       hasOutstanding={s.rows.some((r) => Math.abs(r.net) >= 0.005)}
@@ -425,7 +450,15 @@ export default async function CompanyPage() {
                           <span className="min-w-0 flex-1 truncate">
                             {pay.partner.name} · {formatEGP(Number(pay.amount), lang)}
                           </span>
-                          <DeleteCompanyPaymentButton id={pay.id} lang={lang} />
+                          <div className="flex items-center gap-1 shrink-0">
+                            <EditCompanyPaymentButton
+                              paymentId={pay.id}
+                              partnerName={pay.partner.name}
+                              currentAmount={Number(pay.amount)}
+                              lang={lang}
+                            />
+                            <DeleteCompanyPaymentButton id={pay.id} lang={lang} />
+                          </div>
                         </div>
                       ))}
                       {expense.payments.length === 0 && (

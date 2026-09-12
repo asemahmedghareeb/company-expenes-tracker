@@ -11,6 +11,8 @@ import {
   disburseCompanyVaultExpenseSchema,
   settleCompanyBillSchema,
   settleCompanyRowSchema,
+  updateCompanyExpenseSchema,
+  updateCompanyPaymentSchema,
   type ActionResult,
   zodFieldErrors,
 } from "@/lib/validations";
@@ -45,6 +47,7 @@ export async function addCompanyExpense(
         amount: parsed.data.amount,
         notes: parsed.data.notes || null,
         expenseDate: parsed.data.expenseDate,
+        billingMonth: parsed.data.billingMonth || null,
         vaultAmount: parsed.data.vaultAmount,
         vaultNotes: parsed.data.vaultNotes || null,
       },
@@ -171,6 +174,7 @@ export async function addCompanyExpenseWithPayments(
         amount: parsed.data.amount,
         notes: parsed.data.notes || null,
         expenseDate: parsed.data.expenseDate,
+        billingMonth: parsed.data.billingMonth || null,
         kind: parsed.data.kind,
         vaultAmount: parsed.data.vaultAmount,
         vaultNotes: parsed.data.vaultNotes || null,
@@ -533,4 +537,79 @@ export async function revertCompanyExpenseVaultDisbursement(
     };
   }
 }
+
+/* ------------------- Update Expense & Payment ------------------- */
+
+/** Update a company overhead bill (title, amount, dates, billing month, vault allocation). */
+export async function updateCompanyExpense(
+  raw: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = updateCompanyExpenseSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "بيانات غير صالحة.",
+      fieldErrors: zodFieldErrors(parsed.error),
+    };
+  }
+  if (parsed.data.vaultAmount > parsed.data.amount) {
+    return {
+      ok: false,
+      error: "المبلغ المودع في الخزنة لا يمكن أن يتجاوز إجمالي المصروف.",
+    };
+  }
+  try {
+    const expense = await db.companyExpense.update({
+      where: { id: parsed.data.id },
+      data: {
+        title: parsed.data.title,
+        amount: parsed.data.amount,
+        notes: parsed.data.notes || null,
+        expenseDate: parsed.data.expenseDate,
+        billingMonth: parsed.data.billingMonth || null,
+        vaultAmount: parsed.data.vaultAmount,
+        vaultNotes: parsed.data.vaultNotes || null,
+        kind: parsed.data.kind,
+      },
+    });
+    revalidateCompany();
+    return { ok: true, data: { id: expense.id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "فشل تعديل المصروف.",
+    };
+  }
+}
+
+/** Update a partner payment towards a company bill (change amount / date). */
+export async function updateCompanyPayment(
+  raw: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = updateCompanyPaymentSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "بيانات الدفعة غير صالحة.",
+      fieldErrors: zodFieldErrors(parsed.error),
+    };
+  }
+  try {
+    const payment = await db.companyExpensePayment.update({
+      where: { id: parsed.data.paymentId },
+      data: {
+        amount: parsed.data.amount,
+        ...(parsed.data.paidAt ? { paidAt: parsed.data.paidAt } : {}),
+      },
+    });
+    revalidateCompany();
+    return { ok: true, data: { id: payment.id } };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "فشل تعديل الدفعة.",
+    };
+  }
+}
+
 
