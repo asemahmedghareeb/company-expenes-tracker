@@ -34,6 +34,14 @@ const moneyAmount = z
   .max(1_000_000_000, "Amount is unreasonably large");
 
 const cuid = z.string().min(1, "ID is required");
+
+/**
+ * Strict row-ID check for handler params that travel OUTSIDE the body schema
+ * (e.g. `editPartner(id, raw)`). Prisma parameterizes everything so a raw
+ * string can't inject SQL — this rejects malformed IDs early with a clean
+ * 400 instead of a confusing "record not found".
+ */
+export const cuidSchema = z.string().cuid("Invalid ID.");
 // NOTE: expense payer fields still accept the legacy CLIENT_PAYER sentinel
 // ("CLIENT", see lib/shares) for pre-existing NULL-payer rows. The app model
 // is that the client only pays the contract — never expense line items — so

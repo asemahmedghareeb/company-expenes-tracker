@@ -1,10 +1,14 @@
 "use server";
 
+import { requireAdmin } from "@/lib/auth";
+import { toPublicError } from "@/lib/api-guard";
+
 import { revalidateSystem } from "@/lib/revalidate";
 import { prisma as db } from "@/lib/prisma";
 import {
   partnerSchema,
   defaultSplitsSchema,
+  cuidSchema,
   type ActionResult,
   zodFieldErrors,
 } from "@/lib/validations";
@@ -14,6 +18,7 @@ import { normalizeShares } from "@/lib/shares";
 export async function addPartner(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = partnerSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -39,7 +44,8 @@ export async function addPartner(
     if (msg.includes("Unique constraint") || msg.includes("email")) {
       return { ok: false, error: "A partner with this email already exists." };
     }
-    return { ok: false, error: msg };
+    // Never echo raw ORM messages (table/constraint names) to the client.
+    return { ok: false, error: toPublicError(e, "Failed to create partner.") };
   }
 }
 
@@ -48,6 +54,10 @@ export async function editPartner(
   id: string,
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
+  if (!cuidSchema.safeParse(id).success) {
+    return { ok: false, error: "Invalid partner ID." };
+  }
   const parsed = partnerSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -71,7 +81,7 @@ export async function editPartner(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to update partner.",
+      error: toPublicError(e, "Failed to update partner."),
     };
   }
 }
@@ -81,6 +91,10 @@ export async function setPartnerActive(
   id: string,
   isActive: boolean,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
+  if (!cuidSchema.safeParse(id).success) {
+    return { ok: false, error: "Invalid partner ID." };
+  }
   try {
     await db.partner.update({ where: { id }, data: { isActive } });
     revalidateSystem();
@@ -88,7 +102,7 @@ export async function setPartnerActive(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to update partner.",
+      error: toPublicError(e, "Failed to update partner."),
     };
   }
 }
@@ -102,6 +116,10 @@ export async function setPartnerActive(
 export async function deletePartner(
   id: string,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
+  if (!cuidSchema.safeParse(id).success) {
+    return { ok: false, error: "Invalid partner ID." };
+  }
   try {
     const [splits, expenses, drawings] = await Promise.all([
       db.projectPartner.count({ where: { partnerId: id } }),
@@ -117,7 +135,7 @@ export async function deletePartner(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete partner.",
+      error: toPublicError(e, "Failed to delete partner."),
     };
   }
 }
@@ -130,6 +148,7 @@ export async function deletePartner(
 export async function updateDefaultSplits(
   raw: unknown,
 ): Promise<ActionResult<{ updated: number }>> {
+  await requireAdmin();
   const parsed = defaultSplitsSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -156,7 +175,7 @@ export async function updateDefaultSplits(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to update splits.",
+      error: toPublicError(e, "Failed to update splits."),
     };
   }
 }
@@ -165,6 +184,7 @@ export async function updateDefaultSplits(
 export async function getDefaultSplitsSnapshot(): Promise<
   { partnerId: string; name: string; sharePercentage: number }[]
 > {
+  await requireAdmin();
   const partners = await db.partner.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },

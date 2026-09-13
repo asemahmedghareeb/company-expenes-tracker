@@ -1,5 +1,9 @@
 "use server";
 
+import { toPublicError } from "@/lib/api-guard";
+
+import { requireAdmin } from "@/lib/auth";
+
 import { revalidateSystem } from "@/lib/revalidate";
 import { prisma as db } from "@/lib/prisma";
 import {
@@ -37,6 +41,7 @@ export interface CreateExpenseResult {
 export async function createExpense(
   raw: unknown,
 ): Promise<ActionResult<CreateExpenseResult>> {
+  await requireAdmin();
   const parsed = expenseSchema.safeParse(raw);
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0]?.message;
@@ -179,13 +184,14 @@ export async function createExpense(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to record expense.",
+      error: toPublicError(e, "Failed to record expense."),
     };
   }
 }
 
 /** Legacy alias for backward compatibility */
 export async function logProjectExpense(raw: unknown) {
+  await requireAdmin();
   return createExpense(raw);
 }
 
@@ -195,6 +201,7 @@ export async function logProjectExpense(raw: unknown) {
 export async function markExpenseReimbursed(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = markReimbursedSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid reimbursement data." };
@@ -212,7 +219,7 @@ export async function markExpenseReimbursed(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to update expense.",
+      error: toPublicError(e, "Failed to update expense."),
     };
   }
 }
@@ -221,6 +228,7 @@ export async function deleteExpense(
   id: string,
   projectId?: string | null,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     const expense = await db.expense.delete({ where: { id } });
     revalidateFinance(projectId ?? expense.projectId);
@@ -228,12 +236,13 @@ export async function deleteExpense(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete expense.",
+      error: toPublicError(e, "Failed to delete expense."),
     };
   }
 }
 
 export async function deleteProjectExpense(id: string, projectId: string) {
+  await requireAdmin();
   return deleteExpense(id, projectId);
 }
 
@@ -248,6 +257,7 @@ export async function updateProjectExpense(
     deductFromCustody?: boolean;
   },
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     const isClientCovered =
       !raw.paidById ||
@@ -275,7 +285,7 @@ export async function updateProjectExpense(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to update expense.",
+      error: toPublicError(e, "Failed to update expense."),
     };
   }
 }

@@ -48,12 +48,14 @@ export async function GET(request: NextRequest) {
         headers,
       },
     );
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Database connection error";
+  } catch {
+    // Deliberately generic: Prisma/driver messages can contain host, port,
+    // and database names — never send them to clients. Details stay in
+    // server logs (Vercel Runtime Logs) for operators.
+    console.error("Health check: database unreachable");
     return NextResponse.json(
       {
         status: "error",
-        error: message,
       },
       {
         status: 500,

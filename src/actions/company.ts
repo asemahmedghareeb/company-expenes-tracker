@@ -1,5 +1,9 @@
 "use server";
 
+import { toPublicError } from "@/lib/api-guard";
+
+import { requireAdmin } from "@/lib/auth";
+
 import { revalidateSystem } from "@/lib/revalidate";
 import { prisma as db } from "@/lib/prisma";
 import {
@@ -26,6 +30,7 @@ function revalidateCompany() {
 export async function addCompanyExpense(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = companyExpenseSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -57,7 +62,7 @@ export async function addCompanyExpense(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to add expense.",
+      error: toPublicError(e, "Failed to add expense."),
     };
   }
 }
@@ -65,6 +70,7 @@ export async function addCompanyExpense(
 export async function deleteCompanyExpense(
   id: string,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     await db.companyExpense.delete({ where: { id } });
     revalidateCompany();
@@ -72,7 +78,7 @@ export async function deleteCompanyExpense(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete expense.",
+      error: toPublicError(e, "Failed to delete expense."),
     };
   }
 }
@@ -81,6 +87,7 @@ export async function deleteCompanyExpense(
 export async function recordCompanyPayment(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = companyPaymentSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -116,7 +123,7 @@ export async function recordCompanyPayment(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to record payment.",
+      error: toPublicError(e, "Failed to record payment."),
     };
   }
 }
@@ -124,6 +131,7 @@ export async function recordCompanyPayment(
 export async function deleteCompanyPayment(
   id: string,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     await db.companyExpensePayment.delete({ where: { id } });
     revalidateCompany();
@@ -131,7 +139,7 @@ export async function deleteCompanyPayment(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete payment.",
+      error: toPublicError(e, "Failed to delete payment."),
     };
   }
 }
@@ -143,6 +151,7 @@ export async function deleteCompanyPayment(
 export async function addCompanyExpenseWithPayments(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = companyExpenseWithPaymentsSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -191,7 +200,7 @@ export async function addCompanyExpenseWithPayments(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to add expense.",
+      error: toPublicError(e, "Failed to add expense."),
     };
   }
 }
@@ -204,6 +213,7 @@ export async function addCompanyExpenseWithPayments(
 export async function recordCompanyPayout(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = companyPayoutSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -256,7 +266,7 @@ export async function recordCompanyPayout(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to record payout.",
+      error: toPublicError(e, "Failed to record payout."),
     };
   }
 }
@@ -273,6 +283,7 @@ export async function recordCompanyPayoutBulk(raw: {
   paidAt?: Date;
   payers: Array<{ partnerId: string; amount: number }>;
 }): Promise<ActionResult<{ ids: string[] }>> {
+  await requireAdmin();
   if (!raw.payers || raw.payers.length === 0) {
     return { ok: false, error: "يجب تحديد شريك دافع واحد على الأقل." };
   }
@@ -307,7 +318,7 @@ export async function recordCompanyPayoutBulk(raw: {
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to record payout.",
+      error: toPublicError(e, "Failed to record payout."),
     };
   }
 }
@@ -315,6 +326,7 @@ export async function recordCompanyPayoutBulk(raw: {
 export async function deleteCompanyPayout(
   id: string,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     await db.companyPayout.delete({ where: { id } });
     revalidateCompany();
@@ -322,7 +334,7 @@ export async function deleteCompanyPayout(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete payout.",
+      error: toPublicError(e, "Failed to delete payout."),
     };
   }
 }
@@ -335,6 +347,7 @@ export async function deleteCompanyPayout(
 export async function settleCompanyRow(
   raw: unknown,
 ): Promise<ActionResult<{ id: string; kind: "payment" | "payout"; amount: number }>> {
+  await requireAdmin();
   const parsed = settleCompanyRowSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid settlement data." };
@@ -402,7 +415,7 @@ export async function settleCompanyRow(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to settle.",
+      error: toPublicError(e, "Failed to settle."),
     };
   }
 }
@@ -417,6 +430,7 @@ export async function settleCompanyBill(
 ): Promise<
   ActionResult<{ payments: number; payouts: number; settled: number }>
 > {
+  await requireAdmin();
   const parsed = settleCompanyBillSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid settlement data." };
@@ -499,7 +513,7 @@ export async function settleCompanyBill(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to settle.",
+      error: toPublicError(e, "Failed to settle."),
     };
   }
 }
@@ -510,6 +524,7 @@ export async function settleCompanyBill(
 export async function addFixedCost(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = companyFixedCostSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -531,7 +546,7 @@ export async function addFixedCost(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to add fixed cost.",
+      error: toPublicError(e, "Failed to add fixed cost."),
     };
   }
 }
@@ -539,6 +554,7 @@ export async function addFixedCost(
 export async function deleteFixedCost(
   id: string,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     await db.companyFixedCost.delete({ where: { id } });
     revalidateCompany();
@@ -546,7 +562,7 @@ export async function deleteFixedCost(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete fixed cost.",
+      error: toPublicError(e, "Failed to delete fixed cost."),
     };
   }
 }
@@ -557,6 +573,7 @@ export async function deleteFixedCost(
 export async function disburseCompanyExpenseFromVault(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = disburseCompanyVaultExpenseSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid request." };
@@ -574,7 +591,7 @@ export async function disburseCompanyExpenseFromVault(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to disburse from vault.",
+      error: toPublicError(e, "Failed to disburse from vault."),
     };
   }
 }
@@ -583,6 +600,7 @@ export async function disburseCompanyExpenseFromVault(
 export async function revertCompanyExpenseVaultDisbursement(
   expenseId: string,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     const expense = await db.companyExpense.update({
       where: { id: expenseId },
@@ -596,7 +614,7 @@ export async function revertCompanyExpenseVaultDisbursement(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to revert vault disbursement.",
+      error: toPublicError(e, "Failed to revert vault disbursement."),
     };
   }
 }
@@ -607,6 +625,7 @@ export async function revertCompanyExpenseVaultDisbursement(
 export async function updateCompanyExpense(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = updateCompanyExpenseSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -640,7 +659,7 @@ export async function updateCompanyExpense(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "فشل تعديل المصروف.",
+      error: toPublicError(e, "فشل تعديل المصروف."),
     };
   }
 }
@@ -649,6 +668,7 @@ export async function updateCompanyExpense(
 export async function updateCompanyPayment(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = updateCompanyPaymentSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -670,7 +690,7 @@ export async function updateCompanyPayment(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "فشل تعديل الدفعة.",
+      error: toPublicError(e, "فشل تعديل الدفعة."),
     };
   }
 }

@@ -7,11 +7,22 @@ import {
   partnerDrawingSchema,
 } from "@/lib/validations";
 import { CLIENT_PAYER } from "@/lib/shares";
+import { requireAdmin, authErrorResponse, toPublicError } from "@/lib/api-guard";
 
 export async function POST(req: Request) {
+  try {
+    await requireAdmin(req);
+  } catch (e) {
+    return authErrorResponse(e);
+  }
   const url = new URL(req.url);
   const kind = url.searchParams.get("kind") ?? "payment";
-  const body = await req.json();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
 
   try {
     if (kind === "payment") {
@@ -80,8 +91,9 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: "Unknown kind." }, { status: 400 });
   } catch (e) {
+    // Never echo raw ORM messages (table/constraint names) to the client.
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Request failed." },
+      { error: toPublicError(e, "Request failed.") },
       { status: 400 },
     );
   }

@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { getEnv } from "./env";
 
 /**
  * JWT session tokens — the ONLY auth module safe to import from `src/proxy.ts`.
@@ -15,13 +16,9 @@ export interface SessionPayload {
 }
 
 function secretKey(): Uint8Array {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error(
-      "AUTH_SECRET is missing or too short — set a 32+ char secret in .env / Vercel env.",
-    );
-  }
-  return new TextEncoder().encode(secret);
+  // Validated once via lib/env.ts (AUTH_SECRET ≥ 32 chars) — single source
+  // of truth, so misconfiguration fails fast with a clear message.
+  return new TextEncoder().encode(getEnv().AUTH_SECRET);
 }
 
 /** Mint a signed session JWT for a freshly authenticated user. */

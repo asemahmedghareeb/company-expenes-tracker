@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { validateEnv } from "./env";
 
 /**
  * Strict global singleton for Neon Postgres on Vercel serverless.
@@ -14,6 +15,10 @@ import { PrismaClient } from "@prisma/client";
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
+
+// Fail fast on missing/invalid DATABASE_URL instead of a cryptic driver
+// error on the first query (no-op when already validated — getEnv caches).
+validateEnv();
 
 export const prisma =
   globalForPrisma.prisma ??

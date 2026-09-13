@@ -1,5 +1,9 @@
 "use server";
 
+import { toPublicError } from "@/lib/api-guard";
+
+import { requireAdmin } from "@/lib/auth";
+
 import { revalidateSystem } from "@/lib/revalidate";
 import { prisma as db } from "@/lib/prisma";
 import {
@@ -19,6 +23,7 @@ import { CLIENT_PAYER, normalizeShares } from "@/lib/shares";
 export async function createProject(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = createProjectSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -98,7 +103,7 @@ export async function createProject(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to create project.",
+      error: toPublicError(e, "Failed to create project."),
     };
   }
 }
@@ -107,6 +112,7 @@ export async function createProject(
 export async function updateProject(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = updateProjectSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -135,7 +141,7 @@ export async function updateProject(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to update project.",
+      error: toPublicError(e, "Failed to update project."),
     };
   }
 }
@@ -147,6 +153,7 @@ export async function updateProject(
 export async function updateProjectSplits(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = updateProjectSplitsSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -192,7 +199,7 @@ export async function updateProjectSplits(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to update splits.",
+      error: toPublicError(e, "Failed to update splits."),
     };
   }
 }
@@ -205,6 +212,7 @@ export async function updateProjectSplits(
 export async function deleteProject(
   projectId: string,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     await db.project.delete({ where: { id: projectId } });
     revalidateSystem();
@@ -212,7 +220,7 @@ export async function deleteProject(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete project.",
+      error: toPublicError(e, "Failed to delete project."),
     };
   }
 }

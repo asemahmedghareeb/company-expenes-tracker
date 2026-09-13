@@ -1,5 +1,9 @@
 "use server";
 
+import { toPublicError } from "@/lib/api-guard";
+
+import { requireAdmin } from "@/lib/auth";
+
 import { revalidateSystem } from "@/lib/revalidate";
 import { prisma as db } from "@/lib/prisma";
 import {
@@ -16,6 +20,7 @@ function revalidateFinance(projectId?: string) {
 export async function recordClientPayment(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = clientPaymentSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -53,7 +58,7 @@ export async function recordClientPayment(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to record payment.",
+      error: toPublicError(e, "Failed to record payment."),
     };
   }
 }
@@ -62,6 +67,7 @@ export async function deleteClientPayment(
   id: string,
   projectId: string,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     await db.clientPayment.delete({ where: { id } });
     revalidateFinance(projectId);
@@ -69,7 +75,7 @@ export async function deleteClientPayment(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete payment.",
+      error: toPublicError(e, "Failed to delete payment."),
     };
   }
 }

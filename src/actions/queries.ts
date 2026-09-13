@@ -1,5 +1,7 @@
 "use server";
 
+import { requireSession } from "@/lib/auth";
+
 import { prisma as db } from "@/lib/prisma";
 import {
   getAllPartnerLedgers,
@@ -15,10 +17,12 @@ import {
 
 /** Lightweight list for selects / tables. */
 export async function getPartners() {
+  await requireSession();
   return db.partner.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }] });
 }
 
 export async function getProjects() {
+  await requireSession();
   // List view only needs aggregates — select scalar amounts instead of
   // hydrating full relation graphs (no descriptions, dates, or joins).
   return db.project.findMany({
@@ -36,6 +40,7 @@ export async function getProjects() {
 }
 
 export async function getProjectDetail(id: string) {
+  await requireSession();
   const project = await db.project.findUnique({
     where: { id },
     select: {
@@ -177,6 +182,7 @@ export async function getDashboardData(range?: {
   from: Date;
   toExclusive: Date;
 }) {
+  await requireSession();
   // Half-open UTC window. When omitted → all time (legacy behavior).
   // Scoping convention (matches the summary page): every dated record is
   // grouped by its OWN date — bills by expenseDate (payments follow their
@@ -396,6 +402,7 @@ export async function getDashboardData(range?: {
 
 /** Company page data: bills with payments + payouts + partners for settlement. */
 export async function getCompanyData() {
+  await requireSession();
   const [expenses, partners, fixedCosts, payouts] = await Promise.all([
     db.companyExpense.findMany({
       select: {
@@ -462,6 +469,7 @@ export async function getCompanyData() {
 
 /** Treasury page data: every project with its frozen splits + custodied payments + settlements & vault. */
 export async function getTreasuryData() {
+  await requireSession();
   const [partners, projects, settlements, vaultCompanyExpenses] = await Promise.all([
     db.partner.findMany({
       orderBy: { name: "asc" },
@@ -556,6 +564,7 @@ export async function getTreasuryData() {
 
 /** Monthly summary data: everything the engine needs to settle one month. */
 export async function getSummaryData() {
+  await requireSession();
   const [company, projectCosts, partners] = await Promise.all([
     db.companyExpense.findMany({
       select: {
@@ -601,6 +610,7 @@ export async function getSummaryData() {
 
 /** Partner ledger page data (ledgers + drawings detail). */
 export async function getLedgerData() {
+  await requireSession();
   // All reads are independent — fan out concurrently.
   const [dashboard, drawings, expenses, p2pPayouts] = await Promise.all([
     getDashboardData(),

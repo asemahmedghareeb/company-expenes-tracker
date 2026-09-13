@@ -1,13 +1,29 @@
 import { NextResponse } from "next/server";
 import { prisma as db } from "@/lib/prisma";
 import { partnerSchema } from "@/lib/validations";
+import {
+  requireSession,
+  requireAdmin,
+  authErrorResponse,
+  toPublicError,
+} from "@/lib/api-guard";
 
-export async function GET() {
+export async function GET(req: Request) {
+  try {
+    await requireSession(req);
+  } catch (e) {
+    return authErrorResponse(e);
+  }
   const partners = await db.partner.findMany({ orderBy: { name: "asc" } });
   return NextResponse.json(partners);
 }
 
 export async function POST(req: Request) {
+  try {
+    await requireAdmin(req);
+  } catch (e) {
+    return authErrorResponse(e);
+  }
   const body = await req.json();
   const parsed = partnerSchema.safeParse(body);
   if (!parsed.success) {
@@ -23,9 +39,8 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(partner, { status: 201 });
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to create partner." },
-      { status: 400 },
-    );
+    const message = toPublicError(e, "Failed to create partner.");
+    const status = message === "A record with these details already exists." ? 409 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }

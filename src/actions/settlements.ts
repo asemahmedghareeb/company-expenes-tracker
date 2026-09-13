@@ -1,5 +1,9 @@
 "use server";
 
+import { toPublicError } from "@/lib/api-guard";
+
+import { requireAdmin } from "@/lib/auth";
+
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { round2, toNumber } from "@/lib/ledger";
@@ -13,6 +17,7 @@ import {
 export async function executeSettlement(
   raw: unknown,
 ): Promise<ActionResult<{ id: string; vaultAmount: number; distributedAmount: number }>> {
+  await requireAdmin();
   const parsed = executeSettlementSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -156,7 +161,7 @@ export async function executeSettlement(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to execute settlement.",
+      error: toPublicError(e, "Failed to execute settlement."),
     };
   }
 }
@@ -164,6 +169,7 @@ export async function executeSettlement(
 export async function deleteSettlement(
   settlementId: string,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     await db.$transaction(async (tx) => {
       const settlement = await tx.companySettlement.findUnique({
@@ -199,7 +205,7 @@ export async function deleteSettlement(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete settlement.",
+      error: toPublicError(e, "Failed to delete settlement."),
     };
   }
 }

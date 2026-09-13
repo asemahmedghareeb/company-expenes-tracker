@@ -1,15 +1,12 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma as db } from "@/lib/prisma";
-import {
-  SESSION_COOKIE,
-  SESSION_MAX_AGE,
-  signSessionToken,
-  verifySessionToken,
-  type SessionPayload,
-} from "@/lib/session-token";
+import { SESSION_COOKIE, SESSION_MAX_AGE, signSessionToken } from "./session-token";
+import { verifySessionToken, type SessionPayload } from "./session-token";
+import { AuthError } from "./api-guard";
 
 export type { SessionPayload };
+export { AuthError };
 
 /* ------------------------- Password hashing (scrypt) ------------------------- */
 
@@ -89,8 +86,7 @@ export async function destroySession(): Promise<void> {
 /**
  * Current request's session: verifies the JWT signature/expiry AND confirms
  * the account still exists (revokes sessions of deleted users).
- */
-export async function getSessionUser(): Promise<AuthUser | null> {
+ */export async function getSessionUser(): Promise<AuthUser | null> {
   try {
     const token = (await cookies()).get(SESSION_COOKIE)?.value;
     if (!token) return null;
@@ -101,7 +97,7 @@ export async function getSessionUser(): Promise<AuthUser | null> {
       select: { id: true, username: true, role: true },
     });
     return user;
-  } catch (error: unknown) {
+    } catch (error: unknown) {
     if (
       typeof error === "object" &&
       error !== null &&
@@ -114,4 +110,45 @@ export async function getSessionUser(): Promise<AuthUser | null> {
     }
     return null;
   }
+}
+
+/* --------------------- Server-Action / page guards --------------------- */
+
+/**
+ * Fast JWT-only session check (no DB hit). Use for READ paths where the
+ * caller already passed the proxy gate and cost matters (page data loaders).
+ * Throws AuthError(401) when unauthenticated.
+ */
+export async function requireSession(): Promise<SessionPayload> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const payload = token ? await verifySessionToken(token) : null;
+  if (!payload) throw new AuthError(401);
+  return payload;
+}
+
+/**
+ * Defense-in-depth guard for Server Actions and pages. The proxy gate keeps
+ * strangers out, but every sensitive function must ALSO verify auth itself —
+ * never rely on the boundary alone (SSRF-adjacent bypasses, misconfigurations).
+ *
+ * Throws AuthError(401) when unauthenticated. Call it as the FIRST line:
+ *   export async function mutate(...) { await requireSessionUser(); ... }
+ */
+export async function requireSessionUser(): Promise<AuthUser> {
+  const user = await getSessionUser();
+  if (!user) throw new AuthError(401);
+  return user;
+}
+
+/**
+ * RBAC gate for mutations. Single-role app today (every user is `admin`),
+ * so this currently equals requireSessionUser + role check — the seam where
+ * future roles (viewer, accountant…) get enforced without touching call sites.
+ *
+ * Throws AuthError(401) unauthenticated / AuthError(403) wrong role.
+ */
+export async function requireAdmin(): Promise<AuthUser> {
+  const user = await requireSessionUser();
+  if (user.role !== "admin") throw new AuthError(403);
+  return user;
 }

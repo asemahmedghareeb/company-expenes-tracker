@@ -1,5 +1,9 @@
 "use server";
 
+import { toPublicError } from "@/lib/api-guard";
+
+import { requireAdmin } from "@/lib/auth";
+
 import { revalidateSystem } from "@/lib/revalidate";
 import { prisma as db } from "@/lib/prisma";
 import {
@@ -58,6 +62,7 @@ function revalidateFinance() {
 export async function recordPartnerDrawing(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   const parsed = partnerDrawingSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -86,7 +91,7 @@ export async function recordPartnerDrawing(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to record drawing.",
+      error: toPublicError(e, "Failed to record drawing."),
     };
   }
 }
@@ -94,6 +99,7 @@ export async function recordPartnerDrawing(
 export async function deletePartnerDrawing(
   id: string,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAdmin();
   try {
     await db.partnerDrawing.delete({ where: { id } });
     revalidateFinance();
@@ -101,7 +107,7 @@ export async function deletePartnerDrawing(
   } catch (e: unknown) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete drawing.",
+      error: toPublicError(e, "Failed to delete drawing."),
     };
   }
 }

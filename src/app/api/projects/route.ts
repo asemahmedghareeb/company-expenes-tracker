@@ -2,8 +2,19 @@ import { NextResponse } from "next/server";
 import { prisma as db } from "@/lib/prisma";
 import { createProjectSchema, updateProjectSplitsSchema } from "@/lib/validations";
 import { normalizeShares, CLIENT_PAYER } from "@/lib/shares";
+import {
+  requireSession,
+  requireAdmin,
+  authErrorResponse,
+  toPublicError,
+} from "@/lib/api-guard";
 
-export async function GET() {
+export async function GET(req: Request) {
+  try {
+    await requireSession(req);
+  } catch (e) {
+    return authErrorResponse(e);
+  }
   const projects = await db.project.findMany({
     orderBy: { createdAt: "desc" },
     select: {
@@ -20,6 +31,11 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  try {
+    await requireAdmin(req);
+  } catch (e) {
+    return authErrorResponse(e);
+  }
   const body = await req.json();
   const parsed = createProjectSchema.safeParse(body);
   if (!parsed.success) {
@@ -31,42 +47,54 @@ export async function POST(req: Request) {
   const { name, description, contractValue, status, splits, initialExpenses } =
     parsed.data;
   const shares = normalizeShares(splits.map((s) => s.sharePercentage));
-  const project = await db.project.create({
-    data: {
-      name,
-      description: description || null,
-      contractValue,
-      status,
-      projectPartners: {
-        create: splits.map((s, i) => ({
-          partnerId: s.partnerId,
-          sharePercentage: shares[i] ?? s.sharePercentage,
-        })),
+  try {
+    const project = await db.project.create({
+      data: {
+        name,
+        description: description || null,
+        contractValue,
+        status,
+        projectPartners: {
+          create: splits.map((s, i) => ({
+            partnerId: s.partnerId,
+            sharePercentage: shares[i] ?? s.sharePercentage,
+          })),
+        },
+        expenses: {
+          create: initialExpenses.map((e) => {
+            const isCustody =
+              e.paidByPartnerId === CLIENT_PAYER ||
+              e.paidByPartnerId === "PROJECT_CUSTODY" ||
+              !e.paidByPartnerId;
+            return {
+              paidById: isCustody ? null : e.paidByPartnerId,
+              amount: e.amount,
+              description: e.title,
+              deductFromCustody: isCustody,
+              isReimbursed: isCustody,
+              reimbursedAt: isCustody ? new Date() : null,
+            };
+          }),
+        },
       },
-      expenses: {
-        create: initialExpenses.map((e) => {
-          const isCustody =
-            e.paidByPartnerId === CLIENT_PAYER ||
-            e.paidByPartnerId === "PROJECT_CUSTODY" ||
-            !e.paidByPartnerId;
-          return {
-            paidById: isCustody ? null : e.paidByPartnerId,
-            amount: e.amount,
-            description: e.title,
-            deductFromCustody: isCustody,
-            isReimbursed: isCustody,
-            reimbursedAt: isCustody ? new Date() : null,
-          };
-        }),
-      },
-    },
-    include: { projectPartners: true },
-  });
-  return NextResponse.json(project, { status: 201 });
+      include: { projectPartners: true },
+    });
+    return NextResponse.json(project, { status: 201 });
+  } catch (e) {
+    return NextResponse.json(
+      { error: toPublicError(e, "Failed to create project.") },
+      { status: 400 },
+    );
+  }
 }
 
 export async function PUT(req: Request) {
   // Update a single project's snapshot splits: { projectId, splits }
+  try {
+    await requireAdmin(req);
+  } catch (e) {
+    return authErrorResponse(e);
+  }
   const body = await req.json();
   const parsed = updateProjectSplitsSchema.safeParse(body);
   if (!parsed.success) {
@@ -77,15 +105,22 @@ export async function PUT(req: Request) {
   }
   const { projectId, splits } = parsed.data;
   const shares = normalizeShares(splits.map((s) => s.sharePercentage));
-  await db.$transaction([
-    db.projectPartner.deleteMany({ where: { projectId } }),
-    db.projectPartner.createMany({
-      data: splits.map((s, i) => ({
-        projectId,
-        partnerId: s.partnerId,
-        sharePercentage: shares[i] ?? s.sharePercentage,
-      })),
-    }),
-  ]);
-  return NextResponse.json({ ok: true });
+  try {
+    await db.$transaction([
+      db.projectPartner.deleteMany({ where: { projectId } }),
+      db.projectPartner.createMany({
+        data: splits.map((s, i) => ({
+          projectId,
+          partnerId: s.partnerId,
+          sharePercentage: shares[i] ?? s.sharePercentage,
+        })),
+      }),
+    ]);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return NextResponse.json(
+      { error: toPublicError(e, "Failed to update splits.") },
+      { status: 400 },
+    );
+  }
 }
