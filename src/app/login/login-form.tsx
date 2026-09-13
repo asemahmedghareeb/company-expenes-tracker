@@ -41,7 +41,7 @@ export function LoginForm({ lang }: { lang: Lang }) {
           {t.username}
         </label>
         <div className="relative">
-          <span className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/70">
+          <span aria-hidden className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/70">
             <User className="h-4 w-4" />
           </span>
           <Input
@@ -51,6 +51,8 @@ export function LoginForm({ lang }: { lang: Lang }) {
             required
             maxLength={64}
             autoFocus
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "login-error" : undefined}
             className="h-11 ps-10 pe-3.5 text-sm rounded-xl border-border/80 bg-background/70 transition-all focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary"
           />
         </div>
@@ -62,7 +64,7 @@ export function LoginForm({ lang }: { lang: Lang }) {
           {t.password}
         </label>
         <div className="relative">
-          <span className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/70">
+          <span aria-hidden className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/70">
             <Lock className="h-4 w-4" />
           </span>
           <Input
@@ -71,6 +73,8 @@ export function LoginForm({ lang }: { lang: Lang }) {
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             required
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "login-error" : undefined}
             className="h-11 ps-10 pe-11 text-sm rounded-xl border-border/80 bg-background/70 transition-all focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary"
           />
           <button
@@ -91,7 +95,7 @@ export function LoginForm({ lang }: { lang: Lang }) {
 
       {/* Error Message */}
       {error && (
-        <p role="alert" className="rounded-xl bg-destructive/10 border border-destructive/20 px-3.5 py-2.5 text-xs sm:text-sm text-destructive font-medium">
+        <p id="login-error" role="alert" className="rounded-xl bg-destructive/10 border border-destructive/20 px-3.5 py-2.5 text-xs sm:text-sm text-destructive font-medium">
           {error}
         </p>
       )}
@@ -104,12 +108,12 @@ export function LoginForm({ lang }: { lang: Lang }) {
       >
         {pending ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             <span>{t.signingIn}</span>
           </>
         ) : (
           <>
-            <LogIn className="h-4 w-4" />
+            <LogIn className="h-4 w-4" aria-hidden />
             <span>{t.signIn}</span>
           </>
         )}
@@ -118,7 +122,7 @@ export function LoginForm({ lang }: { lang: Lang }) {
       {/* Security Note */}
       <div className="pt-2 text-center">
         <div className="inline-flex items-center justify-center gap-1.5 text-xs text-muted-foreground/80">
-          <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+          <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
           <span>{t.securityNote}</span>
         </div>
       </div>

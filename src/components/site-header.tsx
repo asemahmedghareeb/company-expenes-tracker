@@ -142,6 +142,7 @@ export function SiteHeader({
         {user && menuOpen && (
           <>
             <div
+              aria-hidden="true"
               className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs lg:hidden"
               onClick={() => setMenuOpen(false)}
             />

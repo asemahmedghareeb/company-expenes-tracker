@@ -33,6 +33,7 @@ export function LanguageSwitcher({ lang }: { lang: Lang }) {
           variant="ghost"
           disabled={pending}
           onClick={() => switchTo(l)}
+          aria-pressed={lang === l}
           className={cn(
             "h-7 rounded-none px-2.5",
             lang === l && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",

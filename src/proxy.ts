@@ -29,6 +29,8 @@ export async function proxy(request: NextRequest) {
     pathname === "/login" ||
     pathname === "/terms" ||
     pathname === "/privacy" ||
+    pathname === "/cookies" ||
+    pathname === "/refunds" ||
     pathname === "/api/health"
   ) {
     return NextResponse.next();

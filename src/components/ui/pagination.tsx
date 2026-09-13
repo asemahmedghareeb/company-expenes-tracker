@@ -68,7 +68,8 @@ export function Pagination({
   }, [currentPage, totalPages]);
 
   return (
-    <div
+    <nav
+      aria-label={lang === "ar" ? "ترقيم الصفحات" : "Pagination"}
       className={`flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border/50 text-xs text-muted-foreground ${className}`}
     >
       {/* Range text */}
@@ -100,8 +101,9 @@ export function Pagination({
           disabled={currentPage <= 1}
           className="h-8 w-8 p-0"
           title={lang === "ar" ? "الصفحة الأولى" : "First page"}
+          aria-label={lang === "ar" ? "الصفحة الأولى" : "First page"}
         >
-          <FirstIcon className="h-4 w-4" />
+          <FirstIcon className="h-4 w-4" aria-hidden />
         </Button>
 
         {/* Previous page button */}
@@ -111,8 +113,9 @@ export function Pagination({
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage <= 1}
           className="h-8 px-2 text-xs gap-1"
+          aria-label={lang === "ar" ? "الصفحة السابقة" : "Previous page"}
         >
-          <PrevIcon className="h-4 w-4" />
+          <PrevIcon className="h-4 w-4" aria-hidden />
           <span className="hidden sm:inline">{lang === "ar" ? "السابق" : "Prev"}</span>
         </Button>
 
@@ -135,7 +138,9 @@ export function Pagination({
                 key={p}
                 type="button"
                 onClick={() => onPageChange(p)}
-                className={`h-8 min-w-[32px] px-2 rounded-md font-mono text-xs font-medium transition-colors ${
+                aria-label={lang === "ar" ? `صفحة ${p}` : `Page ${p}`}
+                aria-current={isActive ? "page" : undefined}
+                className={`h-8 min-w-[32px] px-2 rounded-md font-mono text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   isActive
                     ? "bg-primary text-primary-foreground shadow-xs font-bold"
                     : "hover:bg-muted text-foreground border border-border/40"
@@ -154,9 +159,10 @@ export function Pagination({
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage >= totalPages}
           className="h-8 px-2 text-xs gap-1"
+          aria-label={lang === "ar" ? "الصفحة التالية" : "Next page"}
         >
           <span className="hidden sm:inline">{lang === "ar" ? "التالي" : "Next"}</span>
-          <NextIcon className="h-4 w-4" />
+          <NextIcon className="h-4 w-4" aria-hidden />
         </Button>
 
         {/* Last page button */}
@@ -167,10 +173,11 @@ export function Pagination({
           disabled={currentPage >= totalPages}
           className="h-8 w-8 p-0"
           title={lang === "ar" ? "الصفحة الأخيرة" : "Last page"}
+          aria-label={lang === "ar" ? "الصفحة الأخيرة" : "Last page"}
         >
-          <LastIcon className="h-4 w-4" />
+          <LastIcon className="h-4 w-4" aria-hidden />
         </Button>
       </div>
-    </div>
+    </nav>
   );
 }

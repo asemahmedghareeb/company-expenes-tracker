@@ -34,8 +34,12 @@ export function ThemeToggle() {
   const toggle = useCallback(() => {
     const next = currentTheme() === "dark" ? "light" : "dark";
     document.documentElement.classList.toggle("dark", next === "dark");
+    // Persist only with Preferences consent (see CookieConsent + /cookies).
+    // Without consent the choice still applies for this session.
     try {
-      localStorage.setItem(THEME_KEY, next);
+      const raw = localStorage.getItem("tadx-consent-v1");
+      const granted = raw ? (JSON.parse(raw) as { preferences?: boolean }).preferences === true : false;
+      if (granted) localStorage.setItem(THEME_KEY, next);
     } catch {
       /* storage unavailable — theme still applies for this session */
     }
@@ -49,6 +53,7 @@ export function ThemeToggle() {
       size="icon"
       onClick={toggle}
       aria-label="Toggle color theme"
+      aria-pressed={mounted && theme === "dark"}
       title="Toggle light / dark mode"
       className="h-8 w-8 rounded-xl"
     >

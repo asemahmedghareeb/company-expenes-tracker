@@ -63,9 +63,18 @@ export function PartnerForm({
           id="email"
           name="email"
           type="email"
+          autoComplete="email"
           defaultValue={initial?.email ?? ""}
           placeholder="partner@firm.com"
+          aria-describedby="partner-email-hint"
         />
+        {/* Data minimization: email is optional and used only to identify
+            the partner on records. No marketing use. See /privacy. */}
+        <p id="partner-email-hint" className="text-xs text-muted-foreground">
+          {lang === "ar"
+            ? "اختياري. يستخدم للتعريف فقط ولا يشارك مع أي طرف."
+            : "Optional. Used for identification only, never shared."}
+        </p>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
@@ -92,7 +101,11 @@ export function PartnerForm({
           <Label htmlFor="isActive">{t.activePartner}</Label>
         </div>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm font-medium text-destructive">
+          {error}
+        </p>
+      )}
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? t.saving : initial ? t.save : t.add}
       </Button>

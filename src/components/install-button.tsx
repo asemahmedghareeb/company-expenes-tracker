@@ -115,9 +115,10 @@ export function InstallButton({ lang }: { lang: Lang }) {
               type="button"
               onClick={() => setHintOpen(false)}
               aria-label={t.close}
+              autoFocus
               className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden />
             </button>
           </span>
           <span className="block space-y-1.5 text-[13px] text-muted-foreground">

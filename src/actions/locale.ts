@@ -11,5 +11,8 @@ export async function setLang(lang: Lang): Promise<void> {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
     sameSite: "lax",
+    // Strictly-necessary functional cookie (remembers the explicitly chosen
+    // UI language). Secure in transit on production; see /cookies for details.
+    secure: process.env.NODE_ENV === "production",
   });
 }

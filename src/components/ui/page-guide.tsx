@@ -105,7 +105,7 @@ export function PageGuide({
                 e.stopPropagation();
                 setIsOpen(false);
               }}
-              aria-label="Collapse"
+              aria-label={isAr ? "طي دليل الصفحة" : "Collapse guide"}
             >
               <ChevronUp className="h-4 w-4" />
               <span>{isAr ? "تصغير / إخفاء" : "Minimize"}</span>

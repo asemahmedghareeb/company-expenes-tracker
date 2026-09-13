@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SwRegister } from "@/components/sw-register";
+import { CookieConsent, CookieSettingsButton } from "@/components/cookie-consent";
 import { themeInitScript } from "@/components/theme-toggle";
 import { dict, getLang } from "@/lib/i18n";
 import { getSessionUser } from "@/lib/auth";
@@ -105,23 +106,82 @@ export default async function RootLayout({
           lang === "ar" && "font-arabic",
         )}
       >
+        {/* First Tab stop for keyboard users (styled in globals.css). */}
+        <a href="#main-content" className="skip-link">
+          {lang === "ar" ? "تخطَّ إلى المحتوى" : "Skip to content"}
+        </a>
         <SiteHeader lang={lang} user={user} />
-        <main className="animate-rise mx-auto w-full max-w-6xl flex-1 flex flex-col min-w-0 px-3.5 py-3 sm:px-6 sm:py-6 overflow-x-hidden">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="animate-rise mx-auto w-full max-w-6xl flex-1 flex flex-col min-w-0 px-3.5 py-3 sm:px-6 sm:py-6 overflow-x-hidden"
+        >
           {children}
         </main>
         <Toaster position="top-center" dir={dir} gap={8} />
         <SwRegister />
-        <footer className="border-t border-border/70 py-4 shrink-0">
-          <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-3.5 text-xs text-muted-foreground sm:flex-row sm:px-6">
-            <span>{dict[lang].footer}</span>
-            <nav aria-label="Legal" className="flex items-center gap-4">
-              <a href="/terms" className="underline-offset-4 hover:underline hover:text-foreground">
+        <CookieConsent lang={lang} />
+        {/* TODO(owner): replace bracketed placeholders with the registered
+            business details (address, email, registration / tax numbers,
+            operating hours) before any external rollout. */}
+        <footer className="border-t border-border/70 py-6 shrink-0">
+          <div className="mx-auto grid w-full max-w-6xl gap-6 px-3.5 text-xs text-muted-foreground sm:px-6 md:grid-cols-[1.2fr_1fr_1fr]">
+            <address className="not-italic leading-relaxed">
+              <p className="font-semibold text-foreground">TADX Company</p>
+              <p>
+                {lang === "ar"
+                  ? "القاهرة، مصر — [أضف العنوان المسجل]"
+                  : "Cairo, Egypt — [add registered address]"}
+              </p>
+              <p>
+                <span>{lang === "ar" ? "البريد: " : "Email: "}</span>
+                <a
+                  href="mailto:contact@tadx.finance"
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  contact@tadx.finance
+                </a>
+              </p>
+              <p>
+                {lang === "ar"
+                  ? "ساعات العمل: [الأحد–الخميس، 9ص–6م]"
+                  : "Hours: [Sun–Thu, 9am–6pm]"}
+              </p>
+              <p>
+                {lang === "ar"
+                  ? "سجل تجاري: [الرقم] — بطاقة ضريبية: [الرقم]"
+                  : "C.R.: [number] — Tax card: [number]"}
+              </p>
+            </address>
+            <nav aria-label={lang === "ar" ? "قانوني" : "Legal"} className="flex flex-col gap-2">
+              <span className="font-semibold text-foreground">
+                {lang === "ar" ? "قانوني" : "Legal"}
+              </span>
+              <a href="/terms" className="w-fit underline-offset-4 hover:underline hover:text-foreground">
                 {lang === "ar" ? "الشروط والأحكام" : "Terms"}
               </a>
-              <a href="/privacy" className="underline-offset-4 hover:underline hover:text-foreground">
+              <a href="/privacy" className="w-fit underline-offset-4 hover:underline hover:text-foreground">
                 {lang === "ar" ? "سياسة الخصوصية" : "Privacy"}
               </a>
+              <a href="/cookies" className="w-fit underline-offset-4 hover:underline hover:text-foreground">
+                {lang === "ar" ? "سياسة ملفات الارتباط" : "Cookies"}
+              </a>
+              <a href="/refunds" className="w-fit underline-offset-4 hover:underline hover:text-foreground">
+                {lang === "ar" ? "الاسترداد والتصحيح" : "Refunds"}
+              </a>
+              <span className="w-fit">
+                <CookieSettingsButton lang={lang} />
+              </span>
             </nav>
+            <div className="leading-relaxed">
+              <p className="font-semibold text-foreground">TADX Finance</p>
+              <p>
+                {lang === "ar"
+                  ? "دفتر داخلي خاص: مصاريف المشاريع وتسويات الشركاء وخزنة الشركة."
+                  : "A private internal ledger: project expenses, partner settlements, company treasury."}
+              </p>
+              <p className="mt-2">{dict[lang].footer}</p>
+            </div>
           </div>
         </footer>
       </body>
