@@ -73,11 +73,11 @@ export function SiteHeader({
           </span>
         </Link>
 
-        {/* Desktop / wide-tablet pill bar */}
+        {/* Desktop / wide-tablet nav */}
         {user && (
           <nav
             aria-label="Primary"
-            className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 text-xs xl:gap-1.5 xl:text-sm lg:flex overflow-x-auto no-scrollbar"
+            className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 text-xs xl:gap-1 xl:text-sm lg:flex overflow-x-auto no-scrollbar"
           >
             {links.map((l) => {
               const active = isActive(l.href);
@@ -88,7 +88,7 @@ export function SiteHeader({
                   prefetch={true}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "rounded-full px-2 py-1 whitespace-nowrap transition-colors hover:bg-accent hover:text-accent-foreground xl:px-2.5 xl:py-1.5",
+                    "rounded-md px-2 py-1 whitespace-nowrap transition-colors hover:bg-accent hover:text-accent-foreground xl:px-2.5 xl:py-1.5",
                     active
                       ? "bg-accent font-medium text-accent-foreground"
                       : "text-muted-foreground",

@@ -172,7 +172,7 @@ export default async function DashboardPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl dark:from-indigo-300 dark:via-indigo-200 dark:to-sky-300">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {t.firmOverview}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

@@ -24,8 +24,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Public: login page and warmer/health check (everything else needs a session).
-  if (pathname === "/login" || pathname === "/api/health") {
+  // Public: login page, legal pages, and warmer/health check (everything else needs a session).
+  if (
+    pathname === "/login" ||
+    pathname === "/terms" ||
+    pathname === "/privacy" ||
+    pathname === "/api/health"
+  ) {
     return NextResponse.next();
   }
 

@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Trash2, Wallet, Check, ChevronDown, Plus, Pencil, X } from "lucide-react";
+import { AlertCircle, Lightbulb, Trash2, Wallet, Check, ChevronDown, Plus, Pencil, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -1409,8 +1409,9 @@ export function EditProjectExpenseDialog({
                   </optgroup>
                 </select>
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-[11px] text-muted-foreground space-y-1">
-                  <p className="font-semibold text-foreground">
-                    {isAr ? "💡 توضيح طريقة السداد:" : "💡 Payment Source Note:"}
+                  <p className="flex items-center gap-1.5 font-semibold text-foreground">
+                    <Lightbulb className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                    {isAr ? "توضيح طريقة السداد:" : "Payment Source Note:"}
                   </p>
                   <p>
                     {isAr

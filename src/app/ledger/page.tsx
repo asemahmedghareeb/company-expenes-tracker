@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate, formatEGP, formatPct } from "@/lib/format";
+import { ArrowLeftRight, Lightbulb } from "lucide-react";
 import { dict, getLang } from "@/lib/i18n";
 import { getLedgerData, getPartners } from "@/actions/queries";
 import { computeInterPartnerDebts, round2 } from "@/lib/ledger";
@@ -130,7 +131,7 @@ export default async function LedgerPage() {
                   {/* Visual progress bar */}
                   <div className="h-2 w-full overflow-hidden rounded-full bg-muted/70 dark:bg-muted/30 border border-border/40">
                     <div
-                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 transition-all duration-500 rounded-full"
+                      className="h-full bg-emerald-500 transition-all duration-500 rounded-full"
                       style={{ width: `${receivedPct}%` }}
                     />
                   </div>
@@ -208,7 +209,7 @@ export default async function LedgerPage() {
         <Card className="border-amber-200 dark:border-amber-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              🤝 {lang === "ar" ? "مديونيات بين الشركاء" : "Inter-Partner Debts"}
+              <ArrowLeftRight className="h-5 w-5 text-muted-foreground" aria-hidden /> {lang === "ar" ? "مديونيات بين الشركاء" : "Inter-Partner Debts"}
             </CardTitle>
             <CardDescription>
               {lang === "ar"
@@ -259,10 +260,13 @@ export default async function LedgerPage() {
                 </TableBody>
               </Table>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-3 flex items-start gap-1.5 text-xs text-muted-foreground">
+              <Lightbulb className="h-3.5 w-3.5 mt-px shrink-0" aria-hidden />
+              <span>
               {lang === "ar"
-                ? "💡 لتسجيل سداد دين بين شريكين: اذهب لصفحة «مصاريف الشركة» واستخدم نموذج «رد مبلغ لشريك» — اختر الشريك الدائن كمستفيد والشريك المدين كمصدر الدفع بالمبلغ نفسه. سيُعيد هذا الحساب إلى الصفر تلقائياً."
-                : "💡 To settle a debt: go to Company Expenses, use 'Partner Payout', choose the creditor as recipient and the debtor as paying partner. The debt will clear automatically."}
+                ? "لتسجيل سداد دين بين شريكين: اذهب لصفحة «مصاريف الشركة» واستخدم نموذج «رد مبلغ لشريك» — اختر الشريك الدائن كمستفيد والشريك المدين كمصدر الدفع بالمبلغ نفسه. سيُعيد هذا الحساب إلى الصفر تلقائياً."
+                : "To settle a debt: go to Company Expenses, use 'Partner Payout', choose the creditor as recipient and the debtor as paying partner. The debt will clear automatically."}
+              </span>
             </p>
           </CardContent>
         </Card>
@@ -318,7 +322,7 @@ export default async function LedgerPage() {
               lang === "ar"
                 ? "عند قيام شريك بدفع مستحقات شريك آخر مباشرةً من ماله الخاص (مثلاً طارق يسدد لعاصم)، يُسجَّل دين مباشر بين الشريكين. يظهر الدين في جدول «مديونيات بين الشركاء» حتى يتم تصفيته بعملية رد عكسية."
                 : "When partner A directly pays partner B's dues from their own pocket, a direct debt is recorded between them. Shown in the inter-partner debts table until cleared.",
-            badge: { text: lang === "ar" ? "🤝 دين بين شريكين" : "🤝 P2P Debt", variant: "outline" },
+            badge: { text: lang === "ar" ? "دين بين شريكين" : "P2P Debt", variant: "outline" },
           },
           {
             title: lang === "ar" ? "رصيد مصاريف الشركة (المقر والتشغيل)" : "Company Operational Overhead Balance",

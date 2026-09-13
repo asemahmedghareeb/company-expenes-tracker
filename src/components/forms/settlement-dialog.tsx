@@ -171,7 +171,7 @@ export function SettlementExecutionDialog({
     <>
       <Button
         onClick={() => setOpen(true)}
-        className="gap-2 bg-gradient-to-r from-indigo-600 to-primary text-white shadow-md hover:opacity-95 transition-all"
+        className="gap-2 bg-primary text-primary-foreground shadow-sm hover:brightness-110"
       >
         <Vault className="h-4 w-4" />
         <span className="font-semibold">

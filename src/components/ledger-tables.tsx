@@ -31,6 +31,7 @@ import {
   Building2,
   ExternalLink,
   FolderGit2,
+  Lightbulb,
 } from "lucide-react";
 
 /* -------------------- Paginated Pending Expenses Table -------------------- */
@@ -441,7 +442,7 @@ export function PartnerProjectsBreakdownDialog({
             <div className="flex items-center gap-1.5">
               <Building2 className="h-4 w-4 text-primary" />
               <h4 className="text-sm font-bold text-foreground">
-                {isAr ? "🏢 تفاصيل رصيد مصاريف الشركة (المقر والتشغيل)" : "🏢 Company Overhead Details"}
+                {isAr ? "تفاصيل رصيد مصاريف الشركة (المقر والتشغيل)" : "Company Overhead Details"}
               </h4>
             </div>
             {companyBreakdown.length > 0 && (
@@ -498,10 +499,13 @@ export function PartnerProjectsBreakdownDialog({
           )}
         </div>
 
-        <p className="text-[11px] text-muted-foreground leading-relaxed pt-2 border-t border-border/60">
+        <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground leading-relaxed pt-2 border-t border-border/60">
+          <Lightbulb className="h-3.5 w-3.5 mt-px shrink-0 text-muted-foreground" aria-hidden />
+          <span>
           {isAr
-            ? "💡 أرباح المشاريع تُسلَّم للشريك فور تسوية كل مشروع بدون احتجاز كوديعة في الشركة. «رصيد مصاريف الشركة» يوضح ما دفعه الشريك زيادة عن حصته (دائن) أو ما يتبقى عليه سداده لتغطية المصاريف المشتركة (مدين)."
-            : "💡 Project profits are handed directly to partners upon project settlement. Company overhead shows if the partner has overpaid (credit) or underpaid (debit) for shared operating expenses."}
+            ? "أرباح المشاريع تُسلَّم للشريك فور تسوية كل مشروع بدون احتجاز كوديعة في الشركة. «رصيد مصاريف الشركة» يوضح ما دفعه الشريك زيادة عن حصته (دائن) أو ما يتبقى عليه سداده لتغطية المصاريف المشتركة (مدين)."
+            : "Project profits are handed directly to partners upon project settlement. Company overhead shows if the partner has overpaid (credit) or underpaid (debit) for shared operating expenses."}
+          </span>
         </p>
       </DialogBody>
 

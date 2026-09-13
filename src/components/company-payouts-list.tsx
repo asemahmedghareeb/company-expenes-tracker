@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ArrowLeftRight, Landmark } from "lucide-react";
 import { formatDate, formatEGP, type Lang } from "@/lib/format";
 import { dict } from "@/lib/dict";
 import { DeleteCompanyPayoutButton } from "@/components/forms/company-forms";
@@ -60,11 +61,11 @@ export function CompanyPayoutsList({ payouts, lang }: CompanyPayoutsListProps) {
               {/* P2P badge */}
               {x.paidBy ? (
                 <span className="mt-0.5 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
-                  🤝 {lang === "ar" ? `دُفع بواسطة: ${x.paidBy.name}` : `Paid by: ${x.paidBy.name}`}
+                  <ArrowLeftRight className="h-3 w-3 shrink-0" aria-hidden /> {lang === "ar" ? `دُفع بواسطة: ${x.paidBy.name}` : `Paid by: ${x.paidBy.name}`}
                 </span>
               ) : (
                 <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground/60">
-                  🏢 {lang === "ar" ? "الشركة" : "Company Vault"}
+                  <Landmark className="h-3 w-3 shrink-0" aria-hidden /> {lang === "ar" ? "الشركة" : "Company Vault"}
                 </span>
               )}
               {x.notes && (

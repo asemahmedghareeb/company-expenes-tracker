@@ -25,12 +25,33 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "TADX Finance — الإدارة المالية وحسابات الشركاء",
+  metadataBase: new URL("https://tadx.finance"),
+  title: {
+    default: "TADX Finance | Company expenses, partner settlements, treasury",
+    template: "%s | TADX Finance",
+  },
   description:
-    "منظومة TADX Finance للإدارة المالية وحسابات الشركاء: توزيع الأرباح، تسوية الحسابات، مصاريف المشاريع، وخزنة الشركة.",
+    "TADX Finance is a private ledger for small firms: track project expenses, split profit by equity, settle partner balances, and audit company overhead and treasury custody.",
   applicationName: "TADX Finance",
   manifest: "/manifest.webmanifest",
   formatDetection: { telephone: false },
+  alternates: { canonical: "/" },
+  robots: { index: false, follow: false },
+  openGraph: {
+    type: "website",
+    siteName: "TADX Finance",
+    title: "TADX Finance | Partner ledger and company treasury",
+    description:
+      "Track project costs, settle partner balances, and reconcile company overhead in one private ledger.",
+    images: [{ url: "/icon-512.png", width: 512, height: 512, alt: "TADX Finance" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "TADX Finance | Partner ledger and company treasury",
+    description:
+      "Track project costs, settle partner balances, and reconcile company overhead in one private ledger.",
+    images: ["/icon-512.png"],
+  },
   appleWebApp: {
     capable: true,
     title: "TADX Finance",
@@ -90,8 +111,18 @@ export default async function RootLayout({
         </main>
         <Toaster position="top-center" dir={dir} gap={8} />
         <SwRegister />
-        <footer className="border-t border-border/70 py-4 text-center text-xs text-muted-foreground shrink-0">
-          {dict[lang].footer}
+        <footer className="border-t border-border/70 py-4 shrink-0">
+          <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-3.5 text-xs text-muted-foreground sm:flex-row sm:px-6">
+            <span>{dict[lang].footer}</span>
+            <nav aria-label="Legal" className="flex items-center gap-4">
+              <a href="/terms" className="underline-offset-4 hover:underline hover:text-foreground">
+                {lang === "ar" ? "الشروط والأحكام" : "Terms"}
+              </a>
+              <a href="/privacy" className="underline-offset-4 hover:underline hover:text-foreground">
+                {lang === "ar" ? "سياسة الخصوصية" : "Privacy"}
+              </a>
+            </nav>
+          </div>
         </footer>
       </body>
     </html>

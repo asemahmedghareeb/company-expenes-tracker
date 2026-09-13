@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Vault, CheckCircle2, Pencil, Calendar, Plus, ChevronDown, ChevronUp, PlusCircle } from "lucide-react";
+import { ArrowLeftRight, Trash2, Vault, CheckCircle2, Pencil, Calendar, Plus, ChevronDown, ChevronUp, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/badge";
@@ -182,9 +182,9 @@ export function CompanyExpenseForm({
             variant={isExpanded ? "ghost" : "default"}
             size="sm"
             className={cn(
-              "shrink-0 gap-1.5 rounded-xl h-8.5 font-semibold text-xs",
+              "shrink-0 gap-1.5 rounded-lg h-8.5 font-semibold text-xs",
               !isExpanded &&
-                "bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow-xs hover:from-indigo-500 hover:to-sky-500",
+                "bg-primary text-primary-foreground shadow-xs hover:brightness-110",
             )}
             onClick={(e) => {
               e.stopPropagation();
@@ -448,7 +448,7 @@ export function CompanyExpenseForm({
       )}
 
       {/* Route amount to Company Vault (Reserve) */}
-      <div className="rounded-xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/50 to-indigo-100/20 p-3.5 dark:border-indigo-900/50 dark:from-indigo-950/20 dark:to-indigo-900/10 space-y-2.5">
+      <div className="rounded-lg border border-border bg-muted/40 p-3.5 space-y-2.5">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-1.5 font-semibold text-indigo-950 dark:text-indigo-200">
             <Vault className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
@@ -857,8 +857,8 @@ export function CompanyPayoutForm({
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              🤝
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <ArrowLeftRight className="h-4 w-4" aria-hidden />
             </span>
             <div className="min-w-0">
               <CardTitle className="text-base font-bold text-foreground">
@@ -874,9 +874,9 @@ export function CompanyPayoutForm({
             variant={isExpanded ? "ghost" : "default"}
             size="sm"
             className={cn(
-              "shrink-0 gap-1.5 rounded-xl h-8.5 font-semibold text-xs",
+              "shrink-0 gap-1.5 rounded-lg h-8.5 font-semibold text-xs",
               !isExpanded &&
-                "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xs hover:from-amber-500 hover:to-orange-500",
+                "bg-amber-600 text-white shadow-xs hover:bg-amber-500",
             )}
             onClick={(e) => {
               e.stopPropagation();

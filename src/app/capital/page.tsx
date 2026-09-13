@@ -148,7 +148,7 @@ export default async function CapitalPage() {
             <CardDescription>{t.totalCollectedHint}</CardDescription>
           </CardHeader>
         </Card>
-        <Card className="border-indigo-200/80 bg-gradient-to-br from-card via-card to-indigo-50/40 dark:border-indigo-900/60 dark:to-indigo-950/20">
+        <Card className="border-border bg-muted/40">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription className="text-indigo-900 dark:text-indigo-300 font-medium">

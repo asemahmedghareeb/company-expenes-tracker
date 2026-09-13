@@ -52,7 +52,7 @@ export function PageGuide({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="group inline-flex items-center gap-2.5 rounded-xl border border-indigo-200/90 bg-indigo-50/50 px-4 py-2.5 text-xs font-semibold text-indigo-900 shadow-2xs transition-all hover:border-indigo-400 hover:bg-indigo-100/70 hover:shadow-xs dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200 dark:hover:border-indigo-700"
+          className="group inline-flex items-center gap-2.5 rounded-lg border border-border bg-muted px-4 py-2.5 text-xs font-semibold text-foreground shadow-2xs transition-colors hover:bg-accent"
         >
           <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-indigo-200/70 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 group-hover:scale-110 transition-transform">
             <Lightbulb className="h-3.5 w-3.5" />
@@ -73,7 +73,7 @@ export function PageGuide({
   return (
     <div className={cn("pt-6 pb-2 border-t border-border/40 mt-8", className)}>
       <Card
-        className="overflow-hidden border-indigo-200/70 bg-gradient-to-br from-card via-card to-indigo-50/30 shadow-sm transition-all dark:border-indigo-950 dark:to-indigo-950/20"
+        className="overflow-hidden border-border bg-card shadow-sm"
       >
         <CardHeader
           className="cursor-pointer select-none py-3.5 px-4 sm:px-6 hover:bg-muted/30 transition-colors"

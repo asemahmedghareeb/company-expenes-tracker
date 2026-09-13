@@ -16,7 +16,9 @@ import { LoginForm } from "./login-form";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "تسجيل الدخول | TADX Finance",
+  title: "Sign in | TADX Finance",
+  description:
+    "Sign in to TADX Finance, the private company ledger for project expenses, partner settlements, and treasury custody.",
 };
 
 /** Public gate — authenticated visitors bounce straight into the app. */
@@ -29,18 +31,14 @@ export default async function LoginPage() {
   const t = dict[lang].auth;
 
   return (
-    <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-2 sm:px-4 py-2 sm:py-4">
-      {/* Decorative ambient background glows */}
-      <div className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 h-56 w-56 rounded-full bg-indigo-500/15 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 h-48 w-48 rounded-full bg-sky-500/10 blur-3xl" />
-
-      <Card className="relative w-full overflow-hidden rounded-3xl border border-border/80 bg-card/95 shadow-2xl backdrop-blur-xl transition-all">
-        {/* Top subtle brand gradient bar */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-sky-500 to-indigo-600" />
+    <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-2 sm:px-4 py-2 sm:py-4">
+      <Card className="relative w-full overflow-hidden rounded-xl border border-border/80 bg-card shadow-lg">
+        {/* Top brand bar */}
+        <div className="h-1 w-full bg-primary" />
 
         <CardHeader className="items-center text-center space-y-2.5 pt-5 sm:pt-6 pb-3 sm:pb-4">
           {/* Logo container */}
-          <div className="relative flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-2xl bg-card border border-border/70 p-2.5 shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/20">
+          <div className="relative flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-xl bg-card border border-border/70 p-2.5 shadow-sm">
             <Image
               src="/logo.png"
               alt="TADX Finance"
@@ -53,7 +51,7 @@ export default async function LoginPage() {
           </div>
 
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-0.5 text-xs font-bold tracking-wider text-indigo-500 uppercase" dir="ltr">
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted px-3 py-0.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase" dir="ltr">
               TADX Finance
             </div>
             <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight">

@@ -100,7 +100,7 @@ export function LoginForm({ lang }: { lang: Lang }) {
       <Button
         type="submit"
         disabled={pending}
-        className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-semibold shadow-md shadow-indigo-500/20 active:scale-[0.99] transition-all"
+        className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-semibold shadow-sm hover:brightness-110"
       >
         {pending ? (
           <>
@@ -118,7 +118,7 @@ export function LoginForm({ lang }: { lang: Lang }) {
       {/* Security Note */}
       <div className="pt-2 text-center">
         <div className="inline-flex items-center justify-center gap-1.5 text-xs text-muted-foreground/80">
-          <ShieldCheck className="h-3.5 w-3.5 text-indigo-500" />
+          <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
           <span>{t.securityNote}</span>
         </div>
       </div>
